@@ -1,0 +1,6 @@
+# 노트북과 서버가 함께 쓰는 의존성.
+#
+# common/ 패키지 자체는 표준 라이브러리만 쓴다. 여기 있는 건 robot/ 과 server/ 의
+# 스크립트가 양쪽 다 필요로 하는 것들이다.
+
+h5py>=3.8        # 데모 데이터셋 읽기 (robot/replay_hdf5.py, server/replay_with_mujoco.py)

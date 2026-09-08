@@ -29,11 +29,25 @@ server/   GPU 서버(Linux)에서만 실행 — 브리지 경유
   replay_with_mujoco.py  재생 + 라이브 MuJoCo (※ 현재 미동작, docs/VENDORED.md 참조)
 ```
 
+## 설치
+
 `common/` 을 양쪽에서 import 하려고 editable install 을 쓴다. `sys.path` 는 건드리지 않는다.
 
+**Python 3.10 이어야 한다.** 3.11 이상에서는 `pip install -e .` 이 거부된다.
+
 ```bash
-pip install -e .        # 서버와 노트북 양쪽에서 각각
+# 서버 (Linux)
+pip install -r requirements/server.txt
+pip install -e .
+
+# 로봇 노트북 (Windows)
+pip install -r requirements/robot.txt
+pip install -e .
 ```
+
+`requirements/robot.txt` 와 `server.txt` 는 각각 `-r common.txt` 로 공통분을 상속한다.
+`pyproject.toml` 의 `dependencies` 가 비어 있는 것은 의도된 것이다 — 양쪽 환경의
+의존성이 다르고, 정작 `common/` 은 표준 라이브러리만 쓴다.
 
 실행은 파일 경로가 아니라 모듈로 부른다:
 
@@ -50,5 +64,8 @@ python -m server.replay_network --demo 0 --max-steps 5  # 서버 (드라이런)
 
 ## 제약
 
-- **Python 3.10 고정** (3.11+ 에서 SDK dataclass 호환 문제). `pyproject.toml` 에 명시.
+- **Python 3.10 고정** (3.11+ 에서 SDK dataclass 호환 문제). `pyproject.toml` 의
+  `requires-python = ">=3.10,<3.11"` 로 강제된다.
 - 모델 체크포인트, `data/`, `logs/`, `wandb/`, `outputs/` 는 버전관리 대상이 아니다.
+- `cosmos-policy/` 와 `RosForMirobot-master/` 도 버전관리에서 빠져 있다.
+  새 환경에서는 `docs/VENDORED.md` 절차대로 직접 clone 해야 한다.

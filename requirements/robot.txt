@@ -1,0 +1,9 @@
+# 로봇 노트북(Windows) 전용. 시리얼 직결과 카메라를 담당한다.
+-r common.txt
+
+pyserial>=3.5        # G-code 시리얼 통신 (robot/serial_bridge.py, replay_*.py)
+opencv-python>=4.8   # USB 카메라 캡처 (robot/camera_bridge.py)
+
+# forward_kinematics.py / inverse_kinematics.py 의 수동 조작용.
+# 리눅스에서는 root 권한이 필요해서 서버에는 설치하지 않는다.
+keyboard>=0.13

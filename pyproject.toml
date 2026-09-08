@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mirobot-vla"
+version = "0.1.0"
+description = "WLKATA Mirobot 6축 로봇팔 VLA 파이프라인"
+readme = "README.md"
+# Python 3.10 고정. 3.11+ 에서 SDK dataclass 호환 문제가 있어 상한을 건다.
+requires-python = ">=3.10,<3.11"
+
+# 런타임 의존성을 비워 둔 것은 실수가 아니다.
+#
+# 이 패키지는 로봇 노트북(Windows)과 GPU 서버(Linux) 양쪽에 설치되는데 필요한
+# 라이브러리가 서로 다르다. 노트북에 mujoco 를, 서버에 opencv 를 강제할 이유가 없다.
+# 그리고 정작 양쪽이 공유하는 common/ 은 표준 라이브러리만 쓴다.
+#
+# 환경별 의존성은 requirements/ 에 있다. 설치 순서:
+#
+#     pip install -r requirements/robot.txt    # 노트북
+#     pip install -r requirements/server.txt   # 서버
+#     pip install -e .                         # 양쪽 공통
+dependencies = []
+
+[tool.setuptools]
+packages = ["common", "robot", "server"]

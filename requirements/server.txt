@@ -1,0 +1,9 @@
+# GPU 서버(Linux) 전용. 브리지 경유 실행과 시뮬레이션을 담당한다.
+-r common.txt
+
+numpy>=1.24      # server/replay_with_mujoco.py
+pillow>=10.0     # 뷰어 프레임 생성 (server/replay_with_viewer.py, replay_with_mujoco.py)
+mujoco>=3.0      # 라이브 시뮬 (server/replay_with_mujoco.py)
+
+# cosmos_policy 는 PyPI 에 없다. 별도 clone 이 필요하며 업스트림에는 이 프로젝트가
+# 쓰는 mirobot 모듈이 아직 없다. docs/VENDORED.md 참조.
