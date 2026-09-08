@@ -9,7 +9,7 @@ Install dependency:
 
 Start bridge:
 
-    python mirobot_serial_bridge.py --serial-port COM7
+    python -m robot.serial_bridge --serial-port COM7
 
 Then run a network replay script from the SSH server, pointing it at this PC's
 IP address.
@@ -28,12 +28,15 @@ try:
 except ImportError:
     serial = None
 
-
-OK_TOKEN = "__OK__"
-ERR_TOKEN = "__ERR__"
-QUIT_TOKEN = "__QUIT__"
-PING_TOKEN = "__PING__"
-STATUS_TOKEN = "__STATUS__"
+from common.protocol import (
+    DEFAULT_BRIDGE_PORT,
+    ERR_TOKEN,
+    OK_TOKEN,
+    PING_TOKEN,
+    QUIT_TOKEN,
+    READY_MESSAGE,
+    STATUS_TOKEN,
+)
 
 
 STATUS_READ_TIMEOUT_S = 1.0
@@ -224,7 +227,7 @@ def handle_client(conn: socket.socket, addr, ser, robot_timeout_s: float) -> Non
                 send_response(conn_file, OK_TOKEN)
                 return
             if command == PING_TOKEN:
-                send_response(conn_file, f"{OK_TOKEN} bridge-ready")
+                send_response(conn_file, READY_MESSAGE)
                 continue
             if command == STATUS_TOKEN:
                 status = query_robot_status(ser)
@@ -252,7 +255,7 @@ def main() -> None:
     parser.add_argument("--serial-port", default="COM7", help="Windows serial port, e.g. COM7")
     parser.add_argument("--baudrate", type=int, default=115200)
     parser.add_argument("--listen-host", default="0.0.0.0")
-    parser.add_argument("--listen-port", type=int, default=8765)
+    parser.add_argument("--listen-port", type=int, default=DEFAULT_BRIDGE_PORT)
     parser.add_argument("--robot-timeout", type=float, default=20.0)
     args = parser.parse_args()
 

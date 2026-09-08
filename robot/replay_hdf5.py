@@ -3,7 +3,7 @@
 
 The dataset stores EEF positions in MuJoCo world meters. This script converts
 those positions to the Cartesian G-code convention used by the existing
-mirobot_control examples, then uses the action gripper command to open/close.
+robot/ scripts, then uses the action gripper command to open/close.
 """
 
 from __future__ import annotations
@@ -19,10 +19,18 @@ try:
 except ImportError:  # pragma: no cover - lets --dry-run work without pyserial.
     serial = None
 
+from common.gcode import (
+    DEFAULT_CLOSE_CMD,
+    DEFAULT_OPEN_CMD,
+    HOME_SEQUENCE,
+    gripper_gcode,
+    state_to_gcode,
+)
+
 
 DEFAULT_HDF5 = (
     Path(__file__).resolve().parents[1]
-    / "cosmos-policy_tj"
+    / "cosmos-policy"
     / "artifacts"
     / "mirobot"
     / "datasets"
@@ -74,28 +82,6 @@ def load_demo(hdf5_path: Path, demo_index: int):
     return str(instruction), actions, robot_states
 
 
-def state_to_gcode(
-    state,
-    *,
-    x_offset_mm: float,
-    y_offset_mm: float,
-    z_offset_mm: float,
-    a_deg: float,
-    b_deg: float,
-    c_deg: float,
-) -> str:
-    # robot_states layout:
-    # [gripper_left, gripper_right, eef_x, eef_y, eef_z, quat_w, quat_x, quat_y, quat_z]
-    x_mm = float(state[2]) * 1000.0 + x_offset_mm
-    y_mm = float(state[3]) * 1000.0 + y_offset_mm
-    z_mm = float(state[4]) * 1000.0 + z_offset_mm
-    return f"G0 X{x_mm:.2f} Y{y_mm:.2f} Z{z_mm:.2f} A{a_deg:.2f} B{b_deg:.2f} C{c_deg:.2f}"
-
-
-def gripper_gcode(gripper_command: float, open_cmd: str, close_cmd: str) -> str:
-    return open_cmd if gripper_command < 0.0 else close_cmd
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hdf5", type=Path, default=DEFAULT_HDF5)
@@ -118,8 +104,8 @@ def main() -> None:
     parser.add_argument("--a-deg", type=float, default=0.0)
     parser.add_argument("--b-deg", type=float, default=0.0)
     parser.add_argument("--c-deg", type=float, default=0.0)
-    parser.add_argument("--open-cmd", default="M4 S40")
-    parser.add_argument("--close-cmd", default="M4 S60")
+    parser.add_argument("--open-cmd", default=DEFAULT_OPEN_CMD)
+    parser.add_argument("--close-cmd", default=DEFAULT_CLOSE_CMD)
     args = parser.parse_args()
 
     if args.stride < 1:
@@ -147,7 +133,7 @@ def main() -> None:
 
     try:
         if not args.skip_home:
-            for command in ("$22=1", "$H", "M20", "G90"):
+            for command in HOME_SEQUENCE:
                 send_gcode(ser, command, dry_run=not args.execute)
 
         last_gripper_cmd: str | None = None
@@ -157,17 +143,17 @@ def main() -> None:
 
             command = state_to_gcode(
                 state,
-                x_offset_mm=args.x_offset_mm,
-                y_offset_mm=args.y_offset_mm,
-                z_offset_mm=args.z_offset_mm,
-                a_deg=args.a_deg,
-                b_deg=args.b_deg,
-                c_deg=args.c_deg,
+                args.x_offset_mm,
+                args.y_offset_mm,
+                args.z_offset_mm,
+                args.a_deg,
+                args.b_deg,
+                args.c_deg,
             )
             print(f"[demo_{args.demo_index} step {step_idx:04d}]")
             send_gcode(ser, command, dry_run=not args.execute)
 
-            command = gripper_gcode(float(action[6]), args.open_cmd, args.close_cmd)
+            command = gripper_gcode(action, args.open_cmd, args.close_cmd)
             if command != last_gripper_cmd:
                 send_gcode(ser, command, dry_run=not args.execute)
                 last_gripper_cmd = command

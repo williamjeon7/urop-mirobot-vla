@@ -1,42 +1,15 @@
-#!/usr/bin/env python3
-"""Replay embedded Mirobot demos on a real WLKata Mirobot via serial G-code.
+"""임베디드 Mirobot 데모 궤적.
 
-This is a standalone script: copy this file to the PC connected to the robot.
-It does not need the HDF5 dataset. It only needs pyserial:
+원본은 mirobot_control/replay_all_demos_standalone.py 안에 있었고, 서버 쪽
+스크립트들이 그 스크립트를 import 해서 데이터를 꺼내 쓰고 있었다. 양쪽에서
+필요한 값이므로 common/ 으로 옮겼다.
 
-    python -m pip install pyserial
-
-Dry-run all demos, no robot commands are sent:
-
-    python replay_all_demos_standalone.py --demo all
-
-Real execution, first test one demo with a few steps:
-
-    python replay_all_demos_standalone.py --port COM7 --demo 0 --max-steps 10 --execute
-
-Real execution, run demo_0 through demo_9:
-
-    python replay_all_demos_standalone.py --port COM7 --demo all --period 0.2 --home-each-demo --execute
+각 데모는 actions / states 두 리스트를 가진다. 벡터 구성은 common.schema 참조.
+데이터가 커서(약 270KB) 이 모듈을 import 하면 그만큼 메모리에 올라온다.
 """
 
 from __future__ import annotations
 
-import argparse
-import time
-
-try:
-    import serial
-except ImportError:
-    serial = None
-
-TASK_INSTRUCTION = 'pick up the red cube and place it on the green target'
-DEFAULT_Z_OFFSET_MM = 54.0
-
-# Each demo stores:
-# actions: [delta_eef_x, delta_eef_y, delta_eef_z, delta_rot_x, delta_rot_y, delta_rot_z, gripper_command]
-# states:  [gripper_left_qpos, gripper_right_qpos, eef_pos_x, eef_pos_y, eef_pos_z,
-#           eef_quat_w, eef_quat_x, eef_quat_y, eef_quat_z]
-# EEF positions are in meters in the MuJoCo world frame.
 DEMOS = {
   "0": {
     "actions": [
@@ -14301,43 +14274,8 @@ DEMOS = {
 }
 
 
-def send_gcode(ser, command: str, dry_run: bool) -> None:
-    print(f"send: {command}")
-    if dry_run:
-        return
-
-    ser.write((command + "\n").encode())
-    while True:
-        line = ser.readline().decode("utf-8", errors="ignore").strip()
-        if line:
-            print(f"  recv: {line}")
-        low = line.lower()
-        if low.startswith("error"):
-            raise RuntimeError(f"Robot returned error for {command}: {line}")
-        if "[reset to continue]" in low:
-            ser.write(b"\n")
-            raise RuntimeError("Robot is waiting for reset.")
-        if "ok" in low:
-            return
-
-
-def run_home(ser, dry_run: bool) -> None:
-    for command in ("$22=1", "$H", "M20", "G90"):
-        send_gcode(ser, command, dry_run)
-
-
-def state_to_gcode(state, x_offset_mm: float, y_offset_mm: float, z_offset_mm: float, a: float, b: float, c: float) -> str:
-    x_mm = float(state[2]) * 1000.0 + x_offset_mm
-    y_mm = float(state[3]) * 1000.0 + y_offset_mm
-    z_mm = float(state[4]) * 1000.0 + z_offset_mm
-    return f"G0 X{x_mm:.2f} Y{y_mm:.2f} Z{z_mm:.2f} A{a:.2f} B{b:.2f} C{c:.2f}"
-
-
-def gripper_gcode(action, open_cmd: str, close_cmd: str) -> str:
-    return open_cmd if float(action[6]) < 0.0 else close_cmd
-
-
 def parse_demo_selection(selection: str) -> list[int]:
+    """"all", "0-9", "3" 같은 선택 문자열을 데모 인덱스 리스트로 바꾼다."""
     available = sorted(int(k) for k in DEMOS.keys())
     if selection == "all":
         return available
@@ -14352,104 +14290,3 @@ def parse_demo_selection(selection: str) -> list[int]:
     if missing:
         raise ValueError(f"Missing demos {missing}. Available demos: {available}")
     return selected
-
-
-def replay_demo(ser, demo_idx: int, args, dry_run: bool) -> None:
-    demo = DEMOS[str(demo_idx)]
-    actions = demo["actions"]
-    states = demo["states"]
-    indices = list(range(0, len(states), args.stride))
-    if args.max_steps > 0:
-        indices = indices[: args.max_steps]
-
-    print(f"===== demo_{demo_idx} | states={len(states)} | replayed={len(indices)} =====")
-    last_gripper = None
-    for step_idx in indices:
-        state = states[step_idx]
-        action = actions[step_idx]
-        print(f"[demo_{demo_idx} step {step_idx:04d}]")
-        send_gcode(
-            ser,
-            state_to_gcode(
-                state,
-                args.x_offset_mm,
-                args.y_offset_mm,
-                args.z_offset_mm,
-                args.a_deg,
-                args.b_deg,
-                args.c_deg,
-            ),
-            dry_run,
-        )
-
-        grip_cmd = gripper_gcode(action, args.open_cmd, args.close_cmd)
-        if grip_cmd != last_gripper:
-            send_gcode(ser, grip_cmd, dry_run)
-            last_gripper = grip_cmd
-
-        if args.period > 0:
-            time.sleep(args.period)
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Replay embedded Mirobot demos.")
-    parser.add_argument("--demo", default="all", help="Demo index, range like 0-9, or all. Default: all")
-    parser.add_argument("--port", default="COM7", help="Serial port, e.g. COM7 or /dev/ttyUSB0")
-    parser.add_argument("--baudrate", type=int, default=115200)
-    parser.add_argument("--execute", action="store_true", help="Actually send commands. Without this, dry-run only.")
-    parser.add_argument("--skip-home", action="store_true", help="Do not home before replay starts.")
-    parser.add_argument("--home-each-demo", action="store_true", help="Home before every selected demo. Recommended for all demos.")
-    parser.add_argument("--period", type=float, default=0.20, help="Seconds between states.")
-    parser.add_argument("--between-demo-pause", type=float, default=1.0, help="Seconds to pause between demos.")
-    parser.add_argument("--max-steps", type=int, default=0, help="Per-demo limit. 0 means replay all states.")
-    parser.add_argument("--stride", type=int, default=1, help="Replay every Nth state.")
-    parser.add_argument("--x-offset-mm", type=float, default=0.0)
-    parser.add_argument("--y-offset-mm", type=float, default=0.0)
-    parser.add_argument("--z-offset-mm", type=float, default=DEFAULT_Z_OFFSET_MM)
-    parser.add_argument("--a-deg", type=float, default=0.0)
-    parser.add_argument("--b-deg", type=float, default=0.0)
-    parser.add_argument("--c-deg", type=float, default=0.0)
-    parser.add_argument("--open-cmd", default="M4 S40")
-    parser.add_argument("--close-cmd", default="M4 S60")
-    args = parser.parse_args()
-
-    if args.stride < 1:
-        parser.error("--stride must be >= 1")
-    if args.period < 0 or args.between_demo_pause < 0:
-        parser.error("--period and --between-demo-pause must be >= 0")
-
-    selected = parse_demo_selection(args.demo)
-    dry_run = not args.execute
-    print(f"instruction: {TASK_INSTRUCTION}")
-    print(f"available demos: {sorted(int(k) for k in DEMOS.keys())}")
-    print(f"selected demos: {selected}")
-    print(f"mode: {'EXECUTE' if args.execute else 'DRY-RUN'}")
-    print(f"port: {args.port}")
-    print(f"z_offset_mm: {args.z_offset_mm}")
-
-    ser = None
-    if args.execute:
-        if serial is None:
-            raise RuntimeError("pyserial is not installed. Run: python -m pip install pyserial")
-        ser = serial.Serial(port=args.port, baudrate=args.baudrate, timeout=1)
-        time.sleep(2)
-
-    try:
-        if not args.skip_home and not args.home_each_demo:
-            run_home(ser, dry_run)
-
-        for i, demo_idx in enumerate(selected):
-            if args.home_each_demo and not args.skip_home:
-                print(f"===== homing before demo_{demo_idx} =====")
-                run_home(ser, dry_run)
-            replay_demo(ser, demo_idx, args, dry_run)
-            if i != len(selected) - 1 and args.between_demo_pause > 0:
-                time.sleep(args.between_demo_pause)
-    finally:
-        if ser is not None:
-            ser.close()
-            print("serial closed")
-
-
-if __name__ == "__main__":
-    main()

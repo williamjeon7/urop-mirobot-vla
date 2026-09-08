@@ -2,7 +2,7 @@
 """Replay a Mirobot demo through the TCP bridge while serving sim frames.
 
 This script is meant to run on the SSH server. It sends the same G-code stream
-as replay_all_demos_network.py, and also serves the exported simulation frames
+as server/replay_network.py, and also serves the exported simulation frames
 in a small browser viewer.
 
 Open the viewer in a browser:
@@ -11,11 +11,11 @@ Open the viewer in a browser:
 
 Dry-run:
 
-    python mirobot_control/replay_demo_network_with_viewer.py --demo 0 --max-steps 10
+    python -m server.replay_with_viewer --demo 0 --max-steps 10
 
 Real execution:
 
-    python mirobot_control/replay_demo_network_with_viewer.py \
+    python -m server.replay_with_viewer \
       --bridge-host <LAPTOP_IP> --demo 0 --execute
 """
 
@@ -30,19 +30,24 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from replay_all_demos_network import BridgeClient, run_home, send_gcode
-from replay_all_demos_standalone import (
+from common.demos import DEMOS
+from common.gcode import (
+    DEFAULT_CLOSE_CMD,
+    DEFAULT_OPEN_CMD,
     DEFAULT_Z_OFFSET_MM,
-    DEMOS,
-    TASK_INSTRUCTION,
     gripper_gcode,
     state_to_gcode,
 )
+from common.protocol import DEFAULT_BRIDGE_HOST, DEFAULT_BRIDGE_PORT
+from common.schema import TASK_INSTRUCTION
+from server.bridge_client import BridgeClient, run_home, send_gcode
 
 
+# 시뮬레이션 프레임이 export 되어 있는 위치. artifacts/ 는 .gitignore 대상이라
+# 새 환경에서는 직접 만들어야 한다. docs/VENDORED.md 참조.
 DEFAULT_EXPORT_ROOT = (
     Path(__file__).resolve().parents[1]
-    / "cosmos-policy_tj/artifacts/mirobot/datasets/active/wrist_under_v1_pick_place"
+    / "cosmos-policy/artifacts/mirobot/datasets/active/wrist_under_v1_pick_place"
 )
 
 
@@ -217,8 +222,8 @@ def main() -> None:
     parser.add_argument("--export-dir", default=str(DEFAULT_EXPORT_ROOT / "demo_0_export"))
     parser.add_argument("--viewer-host", default="0.0.0.0")
     parser.add_argument("--viewer-port", type=int, default=8888)
-    parser.add_argument("--bridge-host", default="127.0.0.1", help="Windows PC IP address")
-    parser.add_argument("--bridge-port", type=int, default=8765)
+    parser.add_argument("--bridge-host", default=DEFAULT_BRIDGE_HOST, help="Windows PC IP address")
+    parser.add_argument("--bridge-port", type=int, default=DEFAULT_BRIDGE_PORT)
     parser.add_argument("--bridge-timeout", type=float, default=20.0)
     parser.add_argument("--execute", action="store_true", help="Actually send commands. Without this, dry-run only.")
     parser.add_argument("--skip-home", action="store_true")
@@ -233,8 +238,8 @@ def main() -> None:
     parser.add_argument("--a-deg", type=float, default=0.0)
     parser.add_argument("--b-deg", type=float, default=0.0)
     parser.add_argument("--c-deg", type=float, default=0.0)
-    parser.add_argument("--open-cmd", default="M4 S40")
-    parser.add_argument("--close-cmd", default="M4 S60")
+    parser.add_argument("--open-cmd", default=DEFAULT_OPEN_CMD)
+    parser.add_argument("--close-cmd", default=DEFAULT_CLOSE_CMD)
     args = parser.parse_args()
 
     if str(args.demo) not in DEMOS:

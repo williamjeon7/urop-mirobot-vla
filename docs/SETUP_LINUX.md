@@ -17,7 +17,7 @@
 
 ```powershell
 cd C:\mirobot
-python mirobot_serial_bridge.py --serial-port COM3
+python -m robot.serial_bridge --serial-port COM3
 ```
 
 `bridge listening on 0.0.0.0:8765` 뜨면 성공. **창 유지.**
@@ -49,7 +49,7 @@ Ubuntu 인사말 뜨면 성공. **창 유지.**
 
 ```bash
 conda activate urop
-cd ~/UROP/mirobot_control
+cd ~/UROP
 ```
 
 연결 확인:
@@ -69,13 +69,13 @@ f.write(b'__QUIT__\n');   s.close()"
 
 ```bash
 # 드라이런 (네트워크 안 씀, G-code만 출력)
-python replay_all_demos_network.py --bridge-host 127.0.0.1 --demo 0 --max-steps 5
+python -m server.replay_network --bridge-host 127.0.0.1 --demo 0 --max-steps 5
 
 # 실제 동작
-python replay_all_demos_network.py --bridge-host 127.0.0.1 --demo 0 --max-steps 5 --execute
+python -m server.replay_network --bridge-host 127.0.0.1 --demo 0 --max-steps 5 --execute
 
 # 전체 데모
-python replay_all_demos_network.py --bridge-host 127.0.0.1 --demo all --home-each-demo --execute
+python -m server.replay_network --bridge-host 127.0.0.1 --demo all --home-each-demo --execute
 ```
 
 `--execute`가 붙으면 첫 명령이 `$H` **호밍**이라 로봇이 크게 움직인다.
@@ -106,14 +106,19 @@ python replay_all_demos_network.py --bridge-host 127.0.0.1 --demo all --home-eac
   다시 만들 일이 있으면
   `mamba create -n urop -y -c conda-forge python=3.10 pyserial pillow h5py numpy`.
   activate는 `conda activate urop` (`mamba activate`는 이 셸에서 안 됨).
-- `mujoco`, `cosmos_policy`는 안 넣었다. `cosmos-policy_tj/`가 저장소에 없어서
-  `replay_demo_network_with_mujoco.py`는 아직 못 돌린다.
-- `mirobot_camera_bridge.py`는 노트북에서 돌린다:
-  `python mirobot_camera_bridge.py --camera-index 0 --listen-host 0.0.0.0 --port 8890`
-- `Forward_Kinematics.py` / `Inverse_Kinematics.py`는 시리얼을 직접 열어서
-  **서버에서 못 돌린다.** 게다가 현재 `import keyboard` + `COM7` 상태라
+- `mujoco`, `cosmos_policy`는 안 넣었다. `server/replay_with_mujoco.py`가 import 하는
+  `cosmos_policy.experiments.robot.mirobot`은 업스트림 cosmos-policy에 아예 없는
+  모듈이라 clone 만으로는 못 돌린다. `docs/VENDORED.md` 참조.
+- `robot/camera_bridge.py`는 노트북에서 돌린다:
+  `python -m robot.camera_bridge --camera-index 0 --listen-host 0.0.0.0 --port 8890`
+- `robot/forward_kinematics.py` / `robot/inverse_kinematics.py`는 시리얼을 직접 열어서
+  **서버에서 못 돌린다.** 게다가 현재 `import keyboard` + `COM4` 상태라
   리눅스에서 그대로는 실행되지 않는다 (9/6에 했던 `keyinput.py` 이식이 파일에서 사라짐).
 - 접속 정보는 노트북 `~/.ssh/config`의 `Host OASYS`:
   `HostName <SERVER_IP>` / `Port <SSH_PORT>` / `User <USER>`.
 
 *2026-09-07 기준. 서버→터널→노트북→COM3→로봇 상태 조회까지 검증됨.*
+
+> 2026-09-08 repo 재배치로 실행 경로가 바뀌었다. 스크립트를 파일 경로로 직접 부르지 않고
+> `python -m robot.<모듈>` / `python -m server.<모듈>` 형태로 부른다. 양쪽 환경 모두
+> repo 최상위에서 `pip install -e .` 가 되어 있어야 `common/` 이 import 된다.

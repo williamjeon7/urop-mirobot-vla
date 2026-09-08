@@ -7,7 +7,7 @@ serves the live render in a browser.
 
 Run with the repo venv because MuJoCo is installed there:
 
-    cosmos-policy_tj/.venv/bin/python mirobot_control/replay_demo_network_with_mujoco.py \
+    cosmos-policy/.venv/bin/python -m server.replay_with_mujoco \
       --bridge-host <LAPTOP_IP> --demo 0 --execute
 
 Open the viewer in a browser:
@@ -21,7 +21,6 @@ import argparse
 import io
 import os
 import socket
-import sys
 import threading
 import time
 import urllib.error
@@ -32,27 +31,27 @@ from urllib.parse import urlsplit
 
 os.environ.setdefault("MUJOCO_GL", "egl")
 
-ROOT = Path(__file__).resolve().parents[1]
-COSMOS_ROOT = ROOT / "cosmos-policy_tj"
-if str(COSMOS_ROOT) not in sys.path:
-    sys.path.insert(0, str(COSMOS_ROOT))
-
 import mujoco
 import numpy as np
 import h5py
 from PIL import Image, ImageDraw
 
+# cosmos_policy 는 sys.path 조작이 아니라 설치된 패키지로 가져온다.
+# cosmos-policy/.venv 를 활성화하거나 그 env 에 이 repo 를 editable 설치할 것.
 from cosmos_policy.experiments.robot.mirobot import MirobotCosmosEnv
 from cosmos_policy.experiments.robot.mirobot.paths import WRIST_UNDER_V1_XML_PATH
-from replay_all_demos_network import BridgeClient, run_home, send_gcode
-from replay_all_demos_standalone import (
+
+from common.demos import DEMOS, parse_demo_selection
+from common.gcode import (
+    DEFAULT_CLOSE_CMD,
+    DEFAULT_OPEN_CMD,
     DEFAULT_Z_OFFSET_MM,
-    DEMOS,
-    TASK_INSTRUCTION,
     gripper_gcode,
-    parse_demo_selection,
     state_to_gcode,
 )
+from common.protocol import DEFAULT_BRIDGE_HOST, DEFAULT_BRIDGE_PORT
+from common.schema import TASK_INSTRUCTION
+from server.bridge_client import BridgeClient, run_home, send_gcode
 
 
 OBJECT_JOINT = "task_object_freejoint"
@@ -578,8 +577,8 @@ def main() -> None:
         action="store_true",
         help="Keep reconnecting to camera snapshot URLs after an error. Default is connect during this run only.",
     )
-    parser.add_argument("--bridge-host", default="127.0.0.1")
-    parser.add_argument("--bridge-port", type=int, default=8765)
+    parser.add_argument("--bridge-host", default=DEFAULT_BRIDGE_HOST)
+    parser.add_argument("--bridge-port", type=int, default=DEFAULT_BRIDGE_PORT)
     parser.add_argument("--bridge-timeout", type=float, default=20.0)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--skip-home", action="store_true")
@@ -597,8 +596,8 @@ def main() -> None:
     parser.add_argument("--a-deg", type=float, default=0.0)
     parser.add_argument("--b-deg", type=float, default=0.0)
     parser.add_argument("--c-deg", type=float, default=0.0)
-    parser.add_argument("--open-cmd", default="M4 S40")
-    parser.add_argument("--close-cmd", default="M4 S60")
+    parser.add_argument("--open-cmd", default=DEFAULT_OPEN_CMD)
+    parser.add_argument("--close-cmd", default=DEFAULT_CLOSE_CMD)
     parser.add_argument("--assisted-object", action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
 

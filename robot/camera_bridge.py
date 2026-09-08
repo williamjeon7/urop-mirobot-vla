@@ -7,7 +7,7 @@ Install dependency:
     python -m pip install opencv-python
 
 Run on the Windows PC:
-    python mirobot_camera_bridge.py --camera-index 0 --listen-host <LAPTOP_IP> --port 8890
+    python -m robot.camera_bridge --camera-index 0 --listen-host <LAPTOP_IP> --port 8890
 
 Test from the SSH server:
     curl http://<LAPTOP_IP>:8890/health
@@ -24,6 +24,8 @@ import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
+
+from common.protocol import DEFAULT_CAMERA_PORT
 
 try:
     import cv2
@@ -195,7 +197,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="HTTP/MJPEG bridge for a local USB camera.")
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--listen-host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8890)
+    parser.add_argument("--port", type=int, default=DEFAULT_CAMERA_PORT)
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=720)
     parser.add_argument("--fps", type=int, default=30)

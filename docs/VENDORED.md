@@ -19,11 +19,14 @@ git -C cosmos-policy checkout 18a2acc
 검증 시점(2026-09-08) 기준 로컬 수정 0개. 환경 구성은 해당 repo 의 `SETUP.md` 참조
 (uv 로 `.venv` 생성, Python 3.10).
 
-> **주의** — `mirobot_control/replay_demo_network_with_mujoco.py` 는
-> `cosmos_policy.experiments.robot.mirobot` 을 import 하지만 이 모듈은 **업스트림에 없다**
-> (`experiments/robot/` 에는 `aloha`, `libero`, `robocasa` 뿐). 같은 파일들이 참조하는
-> `cosmos-policy_tj/` 경로도 존재하지 않는다. 즉 이 스크립트를 살리려면 위 clone 만으로는
-> 부족하고 Mirobot 용 포크 코드가 따로 필요하다. `docs/SETUP_LINUX.md` 참고.
+> **주의** — `server/replay_with_mujoco.py` 는 `cosmos_policy.experiments.robot.mirobot`
+> 을 import 하지만 이 모듈은 **업스트림에 없다** (`experiments/robot/` 에는 `aloha`,
+> `libero`, `robocasa` 뿐). 재배치 전 이 파일들이 참조하던 `cosmos-policy_tj/` 경로도
+> 존재하지 않는다. 즉 이 스크립트를 살리려면 위 clone 만으로는 부족하고 Mirobot 용
+> 포크 코드가 따로 필요하다. `docs/SETUP_LINUX.md` 참고.
+>
+> 재배치 때 이 파일의 `sys.path.insert` 는 제거했다. `cosmos_policy` 는 설치된 패키지로
+> 가져온다.
 
 ## RosForMirobot-master
 

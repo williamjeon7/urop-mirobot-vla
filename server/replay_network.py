@@ -1,103 +1,35 @@
 #!/usr/bin/env python3
-"""Replay embedded Mirobot demos through a TCP serial bridge.
+"""TCP 브리지를 통해 임베디드 데모를 재생한다. (서버 전용)
 
-Run ``mirobot_serial_bridge.py`` on the Windows PC connected to the robot, then
-run this file on the SSH server.
+노트북에서 robot/serial_bridge.py 를 먼저 띄운 뒤 서버에서 실행한다.
+3창 구성과 역터널 설정은 docs/SETUP_LINUX.md 참조.
 
-Dry-run, no network commands:
+드라이런, 소켓을 아예 열지 않음(연결 테스트로는 쓸 수 없다):
 
-    python replay_all_demos_network.py --demo 0 --max-steps 10
+    python -m server.replay_network --demo 0 --max-steps 10
 
-Real execution through the Windows bridge:
+실제 실행:
 
-    python replay_all_demos_network.py --bridge-host <LAPTOP_IP> --demo 0 --max-steps 10 --execute
-    python replay_all_demos_network.py --bridge-host <LAPTOP_IP> --demo all --home-each-demo --execute
+    python -m server.replay_network --bridge-host 127.0.0.1 --demo 0 --max-steps 10 --execute
+    python -m server.replay_network --bridge-host 127.0.0.1 --demo all --home-each-demo --execute
 """
 
 from __future__ import annotations
 
 import argparse
-import socket
 import time
 
-from replay_all_demos_standalone import (
+from common.demos import DEMOS, parse_demo_selection
+from common.gcode import (
+    DEFAULT_CLOSE_CMD,
+    DEFAULT_OPEN_CMD,
     DEFAULT_Z_OFFSET_MM,
-    DEMOS,
-    TASK_INSTRUCTION,
     gripper_gcode,
-    parse_demo_selection,
     state_to_gcode,
 )
-
-
-OK_TOKEN = "__OK__"
-ERR_TOKEN = "__ERR__"
-QUIT_TOKEN = "__QUIT__"
-PING_TOKEN = "__PING__"
-
-
-class BridgeClient:
-    def __init__(self, host: str, port: int, timeout_s: float) -> None:
-        self.host = host
-        self.port = port
-        self.timeout_s = timeout_s
-        self.sock: socket.socket | None = None
-        self.file = None
-
-    def connect(self) -> None:
-        self.sock = socket.create_connection((self.host, self.port), timeout=self.timeout_s)
-        self.file = self.sock.makefile("rwb", buffering=0)
-        self.send_command(PING_TOKEN, echo=False)
-
-    def close(self) -> None:
-        if self.file is not None:
-            try:
-                self.send_command(QUIT_TOKEN, echo=False)
-            except OSError:
-                pass
-            self.file.close()
-            self.file = None
-        if self.sock is not None:
-            self.sock.close()
-            self.sock = None
-
-    def send_command(self, command: str, echo: bool = True) -> None:
-        if self.file is None:
-            raise RuntimeError("Bridge is not connected.")
-
-        if echo:
-            print(f"send: {command}")
-        self.file.write((command + "\n").encode("utf-8"))
-        self.file.flush()
-
-        while True:
-            raw = self.file.readline()
-            if not raw:
-                raise RuntimeError("Bridge connection closed.")
-
-            line = raw.decode("utf-8", errors="ignore").strip()
-            if not line:
-                continue
-            if line.startswith(OK_TOKEN):
-                return
-            if line.startswith(ERR_TOKEN):
-                raise RuntimeError(line)
-            if echo:
-                print(f"  recv: {line}")
-
-
-def send_gcode(client: BridgeClient | None, command: str, dry_run: bool) -> None:
-    print(f"send: {command}")
-    if dry_run:
-        return
-    if client is None:
-        raise RuntimeError("Bridge client is not connected.")
-    client.send_command(command, echo=False)
-
-
-def run_home(client: BridgeClient | None, dry_run: bool) -> None:
-    for command in ("$22=1", "$H", "M20", "G90"):
-        send_gcode(client, command, dry_run)
+from common.protocol import DEFAULT_BRIDGE_HOST, DEFAULT_BRIDGE_PORT
+from common.schema import TASK_INSTRUCTION
+from server.bridge_client import BridgeClient, run_home, send_gcode
 
 
 def replay_demo(client: BridgeClient | None, demo_idx: int, args, dry_run: bool) -> None:
@@ -140,8 +72,8 @@ def replay_demo(client: BridgeClient | None, demo_idx: int, args, dry_run: bool)
 def main() -> None:
     parser = argparse.ArgumentParser(description="Replay embedded Mirobot demos through a TCP bridge.")
     parser.add_argument("--demo", default="all", help="Demo index, range like 0-9, or all. Default: all")
-    parser.add_argument("--bridge-host", default="127.0.0.1", help="Windows PC IP address")
-    parser.add_argument("--bridge-port", type=int, default=8765)
+    parser.add_argument("--bridge-host", default=DEFAULT_BRIDGE_HOST, help="Windows PC IP address")
+    parser.add_argument("--bridge-port", type=int, default=DEFAULT_BRIDGE_PORT)
     parser.add_argument("--bridge-timeout", type=float, default=20.0)
     parser.add_argument("--execute", action="store_true", help="Actually send commands. Without this, dry-run only.")
     parser.add_argument("--skip-home", action="store_true", help="Do not home before replay starts.")
@@ -156,8 +88,8 @@ def main() -> None:
     parser.add_argument("--a-deg", type=float, default=0.0)
     parser.add_argument("--b-deg", type=float, default=0.0)
     parser.add_argument("--c-deg", type=float, default=0.0)
-    parser.add_argument("--open-cmd", default="M4 S40")
-    parser.add_argument("--close-cmd", default="M4 S60")
+    parser.add_argument("--open-cmd", default=DEFAULT_OPEN_CMD)
+    parser.add_argument("--close-cmd", default=DEFAULT_CLOSE_CMD)
     args = parser.parse_args()
 
     if args.stride < 1:
