@@ -156,7 +156,9 @@ python -m server.replay_network --demo 0 --max-steps 5  # 서버 (드라이런)
 - `docs/SETUP_LINUX.md` — 서버→터널→노트북→로봇 3창 실행 절차, 트러블슈팅
 - `docs/VENDORED.md` — 외부 저장소(cosmos-policy, RosForMirobot) 받는 법
 - `docs/MODELS.md` — 모델 가중치 받는 법, 캐시 위치
-- `docs/plan/` — 프로젝트 계획, 주차별 가이드
+- `docs/plan/UROP_프로젝트_계획.md` — 설계 근거, 자원·정책 선택 이유
+- `docs/plan/운영기준.md` — 게이트 기준, 채점 루브릭, 흔한 함정 (일정 무관)
+- `docs/plan/미팅로그.md` — 주간 미팅에서 실제로 정해진 것. **셋이 어긋나면 이게 최신**
 
 ## 제약
 
