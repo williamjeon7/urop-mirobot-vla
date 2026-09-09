@@ -31,9 +31,37 @@ server/   GPU 서버(Linux)에서만 실행 — 브리지 경유
 
 ## 설치
 
-`common/` 을 양쪽에서 import 하려고 editable install 을 쓴다. `sys.path` 는 건드리지 않는다.
-
 **Python 3.10 이어야 한다.** 3.11 이상에서는 `pip install -e .` 이 거부된다.
+
+### 코드만 확인하려면 (개인 노트북)
+
+코드를 읽고 어떻게 도는지만 보려는 경우, **로봇도 GPU도 모델도 필요 없다.**
+clone 하면 `common/` `robot/` `server/` 세 디렉토리가 전부 따라온다.
+
+```bash
+git clone https://github.com/williamjeon7/urop-mirobot-vla.git
+cd urop-mirobot-vla
+pip install -e .        # 서드파티 의존성 0개. requirements 설치 안 해도 된다.
+```
+
+이 상태로 드라이런이 돌아간다. 실제 로봇에 나갈 G-code 를 그대로 출력하므로
+파이프라인을 눈으로 따라가기 좋다.
+
+```bash
+python -m server.replay_network --demo 0 --max-steps 5   # 서버가 브리지로 보낼 G-code
+python -m robot.replay_serial   --demo 0 --max-steps 5   # 노트북이 시리얼로 보낼 G-code
+```
+
+의존성 없이 되는 것과 안 되는 것:
+
+| | 모듈 |
+|---|---|
+| 의존성 0개로 동작 | `common/*` 전부, `robot.replay_serial`, `robot.replay_demo0`, `robot.serial_bridge`, `server.bridge_client`, `server.replay_network` |
+| 추가 설치 필요 | `robot.replay_hdf5`(h5py), `robot.camera_bridge`(opencv), `server.replay_with_viewer`(pillow), `server.replay_with_mujoco`(mujoco) |
+
+### 실제로 돌리려면
+
+`common/` 을 양쪽에서 import 하려고 editable install 을 쓴다. `sys.path` 는 건드리지 않는다.
 
 ```bash
 # 서버 (Linux)
