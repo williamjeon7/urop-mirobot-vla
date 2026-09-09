@@ -33,6 +33,36 @@ server/   GPU 서버(Linux)에서만 실행 — 브리지 경유
 
 **Python 3.10 이어야 한다.** 3.11 이상에서는 `pip install -e .` 이 거부된다.
 
+### 가상환경부터 만든다
+
+`pip install` 을 시스템 파이썬에 그냥 하면 안 된다. 최근 배포판은 PEP 668 로 아예
+막아서 `error: externally-managed-environment` 가 뜨고, 막히지 않는 환경이라도 다른
+프로젝트와 패키지 버전이 얽힌다. `.venv/` 는 `.gitignore` 에 있으니 저장소 안에
+만들어도 된다.
+
+```bash
+# Linux / macOS
+python3.10 -m venv .venv
+source .venv/bin/activate
+```
+
+```powershell
+# Windows (PowerShell)
+py -3.10 -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+`python3.10` / `py -3.10` 이 없으면 먼저 Python 3.10 을 설치한다. conda 를 쓴다면
+`conda create -n mirobot python=3.10 && conda activate mirobot` 로 대신해도 된다.
+프롬프트 앞에 `(.venv)` 가 붙으면 활성화된 것이고, 이후 모든 명령은 이 안에서 친다.
+
+> Windows PowerShell 에서 활성화가 `이 시스템에서 스크립트를 실행할 수 없으므로`
+> 라며 막히면 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 를 한 번 실행한다.
+> cmd 를 쓴다면 `.venv\Scripts\activate.bat` 이다.
+
+> **서버(OASYS)는 이미 conda `urop` 환경이 있다.** 새로 만들지 말고
+> `conda activate urop` 를 쓴다. `docs/SETUP_LINUX.md` 참조.
+
 ### 코드만 확인하려면 (개인 노트북)
 
 코드를 읽고 어떻게 도는지만 보려는 경우, **로봇도 GPU도 모델도 필요 없다.**
@@ -41,7 +71,11 @@ clone 하면 `common/` `robot/` `server/` 세 디렉토리가 전부 따라온�
 ```bash
 git clone https://github.com/williamjeon7/urop-mirobot-vla.git
 cd urop-mirobot-vla
-pip install -e .        # 서드파티 의존성 0개. requirements 설치 안 해도 된다.
+
+python3.10 -m venv .venv          # Windows: py -3.10 -m venv .venv
+source .venv/bin/activate         # Windows: .venv\Scripts\Activate.ps1
+
+pip install -e .                  # 서드파티 의존성 0개. requirements 설치 안 해도 된다.
 ```
 
 이 상태로 드라이런이 돌아간다. 실제 로봇에 나갈 G-code 를 그대로 출력하므로
@@ -64,11 +98,16 @@ python -m robot.replay_serial   --demo 0 --max-steps 5   # 노트북이 시리�
 `common/` 을 양쪽에서 import 하려고 editable install 을 쓴다. `sys.path` 는 건드리지 않는다.
 
 ```bash
-# 서버 (Linux)
+# 서버 (Linux) — 기존 conda 환경 사용
+conda activate urop
 pip install -r requirements/server.txt
 pip install -e .
+```
 
+```powershell
 # 로봇 노트북 (Windows)
+py -3.10 -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements/robot.txt
 pip install -e .
 ```
