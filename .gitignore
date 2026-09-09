@@ -45,7 +45,10 @@ dist/
 .ruff_cache/
 .ipynb_checkpoints/
 
-# 가상환경 (pip install -e . 는 env 밖에서 관리)
+# 가상환경
+#   이 프로젝트는 노트북 쪽 venv 이름을 urop 으로 통일한다. 서버의 conda 환경
+#   이름과 같지만 서로 다른 물건이다 (README.md "가상환경부터 만든다" 참조).
+urop/
 .venv/
 venv/
 env/

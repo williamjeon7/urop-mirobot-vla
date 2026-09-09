@@ -37,31 +37,51 @@ server/   GPU 서버(Linux)에서만 실행 — 브리지 경유
 
 `pip install` 을 시스템 파이썬에 그냥 하면 안 된다. 최근 배포판은 PEP 668 로 아예
 막아서 `error: externally-managed-environment` 가 뜨고, 막히지 않는 환경이라도 다른
-프로젝트와 패키지 버전이 얽힌다. `.venv/` 는 `.gitignore` 에 있으니 저장소 안에
+프로젝트와 패키지 버전이 얽힌다.
+
+환경 이름은 **`urop`** 으로 통일한다. `urop/` 는 `.gitignore` 에 있으니 저장소 안에
 만들어도 된다.
+
+```powershell
+# Windows (PowerShell) — 개인 노트북, 로봇 노트북
+py -3.10 -m venv urop
+urop\Scripts\Activate.ps1
+```
 
 ```bash
 # Linux / macOS
-python3.10 -m venv .venv
-source .venv/bin/activate
+python3.10 -m venv urop
+source urop/bin/activate
 ```
 
-```powershell
-# Windows (PowerShell)
-py -3.10 -m venv .venv
-.venv\Scripts\Activate.ps1
+```bash
+# 서버 OASYS — 이미 있는 conda 환경을 쓴다. 새로 만들지 말 것
+conda activate urop
 ```
 
-`python3.10` / `py -3.10` 이 없으면 먼저 Python 3.10 을 설치한다. conda 를 쓴다면
-`conda create -n mirobot python=3.10 && conda activate mirobot` 로 대신해도 된다.
-프롬프트 앞에 `(.venv)` 가 붙으면 활성화된 것이고, 이후 모든 명령은 이 안에서 친다.
+프롬프트 앞에 `(urop)` 이 붙으면 활성화된 것이고, 이후 모든 명령은 이 안에서 친다.
+
+> **이름은 같지만 서버와 노트북은 서로 다른 도구다.** 아래를 헷갈리면 시간을 버린다.
+>
+> | 어디 | 무엇 | 켜는 법 |
+> |---|---|---|
+> | 노트북 (Windows) | venv `urop` | `urop\Scripts\Activate.ps1` |
+> | 서버 OASYS (Linux) | conda 환경 `urop` | `conda activate urop` |
+>
+> 노트북에는 conda 가 설치되어 있지 않다. 거기서 `conda activate urop` 를 치면
+> `'conda' 용어가 ... 인식되지 않습니다` 가 뜬다. venv 는 conda 가 모르는 물건이라
+> conda 가 깔려 있어도 마찬가지다.
+
+`py -3.10` / `python3.10` 이 없으면 먼저 Python 3.10 을 설치한다. 윈도우는
+`py --list` 로 설치된 버전을 확인할 수 있고, 없으면 python.org 에서 3.10.11
+(윈도우 설치 파일이 제공되는 마지막 3.10) 을 받는다.
 
 > Windows PowerShell 에서 활성화가 `이 시스템에서 스크립트를 실행할 수 없으므로`
 > 라며 막히면 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 를 한 번 실행한다.
-> cmd 를 쓴다면 `.venv\Scripts\activate.bat` 이다.
+> cmd 를 쓴다면 `urop\Scripts\activate.bat` 이다.
 
-> **서버(OASYS)는 이미 conda `urop` 환경이 있다.** 새로 만들지 말고
-> `conda activate urop` 를 쓴다. `docs/SETUP_LINUX.md` 참조.
+> venv 는 폴더 이름을 나중에 바꾸면 깨진다. 활성화 스크립트에 절대경로가 박히기
+> 때문이다. 이름을 바꾸려면 폴더를 지우고 다시 만든다.
 
 ### 코드만 확인하려면 (개인 노트북)
 
@@ -72,8 +92,8 @@ clone 하면 `common/` `robot/` `server/` 세 디렉토리가 전부 따라온�
 git clone https://github.com/williamjeon7/urop-mirobot-vla.git
 cd urop-mirobot-vla
 
-python3.10 -m venv .venv          # Windows: py -3.10 -m venv .venv
-source .venv/bin/activate         # Windows: .venv\Scripts\Activate.ps1
+python3.10 -m venv urop           # Windows: py -3.10 -m venv urop
+source urop/bin/activate          # Windows: urop\Scripts\Activate.ps1
 
 pip install -e .                  # 서드파티 의존성 0개. requirements 설치 안 해도 된다.
 ```
@@ -106,8 +126,8 @@ pip install -e .
 
 ```powershell
 # 로봇 노트북 (Windows)
-py -3.10 -m venv .venv
-.venv\Scripts\Activate.ps1
+py -3.10 -m venv urop
+urop\Scripts\Activate.ps1
 pip install -r requirements/robot.txt
 pip install -e .
 ```
