@@ -163,6 +163,7 @@ python -m server.replay_network --demo 0 --max-steps 5  # 서버 (드라이런)
 | [docs/VENDORED.md](docs/VENDORED.md) | cosmos-policy 등 외부 저장소가 필요할 때 |
 | [docs/MODELS.md](docs/MODELS.md) | 모델 가중치가 필요할 때 |
 | [docs/meetings/](docs/meetings/) | 이번 주에 뭘 하기로 했는지 |
+| `docs/W<주차>/` | 그 주 조사·실험 결과 |
 
 새 문서를 만들 때는 `docs/README.md` 의 규칙을 따른다 — 위치, 이름, 머리말, 색인 등록.
 

@@ -6,7 +6,7 @@
 우리 Mirobot 스키마가 LIBERO 규약을 이식한 것이라, 둘의 대응 관계를 확인해 둔 문서다.
 
 경로는 모두 `cosmos-policy/cosmos_policy/experiments/robot/libero/` 아래다.
-`cosmos-policy` 는 별도 clone 이 필요하다 (약 20MB) — `VENDORED.md` 참조.
+`cosmos-policy` 는 별도 clone 이 필요하다 (약 20MB) — `../VENDORED.md` 참조.
 
 ---
 
@@ -79,7 +79,7 @@ def get_libero_dummy_action(model_family):
 `G0 X.. Y.. Z..` 로 내보내고 Mirobot 펌웨어가 IK 를 푼다.
 
 따라서 쟁점은 "FK 냐 IK 냐" 가 아니라 **"Cartesian 공간을 유지할 것이냐, 관절 공간으로
-내려갈 것이냐"** 에 가깝다. 정리되면 `plan/운영기준.md` §7 의 `액션 표현` 항목에
+내려갈 것이냐"** 에 가깝다. 정리되면 `../plan/운영기준.md` §7 의 `액션 표현` 항목에
 결정을 남긴다.
 
 ---
@@ -136,4 +136,4 @@ mujoco==3.3.2
 들어 있다.
 
 체크포인트를 써서 실제 정책 롤아웃을 돌리는 단계가 되면 그때 모델이 필요하다.
-`MODELS.md` 참조 — `--ckpt_path` 에 HF repo ID 를 넘기면 자동으로 받는다.
+`../MODELS.md` 참조 — `--ckpt_path` 에 HF repo ID 를 넘기면 자동으로 받는다.
