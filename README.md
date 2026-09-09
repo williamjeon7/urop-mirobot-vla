@@ -153,14 +153,18 @@ python -m server.replay_network --demo 0 --max-steps 5  # 서버 (드라이런)
 
 ## 문서
 
-- `docs/SETUP_LINUX.md` — 서버→터널→노트북→로봇 3창 실행 절차, 트러블슈팅
-- `docs/VENDORED.md` — 외부 저장소(cosmos-policy, RosForMirobot) 받는 법
-- `docs/MODELS.md` — 모델 가중치 받는 법, 캐시 위치
-- `docs/LIBERO.md` — LIBERO 관측/액션 구조, 우리 스키마와의 대응
-- `docs/plan/UROP_프로젝트_계획.md` — 설계 근거, 자원·정책 선택 이유
-- `docs/plan/운영기준.md` — 게이트 기준, 채점 루브릭, 흔한 함정 (일정 무관)
-- `docs/meetings/` — 주간 미팅 기록. 파일 하나 = 미팅 하나(`YYYY-MM-DD.md`).
-  **계획서·운영기준과 어긋나면 이쪽이 최신**
+**[`docs/README.md`](docs/README.md) 가 색인이다.** 전체 목록과 문서 작성 규칙이 거기 있다.
+
+자주 보는 것:
+
+| 문서 | 언제 |
+|---|---|
+| [docs/SETUP_LINUX.md](docs/SETUP_LINUX.md) | 로봇을 실제로 돌릴 때 |
+| [docs/VENDORED.md](docs/VENDORED.md) | cosmos-policy 등 외부 저장소가 필요할 때 |
+| [docs/MODELS.md](docs/MODELS.md) | 모델 가중치가 필요할 때 |
+| [docs/meetings/](docs/meetings/) | 이번 주에 뭘 하기로 했는지 |
+
+새 문서를 만들 때는 `docs/README.md` 의 규칙을 따른다 — 위치, 이름, 머리말, 색인 등록.
 
 ## 제약
 

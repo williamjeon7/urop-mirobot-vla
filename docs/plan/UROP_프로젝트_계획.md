@@ -1,5 +1,9 @@
 # UROP 프로젝트 계획: WLKATA Mirobot VLA 파이프라인 + Failure Detection
 
+> **설계** · 확인 2026-09-07
+> 왜 이 구성인지 — 자원, 정책 선택, 태스크 설계, 데이터 수집 방침의 근거.
+> 실제 진행 방향은 `../meetings/` 가 최신이다.
+
 > 개정판 — 정책을 Cosmos Policy로 변경, GPU 공유 환경 반영
 > 기간: 14주 (W1 ~ W14) · 인원 2인
 

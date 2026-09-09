@@ -1,7 +1,9 @@
 # LIBERO — 관측 · 액션 구조
 
-우리 Mirobot 스키마(`common/schema.py`)가 LIBERO 규약을 이식한 것이라, 둘의 대응
-관계를 확인해 둔 문서다. 조사 시점 2026-09-09, 기준 커밋 `18a2acc`.
+> **참조** · 확인 2026-09-09 · 기준 `cosmos-policy@18a2acc`
+> LIBERO 의 관측/액션 구조와 우리 스키마(`common/schema.py`)의 대응 관계.
+
+우리 Mirobot 스키마가 LIBERO 규약을 이식한 것이라, 둘의 대응 관계를 확인해 둔 문서다.
 
 경로는 모두 `cosmos-policy/cosmos_policy/experiments/robot/libero/` 아래다.
 `cosmos-policy` 는 별도 clone 이 필요하다 (약 20MB) — `VENDORED.md` 참조.

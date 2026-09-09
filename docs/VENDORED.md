@@ -1,5 +1,8 @@
 # 외부 저장소 (vendored)
 
+> **절차** · 확인 2026-09-09 · 기준 `cosmos-policy@18a2acc`, `RosForMirobot@8a60a4c`
+> `.gitignore` 로 빠져 있어 clone 에 따라오지 않는 외부 저장소를 받는 법.
+
 아래 두 저장소는 **버전관리에서 제외**되어 있다 (`.gitignore`). 각자 자체 `.git` 을
 가진 순정 업스트림 클론이라 그대로 커밋하면 URL 도 없는 깨진 gitlink 가 된다.
 
