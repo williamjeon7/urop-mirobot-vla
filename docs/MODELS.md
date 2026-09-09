@@ -10,6 +10,7 @@
 | 환경 | 필요한 모델 | 이유 |
 |---|---|---|
 | **개인 노트북** (코드 확인용) | **없음** | 코드를 읽고 드라이런으로 동작만 보는 용도. `pip install -e .` 하나면 된다. `README.md` 의 "코드만 확인하려면" 참조. |
+| ↳ cosmos-policy 코드까지 볼 때 | **없음** | `cosmos-policy` 를 따로 clone 해야 한다 (약 20MB, `.gitignore` 라 mirobot-vla clone 에 안 따라옴). LIBERO 관측 샘플과 메타정보는 설치 없이 열린다. `docs/VENDORED.md` 참조. |
 | **로봇 노트북** (Windows, 실기) | **없음** | `robot/` 은 시리얼로 G-code 를 보내는 것뿐이다. 저장된 데모 궤적(`common/demos.py`)을 재생하므로 추론이 없다. |
 | **GPU 서버** (Linux, 학습/추론) | cosmos-policy 계열 | 정책 학습과 추론을 여기서 돌린다. |
 
