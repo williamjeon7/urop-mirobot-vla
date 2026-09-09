@@ -49,6 +49,14 @@ pip install -e .
 `pyproject.toml` 의 `dependencies` 가 비어 있는 것은 의도된 것이다 — 양쪽 환경의
 의존성이 다르고, 정작 `common/` 은 표준 라이브러리만 쓴다.
 
+### 모델 가중치
+
+**저장소에 모델 파일은 없다.** 20GB 가 넘어 git 으로 다룰 크기가 아니라 각자 받는다.
+받는 법과 어느 환경에 무엇이 필요한지는 `docs/MODELS.md` 에 있다.
+
+노트북은 **모델이 아예 필요 없다** — `robot/` 은 저장된 데모 궤적을 G-code 로 재생할
+뿐 추론을 하지 않는다. 서버에서 학습/추론을 할 때만 필요하다.
+
 실행은 파일 경로가 아니라 모듈로 부른다:
 
 ```bash
@@ -60,6 +68,7 @@ python -m server.replay_network --demo 0 --max-steps 5  # 서버 (드라이런)
 
 - `docs/SETUP_LINUX.md` — 서버→터널→노트북→로봇 3창 실행 절차, 트러블슈팅
 - `docs/VENDORED.md` — 외부 저장소(cosmos-policy, RosForMirobot) 받는 법
+- `docs/MODELS.md` — 모델 가중치 받는 법, 캐시 위치
 - `docs/plan/` — 프로젝트 계획, 주차별 가이드
 
 ## 제약

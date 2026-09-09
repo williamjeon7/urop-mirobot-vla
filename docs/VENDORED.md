@@ -19,6 +19,8 @@ git -C cosmos-policy checkout 18a2acc
 검증 시점(2026-09-08) 기준 로컬 수정 0개. 환경 구성은 해당 repo 의 `SETUP.md` 참조
 (uv 로 `.venv` 생성, Python 3.10).
 
+이 코드가 쓰는 **모델 가중치는 또 별개**다. `docs/MODELS.md` 참조.
+
 > **주의** — `server/replay_with_mujoco.py` 는 `cosmos_policy.experiments.robot.mirobot`
 > 을 import 하지만 이 모듈은 **업스트림에 없다** (`experiments/robot/` 에는 `aloha`,
 > `libero`, `robocasa` 뿐). 재배치 전 이 파일들이 참조하던 `cosmos-policy_tj/` 경로도
