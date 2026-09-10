@@ -483,6 +483,107 @@ if grip_cmd != last_gripper:
 | `server/replay_with_viewer.py` | 290 | 저장된 프레임을 읽어 보여줌. 실시간 시뮬 아님 |
 | `server/replay_with_mujoco.py` | **716** | **미동작** |
 
+### 지금 코드는 전부 open-loop 다
+
+용어부터.
+
+| | 뜻 |
+|---|---|
+| **open-loop** | 정해진 계획을 그대로 실행한다. **관측을 보지 않는다** |
+| **closed-loop** | 관측 → 판단 → 행동 → 관측. **피드백이 다음 행동을 바꾼다** |
+
+**재생 스크립트는 전부 open-loop 다.** `DEMOS["0"]["states"]` 에 미리 녹화된
+좌표를 순서대로 던진다. 카메라 코드가 아예 없다. 물체가 어디 있든, 파지에
+실패하든 **똑같은 좌표를 똑같은 순서로** 보낸다.
+
+`send_gcode` 가 응답을 읽기는 하지만(`replay_serial.py:53-63`) 이것은 피드백
+제어가 아니다:
+
+```python
+ser.write((command + "\n").encode())
+while True:
+    line = ser.readline()...
+    if low.startswith("error"): raise ...
+    if "ok" in low: return        # ← "명령 접수됨" 확인일 뿐
+```
+
+`ok` 를 기다리는 것은 **핸드셰이킹(흐름 제어)** 이다. "다음 명령 보내도 되나"를
+묻는 것이지 "지금 어디 있나"를 묻는 것이 아니다. 실제 위치를 읽어 다음 명령을
+바꾸는 코드는 없다.
+
+**Cosmos Policy 는 closed-loop 다.** 16스텝마다 실제 관측을 다시 본다.
+단 청크 안(`num_open_loop_steps=16`)에서는 open-loop 로 진행한다 — 전체는
+closed-loop 이지만 **16스텝 단위로 띄엄띄엄 닫힌다.** 매 스텝 닫는 편이
+반응이 빠르지만 2B 모델 추론이 느려 절충한 것이다 (A-3 참조).
+
+| | 현재 재생 스크립트 | Cosmos Policy |
+|---|---|---|
+| 관측을 보나 | 안 봄 | 16스텝마다 |
+| 동작이 결정되는 시점 | **녹화 당시** | **실행 중 매 청크** |
+| 물체가 움직이면 | 무시하고 원래 좌표로 | 새 위치에 반응 |
+| 루프 | **open-loop** | **closed-loop** (청크 단위) |
+
+**목표는 open-loop → closed-loop 전환이다.**
+
+다만 재생 스크립트가 open-loop 라는 것이 쓸모없다는 뜻은 아니다. 오히려 그래서
+**진단 도구로 유용하다** — 매번 똑같이 움직이므로 로봇 자체가 정상인지 가릴 수
+있다. 그리고 이 궤적들이 **파인튜닝 학습 데이터**가 된다.
+
+### 경로가 둘이다 — 같이 쓰는 것이 아니라 택일이다
+
+```
+[경로 A] 노트북에서 직접 — replay_demo0.py / replay_serial.py
+  replay_demo0.py ──serial.Serial(COM7)──▶ Mirobot
+        (노트북 안에서 끝. 서버도 네트워크도 없음)
+
+[경로 B] 서버에서 브리지 경유 — replay_network.py
+  replay_network.py ──TCP:8765──▶ serial_bridge.py ──시리얼──▶ Mirobot
+      (서버)                          (노트북)
+```
+
+근거는 import 다.
+
+| | 경로 A (`replay_demo0.py`) | 경로 B (`replay_network.py`) |
+|---|---|---|
+| 통신 | `serial.Serial(...)` (`:82`) | `BridgeClient` (`:32`) |
+| 어디서 실행 | **노트북** | **서버** |
+| 짝이 필요한가 | 혼자 돎 | **노트북에 `serial_bridge.py` 필요** |
+| 인자 | `--port COM7` | `--bridge-host`, `--bridge-port` |
+| 창 개수 | 1 | **3** (브리지 + 역터널 + 작업) |
+
+`replay_demo0.py` 에는 소켓 코드가 **아예 없다.** COM 포트를 직접 열고 닫는 것이
+전부라 서버가 꺼져 있어도 무관하다.
+
+**목적이 다르다.**
+
+- **A** — 네트워크·터널·브리지를 다 빼고 최소 구성으로 로봇만 시험한다.
+  문제가 생겼을 때 로봇 문제인지 네트워크 문제인지 가르는 진단 도구
+- **B** — 실제 운영. 2B 모델을 노트북에서 돌릴 수 없으므로 추론은 서버에서 하고
+  명령만 노트북으로 보낸다. **Cosmos Policy 를 돌릴 때는 B 가 된다**
+
+두 경로가 **같은 G-code 를 만든다** — 둘 다 `common/gcode.py` 의
+`state_to_gcode()` 를 쓴다. `common/` 을 따로 뺀 이유이고, 드라이런 출력이
+동일한 것도 그 때문이다.
+
+### `replay_demo0.py` 를 읽고 확인한 것
+
+- 하는 일은 네 단계뿐. 홈 시퀀스 → (상태→G-code, 액션→그리퍼) 반복 → 대기 → 종료
+- `common/` 에서 데이터(`DEMOS`)와 변환을 다 가져오고 **자신은 루프와 인자 처리만** 한다
+- `send_gcode` 는 `replay_serial.py` 에서 import 한다(`:34`) — 즉 이 파일이
+  `replay_serial.py` 에 의존한다
+
+눈에 띈 것:
+
+| | 내용 |
+|---|---|
+| `--port` 기본값 | **`COM7`**(`:41`). 문서(`SETUP_LINUX.md`)는 COM3 — 어긋난다 |
+| 앞 8스텝이 동일 좌표 | 데모 시작이 정지 구간. LIBERO 의 `NUM_STEPS_WAIT=10` 과 대응 |
+| 그리퍼 | step 0 에서 `M4 S40` 한 번뿐 (`:110`) — B-2 의 지속 시간 문제 |
+| `time.sleep(2)` (`:83`) | 시리얼 연 직후. 보드 리셋 대기 관용구이나 주석이 없다 |
+
+`replay_serial.py` 와의 차이는 셋뿐이다 — 데모 고정 여부, `--period` 기본값
+(0.20 대 0.10), 데모 간 처리(`--home-each-demo`, `--between-demo-pause`) 유무.
+
 `replay_with_mujoco.py` 가 유일한 실시간 시뮬인데 돌지 않는다. 원인 확인됨:
 
 ```python
@@ -494,24 +595,187 @@ from cosmos_policy.experiments.robot.mirobot.paths import WRIST_UNDER_V1_XML_PAT
 clone 한 `cosmos_policy/experiments/robot/` 에는 `aloha/ libero/ robocasa/` 만 있고
 **`mirobot/` 이 없다.** 업스트림에 존재하지 않는 모듈이다.
 
+### 데이터 형식 — `demos.py` 와 HDF5
+
+재생 루프는 **사실상 동일하다.** `common/gcode.py` 의 같은 함수를 쓰고, 홈 시퀀스도,
+그리퍼를 바뀔 때만 보내는 것도 같다. 다른 것은 **데이터를 어디서 가져오는가** 뿐이다.
+
+| | `robot/replay_demo0.py` | `robot/replay_hdf5.py` |
+|---|---|---|
+| 데이터 출처 | `common/demos.py` (코드에 내장) | 외부 HDF5 파일 |
+| 상태 키 이름 | `states` | `robot_states` (레이아웃 동일) |
+| 태스크 문장 | `schema.TASK_INSTRUCTION` **상수** | `/data` 의 **attribute** |
+| 길이 검증 | 없음 | 있음 (`:79-80`) |
+| `--port` 기본 | `COM7` | **`/dev/ttyUSB0`** — Windows 전용인데 Linux 경로 |
+| 이미지 | 애초에 없음 | 있어도 **안 읽음** (`load_demo` 가 2개만 꺼냄) |
+| 재생 루프 | 동일 | 동일 |
+
+**`replay_hdf5.py` 는 고장난 것이 아니라 데이터가 없는 것이다.**
+`tools/demos_to_hdf5.py` 로 `demos.py` 를 HDF5 로 만들어 먹이면 정상 동작하고,
+G-code 출력이 `replay_demo0.py` 와 **한 줄도 다르지 않다**(10줄 대조 확인).
+
+```bash
+python -m tools.demos_to_hdf5                                    # data/demos.hdf5 (113 KB)
+python -m robot.replay_hdf5 --hdf5 data/demos.hdf5 --max-steps 5
+```
+
+### 앞으로는 HDF5 를 쓴다
+
+**이유 둘. 선택의 문제가 아니다.**
+
+1. **`demos.py` 로는 이미지를 담을 수 없다.** VLA 는 이미지가 입력의 전부인데
+   Python 딕셔너리 리터럴에 (256,256,3) 배열 수십 개를 넣을 수 없다.
+   지금 `demos.py` 에는 좌표와 액션만 있다.
+2. **cosmos-policy 가 HDF5 를 쓴다.** `regenerate_libero_dataset.py` 도
+   `run_libero_eval.py:756` 도 HDF5 로 저장한다. 우리가 파인튜닝하려는
+   코드베이스가 이미 HDF5 를 읽으므로 다른 형식을 고르면 변환 계층이 하나 더 생긴다.
+
+크기 문제도 있다.
+
+| | 크기 | 저장소에 올릴 만한가 |
+|---|---|---|
+| `demos.py` (현재, 커밋됨) | 289 KB | 가능 |
+| 같은 데이터 HDF5 | **113 KB** — 더 작다 | 가능 |
+| + 이미지, 태스크당 150개 (`계획서:309`) | **275 MB** | 불가 |
+| 태스크 3개 | **0.83 GB** | 저장소 권장치 초과 |
+
+`.gitignore` 가 `*.hdf5` 를 막는 것은 "지금" 이 아니라 "나중" 을 위한 규칙이다.
+
+**HDF5 가 절대적으로 우월해서는 아니다**
+
+| | 장점 | 우리에게 |
+|---|---|---|
+| **HDF5** | robomimic·LIBERO·robosuite 표준 | cosmos-policy 가 쓴다 → **변환 불필요** |
+| LeRobot (parquet + mp4) | **비디오 코덱 압축** — 프레임별 JPEG 보다 훨씬 작다 | 변환 계층 필요 |
+| Zarr | 병렬 쓰기, 청크 단위 접근 | 같음 |
+
+용량만 보면 LeRobot 방식이 낫다. 다만 우리 규모(0.83 GB)에서 결정적이지 않고,
+cosmos-policy 에 먹이려면 결국 HDF5 로 바꿔야 한다.
+
+**실제 약점 하나** — 쓰다가 프로세스가 죽으면 파일이 깨진다. 그래서
+**에피소드당 파일 하나**로 쪼개야 한다. LIBERO 가 정확히 그렇게 한다
+(`episode_data--...--ep=<n>.hdf5`, A-4a 참조). 우리도 그 방식을 따른다.
+
+**아직 없는 것 — 쓰는 쪽 코드**
+
+읽는 코드(`replay_hdf5.py`)는 있는데 **HDF5 를 만드는 수집 코드가 없다.**
+`tools/demos_to_hdf5.py` 는 기존 데이터를 옮겨 담을 뿐 로봇에서 수집하지 않는다.
+카메라 + 로봇 상태 + 타임스탬프를 묶어 에피소드 파일로 쓰는 코드가 필요하다.
+
+**데이터를 어떻게 옮기나 — 문서에 없다**
+
+데이터는 **로봇이 있는 노트북에서만 생성**되고 **GPU 가 있는 서버에서 소비**된다.
+두 번 만들 수 없으므로 한 번 만들고 옮겨야 하는데, 그 절차가 문서에 없다.
+
+| | 받는/옮기는 법이 문서에 있나 |
+|---|---|
+| `cosmos-policy/` | `VENDORED.md` — clone 명령 |
+| 모델 가중치 | `MODELS.md` — HF repo ID 자동 다운로드 |
+| **데이터셋** | **없음** |
+
+`ssh -p <SSH_PORT>` 이 이미 뚫려 있으므로 `rsync` 가 당장은 현실적이다.
+Git LFS 는 GitHub 무료 대역폭(1GB/월)을 금방 넘긴다.
+
 ### 확인할 것
 
-- [ ] 716줄이 무엇을 하려던 코드인가 — 구조만 읽어도 파악 가능
-- [ ] `MirobotCosmosEnv` 가 원래 무엇이었나. git 히스토리·서버에 남아 있나
-- [ ] `WRIST_UNDER_V1_XML_PATH` — MuJoCo 모델 XML 은 어디 있나
-- [ ] `replay_with_viewer.py`(290줄)로 대체 가능한가
-- [ ] `replay_hdf5.py` 의 기본 경로 파일은 어디서 오나
-- [ ] `replay_serial.py` / `replay_network.py` 의 재생 루프 구조
+**W2 범위: 상태 정리까지.** 복구는 하지 않는다.
+
+- [x] 716줄이 무엇을 하려던 코드인가 — **디지털 트윈**.
+      실물 로봇과 MuJoCo 시뮬에 **같은 Cartesian 목표를 동시에** 보내고
+      시뮬 렌더를 브라우저로 서빙한다. docstring 이 명시한다:
+      *"For every command sent to the real robot, it applies the same Cartesian
+      target to the MuJoCo Mirobot through IK and serves the live render"*
+- [x] `WRIST_UNDER_V1_XML_PATH` — `mirobot` 모듈 안에 있어야 하는데 모듈 자체가 없다
+- [x] `replay_hdf5.py` 의 기본 경로 파일 — `cosmos-policy/artifacts/` 아래.
+      그 디렉토리가 통째로 없다
+- [x] `replay_serial.py` / `replay_network.py` 의 재생 루프 구조 — 동일하다.
+      상태→G-code, 액션→그리퍼(바뀔 때만), period 대기. 전송 방식만 다르다
+- [ ] `MirobotCosmosEnv` 가 **서버(OASYS)에 남아 있는가** → W3
+- [ ] `replay_with_viewer.py`(290줄)로 대체 가능한가 → W3.
+      단 뷰어는 **저장된 PNG 를 읽는 것**이라 실시간 시뮬의 대체가 아니다
 
 ### 정리
 
-- **무엇이 빠졌나** → 
+> 초안이다. 근거는 위 절들에 있다.
 
+**무엇이 빠졌나 — 하나의 디렉토리로 수렴한다**
 
-- **복구가 과제인가, 상태 정리가 과제인가** → (미팅에서 확인)
+빠진 것 대부분이 `cosmos-policy/artifacts/mirobot/` 아래를 가리킨다.
+그 경로가 **통째로 없다**.
 
+| 빠진 것 | 필요한 곳 | 성격 |
+|---|---|---|
+| `cosmos_policy.experiments.robot.mirobot` 패키지 | `replay_with_mujoco.py:41-42` | **업스트림에 없는 모듈.** clone 해도 안 옴 |
+| └ `MirobotCosmosEnv` | 시뮬 환경 래퍼 | 누군가 작성했던 코드 |
+| └ `paths.WRIST_UNDER_V1_XML_PATH` | MuJoCo 모델 XML | **Mirobot 3D 모델 파일** |
+| `artifacts/.../wrist_under_v1_pick_place/` | `replay_with_viewer.py:48-51` | 렌더 프레임 PNG |
+| └ `..._SCENE1_demos.hdf5` | `replay_hdf5.py` 기본 경로 | **수집된 데모 데이터셋** |
+| 손목 카메라 | `camera_bridge.py` | 하드웨어 + 코드 (카메라 1대만 연다) |
 
----
+`cosmos_policy/experiments/robot/` 에는 `aloha/ libero/ robocasa/` 만 있다.
+`mirobot/` 은 업스트림 NVIDIA 저장소에 존재하지 않는 모듈이므로,
+**`docs/VENDORED.md` 절차대로 clone 해도 복구되지 않는다.**
+
+**이름에서 읽히는 것**
+
+`wrist_under_v1_pick_place`, `WRIST_UNDER_V1_XML_PATH`,
+`pick_up_the_red_cube_and_place_it_on_the_green_target_SCENE1_demos.hdf5` —
+세 이름이 서로 맞물린다. **"손목 카메라를 아래에 단 v1 구성으로 pick-place
+데모를 수집하고 MuJoCo 모델까지 만들었던" 파이프라인**이 있었다는 뜻이다.
+그 산출물이 저장소에 없을 뿐이다.
+
+→ 서버(OASYS)에 남아 있는지 확인할 것. 있으면 복구가 아니라 **가져오기**다.
+
+**지금 돌아가는 것 / 안 돌아가는 것**
+
+| | 파일 | 필요한 것 |
+|---|---|---|
+| 돈다 | `replay_serial`, `replay_demo0`, `replay_network`, `serial_bridge`, `camera_bridge` | 없음 (로봇/카메라만) |
+| 안 돈다 | `replay_hdf5` | HDF5 데이터셋 파일 |
+| 안 돈다 | `replay_with_viewer` | pillow + 렌더 프레임 PNG |
+| 안 돈다 | `replay_with_mujoco` | mujoco + **`mirobot` 모듈 전체** |
+
+**핵심 공백 — closed-loop 경로가 아예 없다**
+
+파일 6개 중 어느 것도 **카메라 → 정책 → 로봇** 을 잇지 않는다.
+
+```
+지금:   녹화된 궤적 ──▶ G-code ──▶ 로봇          (open-loop)
+필요:   카메라 ──▶ 정책 ──▶ G-code ──▶ 로봇 ──┐  (closed-loop)
+          ▲                                    │
+          └────────────────────────────────────┘
+```
+
+`camera_bridge.py` 는 브라우저용 MJPEG 스트림만 제공하고 재생 스크립트와
+연결되어 있지 않다. **카메라와 로봇 제어가 서로 모르는 상태다.**
+
+`replay_with_mujoco.py` 가 유일하게 카메라를 끌어오지만(`LatestCameraFeed`),
+용도는 **화면에 같이 보여주기**이지 제어에 쓰는 것이 아니다.
+
+**`demos.py` 는 임시 형태다**
+
+14,292줄짜리 Python 딕셔너리 리터럴이고 docstring 이 스스로 지적한다 —
+*"이 모듈을 import 하면 그만큼(270KB) 메모리에 올라온다"*.
+
+- 계획서대로 **태스크당 150개**(`계획서:309`)를 모으면 4MB 넘는 `.py` 가 된다
+- **이미지가 들어가지 않는다.** 좌표와 액션뿐이라 VLA 학습에 쓸 수 없다
+- 앞으로 수집하는 데이터는 **HDF5** 로 가야 한다. LIBERO 도 그렇고,
+  `replay_hdf5.py` 도 그것을 전제로 쓰여 있다
+
+**복구가 과제인가, 상태 정리가 과제인가** → **W2 는 상태 정리까지.**
+
+복구는 하지 않는다. 이유는 셋이다.
+
+1. 빠진 것이 **코드 몇 줄이 아니라 파이프라인 하나**다 — 시뮬 환경 래퍼,
+   MuJoCo 모델 XML, 데모 데이터셋, 렌더 프레임
+2. **서버에 남아 있을 가능성**이 크다. 이름 세 개가 맞물리는 것으로 보아
+   누군가 만들어 돌렸던 것이고, `.gitignore` 때문에 저장소에 안 들어왔을 뿐이다.
+   있으면 다시 만들 이유가 없다 → 먼저 확인
+3. `replay_with_mujoco.py` 는 **디지털 트윈이지 학습 경로가 아니다.** 없어도
+   데이터 수집과 파인튜닝은 진행할 수 있다. 우선순위가 높지 않다
+
+> 다만 교수님이 복구를 의도하셨을 수 있으므로 다음 미팅에서 확인한다(6절).
+> 복구가 과제라면 **서버 확인 → 없으면 재작성** 순으로 W3 에 잡는다.
 
 ## 3. 의견 ③ — 액션을 Cartesian 에 둘 것인가 관절 공간에 둘 것인가
 

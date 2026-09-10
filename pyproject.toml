@@ -24,4 +24,4 @@ requires-python = ">=3.10,<3.11"
 dependencies = []
 
 [tool.setuptools]
-packages = ["common", "robot", "server"]
+packages = ["common", "robot", "server", "tools"]
