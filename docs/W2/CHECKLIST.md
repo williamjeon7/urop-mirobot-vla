@@ -1,535 +1,240 @@
 # W2 — 확인 목록
 
-> **절차** · 확인 2026-09-09 · 기준 `cosmos-policy@18a2acc`
-> 9/7 미팅 B 의견 세 항목을 수행하기 위한 작업 목록. 결론은 내가 채운다.
+> **절차** · 확인 2026-09-10 · 기준 `cosmos-policy@18a2acc`
+> 9/7 미팅 B 의견 세 항목의 작업 목록. `→` 뒤 빈칸은 **내가 채운다.**
 
-## 사용법
-
-각 의견마다 **대상 → 확인 → 정리** 순서다. `→` 뒤 빈칸은 **내가 채운다.**
-채우지 못하면 아직 이해하지 못한 것이다.
+LIBERO 규약 자체는 [W2_진행사항.md](W2_진행사항.md) 에 있다. 여기는 **작업**만 둔다.
 
 발표에서 필요한 것은 문서를 알아보는 능력이 아니라 **덮고 재구성하는 능력**이다.
 그래서 결론을 미리 적지 않는다.
 
----
+## 0. 아직 확인되지 않은 주장
 
-## 0. 주의 — 아직 확인되지 않은 주장
+**사실처럼 발표하면 안 되는 것들.**
 
-대화에서 나온 내용 중 **사실처럼 발표하면 안 되는 것들.**
+| 주장 | 상태 |
+|---|---|
+| 형식만 맞춰서는 안 되고 재학습이 필요 | **추론.** zero-shot 을 시도한 적 없다 |
+| 의견의 의도가 "수집 규격 선행 조사" | **추론.** 교수님이 그렇게 말한 적 없다 → 미팅 확인 |
+| 그리퍼 `S` 가 방향·속도다 | **추론.** 관찰에서 유추. 4절에서 검증 |
+| Panda 7관절 / 컨트롤러가 OSC | **repo 에서 확인 안 함.** `libero` 패키지가 clone 에 없다 |
+| `replay_with_viewer.py` 는 pillow+프레임만 있으면 된다 | **추정.** 본문을 안 읽었다 |
 
-| 주장 | 상태 | 어디서 다루나 |
-|---|---|---|
-| 모델이 정규화된 값을 주고받는다 | docstring CLI 예시만 봄 | 의견 ① |
-| Panda 가 7관절 / 컨트롤러가 OSC | repo 에서 확인 안 함 | 의견 ③ |
-| 형식만 맞춰서는 안 되고 재학습이 필요 | 추론. zero-shot 시도한 적 없음 | 해석 |
-| 의견의 의도가 "수집 규격 선행 조사" | 추론. 교수님이 그렇게 말한 적 없음 | 다음 미팅 확인 |
-
-확인된 것: proprio 9차원 = 우리 STATE 순서 동일(`run_libero_eval.py:334`),
-액션 7차원 = Cartesian 델타 6 + 그리퍼 1(`libero_utils.py:42`),
-계획서가 파인튜닝 전제(`계획서:138-160`), 액션 표현 잠정 권고 EE 4차원(`계획서:325`).
+확인된 것은 각 절에 `file:line` 으로 근거를 달아 두었다.
 
 ---
 
 ## 1. 의견 ① — LIBERO 입출력 규약과 Mirobot 변환
 
-**과제**
-Mirobot 에서 얻은 관측을 정책에 넣으려면 **어떤 형식이어야 하는지**를 밝힌다.
-그러려면 먼저 LIBERO 가 무엇을 주고받는지(A), 그다음 우리 데이터를 어떻게
-바꿔야 하는지(B) 를 알아야 한다.
+**과제** Mirobot 관측을 정책에 넣으려면 **어떤 형식이어야 하는지** 밝힌다.
+**산출물** ① 변환 명세, ② 수집 때 남겨야 할 필드 목록 (계획서 §6 대조).
 
-**산출물**
-① Mirobot → LIBERO 변환 명세, ② 그러기 위해 수집 때 남겨야 할 필드 목록.
-후자는 계획서 §6(`계획서:312-321`)과 대조한다 — **필드 하나가 빠지면 재수집
-외에 복구가 없기 때문**이다.
+> 원문: "LIBERO 에서 롤아웃별로 나오는 정보 확인 — 이미지와 롤아웃 샘플이 어떻게 관리되고 있는지"
 
-**대상**: `cosmos-policy/cosmos_policy/experiments/robot/libero/`
-전부 clone 안에 있고 실행이 필요 없다.
+**LIBERO 규약 자체는 [W2_진행사항.md](W2_진행사항.md) 에 정리했다.** 여기는 변환만 다룬다.
+아래 표는 그 문서를 읽었다는 전제로 요약만 둔다.
 
-> 원문: "LIBERO 에서 롤아웃별로 나오는 정보 확인 — 이미지와 롤아웃 샘플이
-> 어떻게 관리되고 있는지"
-
-> ※ 실물 운영 시 **LIBERO 도 MuJoCo 도 루프에 없다.** 돌아가는 것은
-> Cosmos Policy 다. LIBERO 가 남기는 것은 **규약**뿐이고, 정책이 그 규약으로
-> 학습됐으므로 우리도 지켜야 한다.
+| | LIBERO |
+|---|---|
+| 정책 입력 | `primary_image`·`wrist_image` (256,256,3) uint8 + `proprio` (9,) |
+| 정책 출력 | 액션 7차원 Cartesian 델타. 16개씩 청크 |
+| 전처리 | **없음.** 원본 uint8 그대로. 224 축소는 정책 내부 |
+| 정규화 | **min·max** → `[-1,+1]` |
+| 이미지 방향 | `flip_images=True` — 상하 반전된 것으로 학습 |
 
 ---
 
-# A. LIBERO 입출력 규약
-
-## A-1. 정책 입력 — 관측
-
-- [x] `prepare_observation()` — `run_libero_eval.py:324`
-- [x] `get_libero_image()` / `get_libero_wrist_image()` — `libero_utils.py:45,53`
-
-키는 **3개뿐**이다.
-
-| 키 | 형태 | dtype | 원본 obs 키 |
-|---|---|---|---|
-| `primary_image` | (256, 256, 3) | uint8 | `agentview_image` — 3인칭 고정 |
-| `wrist_image` | (256, 256, 3) | uint8 | `robot0_eye_in_hand_image` — 손목 1인칭 |
-| `proprio` | (9,) | float64 | 아래 3개를 `np.concatenate` |
-
-`proprio` 는 시뮬이 주는 값이 아니라 **매 스텝 조립**된다 (`:334`):
-
-```python
-np.concatenate((obs["robot0_gripper_qpos"],  # 2
-                obs["robot0_eef_pos"],       # 3  meter, MuJoCo world frame
-                obs["robot0_eef_quat"]))     # 4  (w, x, y, z) 순, norm=1
-```
-
-`sample_libero_10_observation.pkl` 실측값:
-
-```
-gripper  [0] 0.038723   [1] -0.038722     ← 부호만 반대인 대칭
-eef_pos  [2] -0.046149  [3] -0.003568  [4] 0.702046
-eef_quat [5] 0.999637   [6] -0.000455  [7] -0.026944  [8] -0.000121
-```
-
-**전처리를 하지 않는다.** `obs` 에서 꺼내 그대로 반환하고 `flip_images=True` 일 때만
-`np.flipud` 를 건다. docstring 의 "preprocesses it" 과 `prepare_observation` 의
-`resize_size` 인자는 **둘 다 동작하지 않는다** — 리사이즈 코드를 떼어낸 잔재.
-
-해상도가 둘이다: 시뮬 렌더링 **256**(`env_img_res`, `:246`), 정책 입력 **224**
-(`MODEL_IMAGE_SIZES["cosmos"]`, `robot_utils.py:41`). 256→224 축소는 **정책 내부**에서
-한다. `:246` 주석이 명시한다 — *"not policy input resolution"*.
-
-→ 이식 시 **원본 크기 uint8 을 그대로 넘기면 된다.**
-
-### 정규화 — min·max 다
-
-- 통계 로드: `load_dataset_stats()` (`cosmos_utils.py:233`), 호출 `:824`
-- 적용: `cosmos_utils.py:637-645`(액션 역정규화), `:664-675`(proprio 정규화)
-- 스위치: `run_libero_eval.py:936`
-
-```python
-# proprio: 원래 값 → [-1, +1]           cosmos_utils.py:670
-rescaled = 2 * ((arr - curr_min) / (curr_max - curr_min)) - 1
-
-# 액션: [-1, +1] → 원래 단위 (역방향)    cosmos_utils.py:645
-actions = 0.5 * (actions + 1) * (actions_max - actions_min) + actions_min
-```
-
-mean·std 도 분위수도 아니다. 키는 `actions_min/max`, `proprio_min/max`.
-
-→ **모델은 [-1, +1] 공간에서만 산다.** 실제 단위 환산은 전적으로
-`libero_dataset_statistics.json` 에 의존한다.
-
-## A-2. 정책 출력 — 액션
-
-```python
-[Δx, Δy, Δz, Δrx, Δry, Δrz, gripper]     # libero_utils.py:42
-```
-
-- **절대 좌표가 아니라 델타**다
-- **관절 제어가 아니다.** Panda 는 7관절인데 액션이 6+1 이다. 관절 변환은
-  robosuite 컨트롤러가 내부에서 한다
-- 그리퍼는 **부호**로 판정 — `common/gcode.py:43` 이 `action[6] < 0` 이면 열기.
-  기본 액션 `[0,0,0,0,0,0,-1]` 이 그 예
-
-정책은 액션 외에 **미래 이미지 1~2장**과 **value** 도 내놓는다. 미래 이미지는
-`generated_images` 에서 특정 인덱스만 뽑은 것이지(`cosmos_utils.py:758`) 16장이 아니다.
-용도는 계획 선택(value 최대, `:578-592`)과 사후 영상뿐 — **실행 중 실제와 비교하는
-코드는 없다.**
-
-> Failure Detection 재료가 될 수 있다. 예측 미래와 실제 프레임이 둘 다 저장되므로
-> 비교하면 "계획대로 안 가고 있다"를 잡을 수 있다. 단 개수가 달라(청크당 1 대 매 스텝)
-> 시간축 정렬이 필요하다.
-
-## A-3. 시간 구조
-
-- [x] `run_episode()` 루프 — `run_libero_eval.py:340-648`
-
-| | 주기 | 근거 |
-|---|---|---|
-| 이미지 추출·누적 | **매 스텝** | `:408-409` 무조건 실행 |
-| 정책 호출 | **16스텝에 한 번** | `:419` 큐가 빌 때만. `num_open_loop_steps=16` (`:216`) |
-| 액션 실행 | 매 스텝 | `:598` 큐에서 popleft |
-
-처음 `NUM_STEPS_WAIT = 10` 스텝은 물체 안정화용 더미 액션이고 **누적되지 않는다**
-(`:402-405`, `continue`). 실물에는 없는 구간이다.
-
-16스텝 동안은 **open-loop** — 눈을 감고 계획대로 간다. 어긋나도 그 안에서는
-보정하지 않고, 다음 청크에서 실제 관측으로 리셋된다. 오차가 청크를 넘어
-누적되지는 않지만 **청크 안에서는 최대 16스텝치를 감수**한다.
-
-→ 계획서 §6 이 "제어 주파수 다운샘플링을 학습 시점에 변경 가능하게" 요구한 이유.
-
-## A-4. 무엇이 남는가
-
-저장 코드가 **두 종류**다. 목적이 다르다.
-
-| | `run_libero_eval.py` | `regenerate_libero_dataset.py` |
-|---|---|---|
-| 언제 | 학습된 **정책을 평가**할 때 | **데이터셋을 만들** 때 |
-| 입력 | 정책 | 사람이 수집한 원본 demo |
-| 우리와의 관계 | 정책이 생긴 뒤 | **지금 우리가 하려는 일** |
-
-### (a) 평가 롤아웃 — `collected_data`
-
-출력 경로가 둘이다.
-
-| | MP4 영상 | HDF5 데이터 |
-|---|---|---|
-| 함수 | `save_rollout_video()` (`libero_utils.py:61`) | `_save_episode_data()` (`:750`) |
-| 조건 | 항상 | **`data_collection=True` 일 때만** |
-| 위치 | `./rollouts/<날짜>/` | `<local_log_dir>/rollout_data/` |
-| 용도 | 사람이 눈으로 확인 | 학습 데이터 |
-
-파일명에 성공 여부가 박힌다 — 열지 않고 가를 수 있다.
-
-```
-episode_data--suite=<>--<날짜시각>--task=<id>--ep=<n>--success=<T/F>--<note>.hdf5
-```
-
-**파일 하나 = 롤아웃 하나.** 한 파일 안에서 T개 스텝이 첫 축으로 쌓인다.
-
-| `collected_data` 키 | shape | 저장 형태 |
-|---|---|---|
-| `primary_images` | (T, 256, 256, 3) uint8 | dataset |
-| `wrist_images` | (T, 256, 256, 3) uint8 | dataset |
-| `proprio` | (T, 9) float64 | dataset |
-| `actions` | (T, 7) | dataset |
-| `success` | bool | **attribute** (`:768`) |
-| `task_description` | str | **attribute** (`:770`) |
-| `future_primary_images` | (T', ...) | 조건부 (`:628-634`) |
-| `future_wrist_images` | (T', ...) | 조건부 (`:636-642`) |
-
-이미지 판정은 키 이름이 아니라 **모양으로** 한다 (`:759`):
-
-```python
-is_image = v.ndim == 4 and v.shape[-1] == 3 and v.dtype == np.uint8
-```
-
-`jpeg_compress=True` 면 키가 `<이름>_jpeg` 가 되고 shape 이 `(T,)` 가변길이
-바이트열로 바뀐다. **손실 압축**(품질 95)이라 원본 픽셀값이 보존되지 않는다.
-
-**성공·실패를 모두 저장한다** — *"captures ALL episodes regardless of
-success/failure"*.
-
-### (b) 데이터셋 생성 — 우리가 흉내낼 쪽
-
-- [ ] `regenerate_libero_dataset.py` (21KB) **제대로 읽을 것** — 지금은 grep 수준
-
-`:309-335` 이 남기는 필드 (12개+):
-
-```
-obs_grp:  gripper_states, joint_states, ee_states, ee_pos, ee_ori,
-          agentview_rgb, eye_in_hand_rgb   (+ _jpeg 압축본)
-ep_grp:   actions, states, robot_states, rewards, dones
-```
-
-**정책 입력(3개)보다 훨씬 넓다.** 특히 `joint_states`(`obs["robot0_joint_pos"]`,
-`:232`)는 **저장하되 정책에는 주지 않는다** — 관절각을 버린 게 아니라 의도적으로
-입력에서 뺀 설계다. 의견 ③ 의 근거가 된다.
-
-- `states` / `robot_states` 가 각각 무엇인지 → 
-
-## A-5. metainfo — 저장이 아니라 입력이다
-
-`libero_*_metainfo.json` 은 롤아웃이 **만들어내는** 것이 아니라 **시작할 때 읽는**
-기존 데이터셋의 라벨이다.
-
-- `load_initial_states()` (`:308-321`) → `env.set_init_state()` (`:361`)
-- 담긴 것: 태스크별 demo 목록, `success` 라벨, `initial_state` 벡터
-- 목적: **같은 초기 배치를 재현**해 공정하게 비교
-
-> `success` 가 두 종류다. metainfo 의 것은 **사람이 수집한 demo** 의 성공 여부,
-> HDF5 attribute 의 것은 **이번 롤아웃**의 성공 여부다.
-
----
-
-# B. Mirobot 정보를 어떻게 변환하나
-
-## B-1. 변환 명세
+### 1-1. 변환 명세
 
 > **어느 값을 정책에 줄 것인가**(Cartesian 이냐 관절각이냐)는 의견 ③ 이다.
-> LIBERO 의 proprio 9차원에는 관절각 슬롯이 없으므로, 규약을 지키는 한
-> 아래는 선택이 아니라 의무다.
+> LIBERO proprio 9차원에는 관절각 슬롯이 없으므로, 규약을 지키는 한 아래는
+> 선택이 아니라 의무다.
 
-**목표 형식**
+**이미지**
 
-```python
-observation = {
-    "primary_image": (256, 256, 3) uint8 RGB,
-    "wrist_image":   (256, 256, 3) uint8 RGB,
-    "proprio":       (9,) float64,
-}
-# + task_description (str), + min/max 정규화 → [-1, +1]
-```
-
-### 이미지
-
-| 단계 | 지금 (`robot/camera_bridge.py`) | 필요 | 성격 |
-|---|---|---|---|
-| 1 | JPEG 바이트 (`:82`) | 생 numpy 배열 | `:78`~`:82` 사이에 갈래 내기 |
-| 2 | 1280×720 (16:9, `:201-202`) | 정사각형 | **결정 필요** |
-| 3 | — | 256×256 | `cv2.resize` |
-| 4 | **BGR** | **RGB** | `cv2.cvtColor(..., COLOR_BGR2RGB)` |
-| 5 | — | 상하 반전 | `flip_images=True` 로 학습됨 |
-| dtype | uint8 | uint8 | 그대로 |
+| 단계 | 지금 (`robot/camera_bridge.py`) | 필요 |
+|---|---|---|
+| 1 | JPEG 바이트 (`:82`) | 생 numpy 배열 — `:78`~`:82` 사이에 갈래 |
+| 2 | 1280×720 16:9 (`:201-202`) | 정사각형 — **결정 필요** |
+| 3 | — | 256×256 |
+| 4 | **BGR** | **RGB** — `cvtColor` 가 없다 |
+| 5 | — | 상하 반전 (`flip_images=True`) |
 
 **손목 카메라가 없다.** `camera_bridge.py` 는 카메라 하나만 연다.
 
-4번은 특히 조심할 것 — 바꾸지 않으면 **빨간 큐브가 파랗게 들어가는데 에러가 나지
-않는다.** 태스크가 `"pick up the red cube"` 인 만큼 치명적이다.
+4번을 빠뜨리면 **빨간 큐브가 파랗게 들어가는데 에러가 나지 않는다.**
+태스크가 `"pick up the red cube"` 인 만큼 치명적이다.
 
-5번 근거: `PolicyEvalConfig.flip_images = True` (`:201`). 함수 시그니처의
-`False`(`:324`)는 쓰이지 않는다 — 호출부가 `cfg.flip_images` 를 넘긴다(`:408`).
-
-### proprio 9차원
-
-Mirobot 이 주는 것 (`serial_bridge.py:99-134` `query_robot_status()`):
-
-| 키 | 내용 | 출처 |
-|---|---|---|
-| `mpos` | Cartesian XYZ (mm) | `Cartesian coordinate(XYZ RxRyRz)` (`:180`) |
-| `joint` | 관절각 **7개** | `Angle(ABCDXYZ)` (`:184`) |
-| `gripper` | — | **파싱 코드 없음** |
+**proprio 9차원** — Mirobot 이 주는 것은 `query_robot_status()` (`serial_bridge.py:99`)
 
 | idx | LIBERO | Mirobot | 상태 |
 |---|---|---|---|
-| 0,1 | `gripper_qpos` 2개 (대칭) | `status["gripper"]` | 값이 없음 |
-| 2,3,4 | `eef_pos` xyz **meter** | `mpos[0:3]` **mm** | `/1000` + 원점 정렬 |
-| 5~8 | `eef_quat` (w,x,y,z) | `RxRyRz` **오일러각** | 파싱에서 버려짐 |
+| 0,1 | `gripper_qpos` 2개 (대칭) | `status["gripper"]` | ❌ **파싱 코드 없음** |
+| 2,3,4 | `eef_pos` **meter** | `mpos[0:3]` **mm** (`:180`) | `/1000` + 원점 정렬 |
+| 5~8 | `eef_quat` (w,x,y,z) | `RxRyRz` **오일러각** | ❌ **파싱에서 버려짐** |
 
-세 줄 다 그대로는 안 된다.
+- **위치** — LIBERO `z=0.702` 대 우리 demo_0 `z=0.177`. `gcode.py` 의 `+54mm` 와 같은 종류
+- **자세** — `serial_bridge.py:180` 이 6개 중 XYZ 3개만 취한다. **파싱부터 복구**
+- **그리퍼** — 1-2 참조
 
-- **그리퍼** — 값이 없을 뿐 아니라 **위치 개념 자체가 없을 가능성이 크다.**
-  B-2 참조
-- **위치** — mm → m + **원점 정렬**. LIBERO `z=0.702` 대 우리 demo_0 `z=0.177`.
-  `common/gcode.py` 의 `+54mm` 오프셋과 같은 종류
-- **자세** — 오일러 → 쿼터니언 변환식이 필요한데, `:180` 이 `RxRyRz` 를 버리고
-  XYZ 3개만 취한다. **파싱부터 복구**해야 한다
-
-### 정규화
-
-`libero_dataset_statistics.json` 을 그대로 쓰면 안 된다. **우리 데이터의 min/max 로
-새로 만들어야 한다.** LIBERO 통계를 쓰면 값이 범위 밖으로 나가거나 뭉친다.
-
-### 일의 성격
+**정규화** — `libero_dataset_statistics.json` 을 그대로 쓰면 안 된다.
+**우리 데이터의 min/max 로 새로 만든다.**
 
 | | 항목 |
 |---|---|
 | 기계적 | mm→m, BGR→RGB, 리사이즈, 오일러→쿼터니언 |
-| **결정 필요** | 종횡비 처리, 그리퍼 2차원 규약, 좌표계 원점 |
-| 코드 추가 | 손목 카메라, 그리퍼 파싱, `RxRyRz` 파싱 복구, 생 배열 경로 |
+| **결정 필요** | 종횡비, 그리퍼 규약, 좌표계 원점 |
+| 코드 추가 | 손목 카메라, 그리퍼 파싱, `RxRyRz` 복구, 생 배열 경로 |
 
-## B-2. 그리퍼 — 위치 제어가 아니다
+### 1-2. 그리퍼 — 위치 제어가 아니다
 
-**관찰**: `robot/inverse_kinematics.py` 로 조작할 때 **키를 누르고 있으면 점점 더
-열리고 닫힌다.** 그런데 코드는 `M4 S40` / `M4 S60` 두 값만 보낸다(`:95-101`).
-`S` 를 증감시키는 변수가 없다.
+**관찰**: `inverse_kinematics.py` 로 조작할 때 **키를 누르고 있으면 점점 더 열리고
+닫힌다.** 그런데 코드는 `M4 S40`/`M4 S60` 두 값만 보낸다(`:95-101`).
 
-**해석**: 절대 위치 명령이라면 같은 값을 반복해도 이미 도달한 곳이라 움직이지
-않아야 한다. 계속 움직인다는 것은 `S` 가 **위치가 아니라 방향·속도**라는 뜻이다.
-GRBL 에서 `M4` 는 스핀들 역회전, `S` 는 회전 속도다. Mirobot 이 그 출력을 그리퍼에
-연결했다면 `S50` 근처가 중립이고 `S40`/`S60` 이 양쪽 방향이 된다.
+**해석**: 절대 위치 명령이면 반복해도 안 움직여야 한다. 계속 움직인다는 것은
+`S` 가 **위치가 아니라 방향·속도**라는 뜻이다. GRBL 의 `M4`(스핀들 역회전) + `S`(속도)
+출력을 그리퍼에 연결한 것으로 보인다. *추정이다 — 4절에서 검증.*
 
-> 추정이다. 맨 아래 "실물에서 확인할 것" 으로 검증한다.
-
-| | 위치 제어 (LIBERO/Panda) | Mirobot (관찰된 동작) |
+| | 위치 제어 (LIBERO/Panda) | Mirobot |
 |---|---|---|
-| 명령 의미 | "이 개도로 가라" (절대) | "이 방향으로 돌아라" |
 | 개도를 정하는 것 | 명령값 | **명령 지속 시간** |
-| 중간 개도 지정 | 가능 | 시간으로만 |
-| 현재 개도 추적 | 명령값 = 현재값 | 시간 적분 — **매우 부정확** |
-| 정지 조건 | 목표 도달 | 명령 중단 또는 **기계적 스톱** |
+| 현재 개도 추적 | 명령값 = 현재값 | 시간 적분 — 매우 부정확 |
 
 **따라오는 것 셋**
 
-1. **proprio 그리퍼 2차원을 제대로 채울 방법이 없다.** 명령값으로 대신해도
-   `S40` 은 "여는 중"이지 개도가 아니다. 피드백도 없다.
-   → 실질적으로 **열림/닫힘 이진값으로 근사**할 수밖에 없다.
-2. **그런데 우리 데모도 이미 이진이다.** `common/demos.py` 확인 결과 액션 그리퍼
-   성분의 고유값은 `[-1, +1]` 둘뿐이고, 상태 qpos 도 2값(`0.0` / `0.012`)뿐이다.
-   `common/gcode.py:40` 의 부호 이진화가 **정보 손실이 아니게 된다** — 우연히
-   맞아떨어진다.
-3. **"얼마나 오래 보낼 것인가"가 새 파라미터가 된다.** 지금 코드에는 그 개념이
-   없다. `robot/replay_serial.py:99-102` 는 명령이 **바뀔 때 한 번만** 보낸다:
+1. proprio 그리퍼 2차원을 제대로 채울 방법이 없다 → **이진값으로 근사**
+2. 그런데 **우리 데모도 이미 이진**이다 (액션 `[-1,+1]`, qpos 2값).
+   `gcode.py:40` 의 부호 이진화가 **손실이 아니게 된다**
+3. **"얼마나 오래 보낼 것인가"가 새 파라미터**가 된다.
+   `replay_serial.py:99-102` 는 명령이 **바뀔 때 한 번만** 보내므로
+   자동 재생에서 충분히 닫히지 않을 수 있다
 
-```python
-grip_cmd = gripper_gcode(action, args.open_cmd, args.close_cmd)
-if grip_cmd != last_gripper:
-    send_gcode(ser, grip_cmd, dry_run)   # ← 한 번뿐
-    last_gripper = grip_cmd
-```
+### 1-3. 타임스탬프와 동기화
 
-수동 조작에서는 사람이 원하는 만큼 키를 누르고 있어 문제가 드러나지 않았지만,
-자동 재생에서는 **충분히 닫히지 않을 수 있다.**
+시뮬은 스텝이 곧 시간이라 필요 없다. 실물은 카메라와 로봇이 **비동기**다.
 
-## B-3. 타임스탬프와 동기화
-
-시뮬은 스텝이 곧 시간이라 필요가 없다. 실물은 카메라와 로봇이 **비동기**로 돌아
-타임스탬프 없이는 사후 정렬이 불가능하다.
-
-**현재 상태 — 반쪽이다**
-
-| | 타임스탬프 | 근거 |
+| | 타임스탬프 | |
 |---|---|---|
-| 카메라 | 있음 — `latest_time = time.time()` | `camera_bridge.py:90`, 노출은 `:138` |
+| 카메라 | 있음 | `camera_bridge.py:90` |
 | 로봇 상태 | **없음** | `query_robot_status()` dict 에 시각 필드 없음 |
 
-### 어디서 찍나 — 소스에서
+- **소스에서 찍는다.** 서버에서 찍으면 SSH 역터널 왕복이 섞인다.
+  둘 다 같은 노트북 프로세스라 시계가 같다
+- `time.time()`(절대, NTP 로 뒤로 갈 수 있음)과 `monotonic()`(간격) **둘 다** 남긴다
+- 정렬은 **최근접 이웃** 또는 **보간**. 어느 쪽이든 원본 타임스탬프를 남겨야 바꿀 수 있다
 
-| | 위치 | 상태 |
-|---|---|---|
-| 카메라 | `cap.read()` 직후 | 이미 있음 (`camera_bridge.py:90`) |
-| 로봇 | 시리얼 응답 수신 직후 (`serial_bridge.py:118` 부근) | **추가 필요** |
+**수집 주파수의 상한** — `STATUS_READ_TIMEOUT_S = 1.0` (`:42`) 은 타임아웃이지 실제
+지연이 아니다. 실제 왕복 시간이 상한을 정한다. 계획서 §6 의 "제어 주파수
+다운샘플링" 논의는 그 숫자가 나온 뒤에야 가능하다. → 4절에서 실측
 
-서버(`bridge_client`)에서 찍으면 **네트워크 왕복 지연이 섞인다.** SSH 역터널을
-쓰면 특히 그렇다. 반드시 노트북 쪽에서 찍는다.
+**로봇은 안 보는 사이에도 움직인다.** `G0` 을 보내면 도달까지 시간이 걸리고,
+그 사이 조회하면 **이동 중인 위치**가 나온다. 계획서의 **명령값/실측값 분리**
+요구가 여기와 맞물린다.
 
-둘 다 같은 노트북 프로세스이므로 **시계가 같다.** 서버가 개입하지 않는 한
-시계 동기 문제는 없다.
+### 1-4. 그래서 무엇을 남겨야 하나
 
-### 어떤 시계 — 둘 다 남긴다
+> 초안이다. `regenerate_libero_dataset.py` 를 제대로 읽으면 더 정확해진다.
 
-| | 용도 | 주의 |
-|---|---|---|
-| `time.time()` | 절대 시각. 로그와 대조 | NTP 보정으로 **뒤로 갈 수 있다** |
-| `perf_counter()` / `monotonic()` | 간격 측정. 단조 증가 | 프로세스 기준이라 **프로세스 간 비교 불가** |
+기준 둘 — ① 위 변환을 할 수 있어야 하고, ② **아직 안 정해진 것**(액션 표현 §7,
+크롭 방식, 제어 주파수)을 나중에 바꿀 수 있어야 한다. 그래서 **정책 입력보다 넓게**.
 
-`serial_bridge.py` 는 내부 타임아웃에 이미 `time.monotonic()` 을 쓴다(`:55,80`).
-
-### 수집 주파수의 상한
-
-`STATUS_READ_TIMEOUT_S = 1.0` (`serial_bridge.py:42`) 은 **타임아웃이지 실제
-지연이 아니다.** 실제 왕복 시간이 수집 주파수의 상한을 정한다. 로봇 상태를
-초당 5번밖에 못 읽으면 30fps 카메라가 있어도 5Hz 데이터셋이 된다.
-
-계획서 §6 의 "제어 주파수 다운샘플링" 논의는 이 숫자가 나온 뒤에야 가능하다.
-
-### 더 근본적인 것 — 로봇은 안 보는 사이에도 움직인다
-
-`G0 X.. Y.. Z..` 를 보내면 도달까지 시간이 걸린다. 그 사이에 상태를 조회하면
-**이동 중인 위치**가 나온다. "시각 t 의 상태"가 목표 도달 상태가 아닐 수 있다.
-
-계획서의 **명령값/실측값 분리** 요구가 여기와 맞물린다. 명령 시각과 실측 시각을
-따로 남겨야 "명령 후 얼마 만에 도달했는가"를 알 수 있고, 그것이 실패 진단의
-재료가 된다.
-
-## B-4. 그래서 무엇을 남겨야 하나
-
-> 아래는 **초안**이다. 근거는 A 절에 있으니 확인하고 고칠 것.
-> `regenerate_libero_dataset.py` 를 제대로 읽으면(A-4b) 더 정확해진다.
-
-기준 둘 — ① 위 변환을 할 수 있어야 하고, ② **아직 정해지지 않은 것**
-(액션 표현 §7, 크롭 방식, 제어 주파수)을 나중에 바꿀 수 있어야 한다.
-그래서 정책 입력보다 넓게 남긴다.
-
-| 필드 | 형태 | LIBERO 대응 | 왜 남기나 |
+| 필드 | 형태 | LIBERO 대응 | 왜 |
 |---|---|---|---|
-| `primary_images` | (T, H, W, 3) uint8 | `primary_images` | **원본 해상도로** |
-| `wrist_images` | (T, H, W, 3) uint8 | `wrist_images` | **원본 해상도로** |
-| `ee_pose` | (T, 6) | `ee_states` | EE 4차원 안(§7)의 재료 |
-| `joint_states` | (T, 6) | `joint_states` | **관절각 안의 재료.** §7 미결이라 둘 다 |
-| `joint_commands` | (T, 6) | 없음 | 명령값. 실측과의 차이가 실패 신호 |
-| `gripper_state` | (T, ?) | `gripper_states` | proprio 조립에 필요 |
-| `actions` | (T, 7) | `actions` | 학습 타깃 |
-| `timestamps` | 스트림별 | 없음 | 실물은 카메라와 로봇이 비동기 |
-| `task_description` | str | attribute | 자연어 지시문 |
-| `success` | bool | attribute | 에피소드 결과 |
-| 에피소드 메타 | 배치, 대상 색 | `initial_state` (시뮬 전용) | **직접 기록** |
+| `primary_images` | (T,H,W,3) uint8 | 있음 | **원본 해상도로** |
+| `wrist_images` | (T,H,W,3) uint8 | 있음 | **원본 해상도로** |
+| `ee_pose` | (T,6) | `ee_states` | EE 4차원 안의 재료 |
+| `joint_states` | (T,6) | `joint_states` | 관절각 안의 재료. §7 미결이라 **둘 다** |
+| `joint_commands` | (T,6) | ❌ | 실측과의 차이가 실패 신호 |
+| `gripper_state` | (T,?) | `gripper_states` | 표현 미정 (1-2) |
+| `actions` | (T,7) | `actions` | 학습 타깃 |
+| `timestamps` | 스트림별 | ❌ | 실물은 비동기 |
+| `task_description` | str | attribute | |
+| `success` | bool | attribute | |
+| 에피소드 메타 | 배치, 대상 색 | △ 시뮬 전용 | **직접 기록** |
 
-`proprio` 9차원은 **저장하지 않아도 된다.** `gripper_state` + `ee_pose` 에서
-조립되는 파생값이라 학습 시점에 만들 수 있다 (LIBERO 도 `:334` 에서 매 스텝 조립).
+`proprio` 9차원은 **저장하지 않아도 된다** — `gripper_state` + `ee_pose` 에서
+조립되는 파생값이다 (LIBERO 도 `:334` 에서 매 스텝 조립).
 
-### 계획서 §6 대조 — 네 개가 빠진다
+**계획서 §6 대조 — 네 개가 빠진다**
 
-| 계획서 §6 요구 | LIBERO | 조치 |
+| 계획서 §6 | LIBERO | |
 |---|---|---|
-| 관절각 6개 | `joint_states` | 그대로 |
-| — **명령값/실측값 분리** | 없음 | **우리가 추가** |
-| EE pose 6자유도 | `ee_states` | 그대로 |
-| 그리퍼 상태 | `gripper_states` | 기구가 달라 표현 결정 필요 |
-| **타임스탬프** (스트림별) | 없음 | **우리가 추가** |
-| 카메라 **원본 해상도** | 256 렌더본만 | **원본 별도 보관** |
-| 태스크 지시문 | attribute | 그대로 |
-| 에피소드 메타 | 성공만 | 배치·색 **직접 기록** |
+| 관절각 6개 | ✅ | |
+| — **명령/실측 분리** | ❌ | **추가** |
+| EE pose 6자유도 | ✅ | |
+| 그리퍼 상태 | ✅ | 기구가 달라 표현 결정 필요 |
+| **타임스탬프** | ❌ | **추가** |
+| 카메라 **원본 해상도** | △ 256 렌더본만 | **원본 보관** |
+| 태스크 지시문 | ✅ | |
+| 에피소드 메타 | △ 성공만 | 배치·색 **직접 기록** |
 
-1. **타임스탬프** — 시뮬은 스텝이 곧 시간이다. 실물은 카메라와 로봇 상태가 같은
-   순간의 것이라는 보장이 없어, 없으면 사후 정렬이 불가능하다
-2. **명령/실측 분리** — 시뮬은 명령대로 움직인다. 실물은 다르고 **그 차이가 실패의
-   직접적 신호**다
-3. **원본 해상도** — 16:9 → 1:1 변환 방식을 되돌릴 수 없게 된다
-4. **물체 배치·대상 색** — `initial_state` 는 시뮬 상태 벡터라 실물에 대응물이 없다
+1. **타임스탬프** — 없으면 사후 정렬이 불가능하다
+2. **명령/실측 분리** — 실물은 명령과 도달이 다르고 **그 차이가 실패 신호**다
+3. **원본 해상도** — 16:9→1:1 변환 방식을 되돌릴 수 없게 된다
+4. **물체 배치·대상 색** — `initial_state` 는 시뮬 상태 벡터라 대응물이 없다
 
 **넷 다 "시뮬에는 필요 없지만 실물에는 필요한 것"** 이다. 형식 변환만으로는 부족하다는
-근거이고, `계획서:312` 의 경고가 가리키는 것이 이 넷이다.
+근거이고, `계획서:312`("필드 하나가 빠지면 재수집 외에 복구 불가")가 가리키는 것이다.
 
 ## 2. 의견 ② — 우리 재생·시뮬 코드의 동작 상태 파악
 
-**과제**
-`robot/` · `server/` 의 재생·시뮬 스크립트 6개가 **각각 무엇을 하고 지금 도는지**
-확인한다. 특히 유일한 실시간 시뮬인 `replay_with_mujoco.py`(716줄)가
-돌지 않는 원인과 복구에 필요한 것을 특정한다.
+**과제** `robot/` · `server/` 스크립트가 각각 무엇을 하고 지금 도는지 확인한다.
+**산출물** 파일별 동작 여부 + 무엇이 빠졌는지.
 
-**산출물**
-파일별 동작 여부 표 + **무엇이 빠졌는지 목록.**
-복구가 과제인지 상태 정리가 과제인지는 미팅에서 확인한다(§5).
+> 원문: "시뮬 코드 확인" — **대상은 우리 저장소 코드다.** LIBERO 쪽이 아니다.
 
-**대상은 우리 저장소 코드다** — LIBERO 쪽이 아니다.
+### 2-1. 범위와 커버리지
 
-> 원문: "시뮬 코드 확인"
+**상태 정리까지. 복구는 하지 않는다.** 그리고 `replay_demo0.py` 와 `replay_hdf5.py`
+두 개만 본문까지 읽었다. "다 읽었다" 고 오해하지 않도록 명시해 둔다.
 
-### 현황 (확인됨)
+| 파일 | 줄 | 상태 | 어디까지 봤나 |
+|---|---|---|---|
+| `robot/replay_demo0.py` | 123 | 동작 | **전문** + 드라이런 |
+| `robot/replay_hdf5.py` | 169 | 데이터 없음 | **전문** + 실증 |
+| `robot/replay_serial.py` | 170 | 동작 | 루프만 (비교로) |
+| `server/replay_network.py` | 132 | 동작 | import·인자만 |
+| `server/bridge_client.py` | — | 동작 | **안 봄** |
+| `server/replay_with_viewer.py` | 290 | 프레임 없음 | 기본 경로만 |
+| `server/replay_with_mujoco.py` | **716** | **미동작** | docstring·import만 |
 
-| 파일 | 줄 | 상태 |
-|---|---|---|
-| `robot/replay_serial.py` | 170 | 동작 — 시리얼 직결 재생 |
-| `robot/replay_demo0.py` | 123 | 동작 — demo_0 만, 첫 연결 확인용 |
-| `robot/replay_hdf5.py` | 169 | 동작. 단 기본 `--hdf5` 경로의 파일이 없음 |
-| `server/replay_network.py` | 132 | 동작 — 브리지 경유 |
-| `server/replay_with_viewer.py` | 290 | 저장된 프레임을 읽어 보여줌. 실시간 시뮬 아님 |
-| `server/replay_with_mujoco.py` | **716** | **미동작** |
+**그래도 산출물은 나온다.** "무엇이 빠졌나" 는 import 한 줄로 판정되므로 본문을
+다 읽어도 결론이 바뀌지 않는다.
 
-### 지금 코드는 전부 open-loop 다
+**남은 것 → W3**
 
-용어부터.
+- `bridge_client.py` + `replay_network.py` — 안 읽은 것 중 **유일하게 앞으로 쓸 코드**.
+  Cosmos Policy 는 서버에서 돌아야 하므로 closed-loop 을 만들 때 여기에 카메라를 얹는다
+- `replay_with_viewer.py` — "pillow + 프레임만 있으면 돈다" 는 **추정이지 확인이 아니다**
+- `replay_with_mujoco.py` — 데이터가 없어 어차피 못 돌린다. 복구는 범위 밖
+
+### 2-2. 지금 코드는 전부 open-loop 다
 
 | | 뜻 |
 |---|---|
-| **open-loop** | 정해진 계획을 그대로 실행한다. **관측을 보지 않는다** |
-| **closed-loop** | 관측 → 판단 → 행동 → 관측. **피드백이 다음 행동을 바꾼다** |
+| **open-loop** | 정해진 계획을 그대로 실행. **관측을 보지 않는다** |
+| **closed-loop** | 관측 → 판단 → 행동 → 관측. 피드백이 다음 행동을 바꾼다 |
 
-**재생 스크립트는 전부 open-loop 다.** `DEMOS["0"]["states"]` 에 미리 녹화된
-좌표를 순서대로 던진다. 카메라 코드가 아예 없다. 물체가 어디 있든, 파지에
-실패하든 **똑같은 좌표를 똑같은 순서로** 보낸다.
+재생 스크립트는 미리 녹화된 좌표를 순서대로 던진다. **카메라 코드가 아예 없다.**
+물체가 어디 있든, 파지에 실패하든 똑같은 좌표를 똑같은 순서로 보낸다.
 
-`send_gcode` 가 응답을 읽기는 하지만(`replay_serial.py:53-63`) 이것은 피드백
-제어가 아니다:
+`send_gcode` 가 응답을 읽지만(`replay_serial.py:53-63`) `ok` 를 기다리는 것은
+**핸드셰이킹**이다. "다음 명령 보내도 되나" 를 묻는 것이지 "지금 어디 있나" 가 아니다.
 
-```python
-ser.write((command + "\n").encode())
-while True:
-    line = ser.readline()...
-    if low.startswith("error"): raise ...
-    if "ok" in low: return        # ← "명령 접수됨" 확인일 뿐
-```
+**Cosmos Policy 는 closed-loop** 이되 16스텝 단위로 띄엄띄엄 닫힌다
+(`num_open_loop_steps=16`). 매 스텝 닫는 편이 낫지만 2B 추론이 느려 절충한 것이다.
 
-`ok` 를 기다리는 것은 **핸드셰이킹(흐름 제어)** 이다. "다음 명령 보내도 되나"를
-묻는 것이지 "지금 어디 있나"를 묻는 것이 아니다. 실제 위치를 읽어 다음 명령을
-바꾸는 코드는 없다.
-
-**Cosmos Policy 는 closed-loop 다.** 16스텝마다 실제 관측을 다시 본다.
-단 청크 안(`num_open_loop_steps=16`)에서는 open-loop 로 진행한다 — 전체는
-closed-loop 이지만 **16스텝 단위로 띄엄띄엄 닫힌다.** 매 스텝 닫는 편이
-반응이 빠르지만 2B 모델 추론이 느려 절충한 것이다 (A-3 참조).
-
-| | 현재 재생 스크립트 | Cosmos Policy |
+| | 현재 재생 | Cosmos Policy |
 |---|---|---|
-| 관측을 보나 | 안 봄 | 16스텝마다 |
 | 동작이 결정되는 시점 | **녹화 당시** | **실행 중 매 청크** |
-| 물체가 움직이면 | 무시하고 원래 좌표로 | 새 위치에 반응 |
-| 루프 | **open-loop** | **closed-loop** (청크 단위) |
+| 물체가 움직이면 | 무시 | 새 위치에 반응 |
 
 **목표는 open-loop → closed-loop 전환이다.**
 
-다만 재생 스크립트가 open-loop 라는 것이 쓸모없다는 뜻은 아니다. 오히려 그래서
-**진단 도구로 유용하다** — 매번 똑같이 움직이므로 로봇 자체가 정상인지 가릴 수
-있다. 그리고 이 궤적들이 **파인튜닝 학습 데이터**가 된다.
+다만 open-loop 이 쓸모없다는 뜻은 아니다. 매번 똑같이 움직이므로 **로봇 자체가
+정상인지 가리는 진단 도구**로 유용하고, 이 궤적들이 **파인튜닝 학습 데이터**가 된다.
 
-### 경로가 둘이다 — 같이 쓰는 것이 아니라 택일이다
+### 2-3. 경로가 둘이다 — 택일이다
 
 ```
 [경로 A] 노트북에서 직접 — replay_demo0.py / replay_serial.py
@@ -541,326 +246,167 @@ closed-loop 이지만 **16스텝 단위로 띄엄띄엄 닫힌다.** 매 스텝 
       (서버)                          (노트북)
 ```
 
-근거는 import 다.
-
-| | 경로 A (`replay_demo0.py`) | 경로 B (`replay_network.py`) |
+| | 경로 A | 경로 B |
 |---|---|---|
 | 통신 | `serial.Serial(...)` (`:82`) | `BridgeClient` (`:32`) |
-| 어디서 실행 | **노트북** | **서버** |
-| 짝이 필요한가 | 혼자 돎 | **노트북에 `serial_bridge.py` 필요** |
-| 인자 | `--port COM7` | `--bridge-host`, `--bridge-port` |
+| 어디서 | **노트북** | **서버** |
+| 짝 | 혼자 돎 | **노트북에 `serial_bridge.py` 필요** |
 | 창 개수 | 1 | **3** (브리지 + 역터널 + 작업) |
 
-`replay_demo0.py` 에는 소켓 코드가 **아예 없다.** COM 포트를 직접 열고 닫는 것이
-전부라 서버가 꺼져 있어도 무관하다.
+**A** 는 네트워크를 다 빼고 로봇만 시험하는 진단 도구,
+**B** 는 실제 운영 — **Cosmos Policy 를 돌릴 때는 B 가 된다.**
 
-**목적이 다르다.**
+두 경로가 **같은 G-code 를 만든다.** 둘 다 `common/gcode.py` 를 쓴다.
 
-- **A** — 네트워크·터널·브리지를 다 빼고 최소 구성으로 로봇만 시험한다.
-  문제가 생겼을 때 로봇 문제인지 네트워크 문제인지 가르는 진단 도구
-- **B** — 실제 운영. 2B 모델을 노트북에서 돌릴 수 없으므로 추론은 서버에서 하고
-  명령만 노트북으로 보낸다. **Cosmos Policy 를 돌릴 때는 B 가 된다**
+### 2-4. `demos.py` 와 HDF5
 
-두 경로가 **같은 G-code 를 만든다** — 둘 다 `common/gcode.py` 의
-`state_to_gcode()` 를 쓴다. `common/` 을 따로 뺀 이유이고, 드라이런 출력이
-동일한 것도 그 때문이다.
-
-### `replay_demo0.py` 를 읽고 확인한 것
-
-- 하는 일은 네 단계뿐. 홈 시퀀스 → (상태→G-code, 액션→그리퍼) 반복 → 대기 → 종료
-- `common/` 에서 데이터(`DEMOS`)와 변환을 다 가져오고 **자신은 루프와 인자 처리만** 한다
-- `send_gcode` 는 `replay_serial.py` 에서 import 한다(`:34`) — 즉 이 파일이
-  `replay_serial.py` 에 의존한다
-
-눈에 띈 것:
-
-| | 내용 |
-|---|---|
-| `--port` 기본값 | **`COM7`**(`:41`). 문서(`SETUP_LINUX.md`)는 COM3 — 어긋난다 |
-| 앞 8스텝이 동일 좌표 | 데모 시작이 정지 구간. LIBERO 의 `NUM_STEPS_WAIT=10` 과 대응 |
-| 그리퍼 | step 0 에서 `M4 S40` 한 번뿐 (`:110`) — B-2 의 지속 시간 문제 |
-| `time.sleep(2)` (`:83`) | 시리얼 연 직후. 보드 리셋 대기 관용구이나 주석이 없다 |
-
-`replay_serial.py` 와의 차이는 셋뿐이다 — 데모 고정 여부, `--period` 기본값
-(0.20 대 0.10), 데모 간 처리(`--home-each-demo`, `--between-demo-pause`) 유무.
-
-`replay_with_mujoco.py` 가 유일한 실시간 시뮬인데 돌지 않는다. 원인 확인됨:
-
-```python
-# server/replay_with_mujoco.py:41-42
-from cosmos_policy.experiments.robot.mirobot import MirobotCosmosEnv
-from cosmos_policy.experiments.robot.mirobot.paths import WRIST_UNDER_V1_XML_PATH
-```
-
-clone 한 `cosmos_policy/experiments/robot/` 에는 `aloha/ libero/ robocasa/` 만 있고
-**`mirobot/` 이 없다.** 업스트림에 존재하지 않는 모듈이다.
-
-### 데이터 형식 — `demos.py` 와 HDF5
-
-재생 루프는 **사실상 동일하다.** `common/gcode.py` 의 같은 함수를 쓰고, 홈 시퀀스도,
+재생 루프는 **사실상 동일**하다. 같은 `common/gcode.py` 함수, 같은 홈 시퀀스,
 그리퍼를 바뀔 때만 보내는 것도 같다. 다른 것은 **데이터를 어디서 가져오는가** 뿐이다.
 
-| | `robot/replay_demo0.py` | `robot/replay_hdf5.py` |
+| | `replay_demo0.py` | `replay_hdf5.py` |
 |---|---|---|
-| 데이터 출처 | `common/demos.py` (코드에 내장) | 외부 HDF5 파일 |
-| 상태 키 이름 | `states` | `robot_states` (레이아웃 동일) |
-| 태스크 문장 | `schema.TASK_INSTRUCTION` **상수** | `/data` 의 **attribute** |
+| 데이터 출처 | `common/demos.py` (코드에 내장) | 외부 HDF5 |
+| 상태 키 | `states` | `robot_states` (레이아웃 동일) |
+| 태스크 문장 | `schema.TASK_INSTRUCTION` **상수** | `/data` **attribute** |
 | 길이 검증 | 없음 | 있음 (`:79-80`) |
 | `--port` 기본 | `COM7` | **`/dev/ttyUSB0`** — Windows 전용인데 Linux 경로 |
-| 이미지 | 애초에 없음 | 있어도 **안 읽음** (`load_demo` 가 2개만 꺼냄) |
+| 이미지 | 애초에 없음 | 있어도 **안 읽음** |
 | 재생 루프 | 동일 | 동일 |
 
 **`replay_hdf5.py` 는 고장난 것이 아니라 데이터가 없는 것이다.**
-`tools/demos_to_hdf5.py` 로 `demos.py` 를 HDF5 로 만들어 먹이면 정상 동작하고,
-G-code 출력이 `replay_demo0.py` 와 **한 줄도 다르지 않다**(10줄 대조 확인).
+`tools/demos_to_hdf5.py` 로 만들어 먹이면 G-code 가 **한 줄도 다르지 않다**(10줄 대조).
 
 ```bash
 python -m tools.demos_to_hdf5                                    # data/demos.hdf5 (113 KB)
 python -m robot.replay_hdf5 --hdf5 data/demos.hdf5 --max-steps 5
 ```
 
-### 앞으로는 HDF5 를 쓴다
+`replay_demo0.py` 를 읽고 눈에 띈 것:
 
-**이유 둘. 선택의 문제가 아니다.**
+| | |
+|---|---|
+| `--port` 기본 `COM7` | 문서(`SETUP_LINUX.md`)는 COM3 — **어긋난다** |
+| 앞 8스텝 동일 좌표 | 데모 시작이 정지 구간. LIBERO `NUM_STEPS_WAIT=10` 과 대응 |
+| `time.sleep(2)` (`:83`) | 보드 리셋 대기 관용구이나 주석이 없다 |
 
-1. **`demos.py` 로는 이미지를 담을 수 없다.** VLA 는 이미지가 입력의 전부인데
-   Python 딕셔너리 리터럴에 (256,256,3) 배열 수십 개를 넣을 수 없다.
-   지금 `demos.py` 에는 좌표와 액션만 있다.
-2. **cosmos-policy 가 HDF5 를 쓴다.** `regenerate_libero_dataset.py` 도
-   `run_libero_eval.py:756` 도 HDF5 로 저장한다. 우리가 파인튜닝하려는
-   코드베이스가 이미 HDF5 를 읽으므로 다른 형식을 고르면 변환 계층이 하나 더 생긴다.
+### 2-5. 앞으로는 HDF5 를 쓴다
 
-크기 문제도 있다.
+**이유 둘.** ① `demos.py` 로는 **이미지를 담을 수 없다** — VLA 는 이미지가 입력의
+전부다. ② **cosmos-policy 가 HDF5 를 쓴다** — 다른 형식을 고르면 변환 계층이 생긴다.
 
 | | 크기 | 저장소에 올릴 만한가 |
 |---|---|---|
 | `demos.py` (현재, 커밋됨) | 289 KB | 가능 |
 | 같은 데이터 HDF5 | **113 KB** — 더 작다 | 가능 |
 | + 이미지, 태스크당 150개 (`계획서:309`) | **275 MB** | 불가 |
-| 태스크 3개 | **0.83 GB** | 저장소 권장치 초과 |
+| 태스크 3개 | **0.83 GB** | 권장치 초과 |
 
 `.gitignore` 가 `*.hdf5` 를 막는 것은 "지금" 이 아니라 "나중" 을 위한 규칙이다.
 
-**HDF5 가 절대적으로 우월해서는 아니다**
+**HDF5 가 절대적으로 우월해서는 아니다.** LeRobot(parquet + mp4)이 **비디오 코덱
+압축**으로 용량은 낫지만 cosmos-policy 에 먹이려면 결국 HDF5 로 바꿔야 한다.
 
-| | 장점 | 우리에게 |
-|---|---|---|
-| **HDF5** | robomimic·LIBERO·robosuite 표준 | cosmos-policy 가 쓴다 → **변환 불필요** |
-| LeRobot (parquet + mp4) | **비디오 코덱 압축** — 프레임별 JPEG 보다 훨씬 작다 | 변환 계층 필요 |
-| Zarr | 병렬 쓰기, 청크 단위 접근 | 같음 |
+**약점 하나** — 쓰다 죽으면 파일이 깨진다. **에피소드당 파일 하나**로 쪼갠다.
+LIBERO 가 그렇게 한다.
 
-용량만 보면 LeRobot 방식이 낫다. 다만 우리 규모(0.83 GB)에서 결정적이지 않고,
-cosmos-policy 에 먹이려면 결국 HDF5 로 바꿔야 한다.
+### 2-6. 빠진 것 — 한 곳으로 수렴한다
 
-**실제 약점 하나** — 쓰다가 프로세스가 죽으면 파일이 깨진다. 그래서
-**에피소드당 파일 하나**로 쪼개야 한다. LIBERO 가 정확히 그렇게 한다
-(`episode_data--...--ep=<n>.hdf5`, A-4a 참조). 우리도 그 방식을 따른다.
+대부분이 `cosmos-policy/artifacts/mirobot/` 을 가리키는데 **그 경로가 통째로 없다.**
 
-**아직 없는 것 — 쓰는 쪽 코드**
-
-읽는 코드(`replay_hdf5.py`)는 있는데 **HDF5 를 만드는 수집 코드가 없다.**
-`tools/demos_to_hdf5.py` 는 기존 데이터를 옮겨 담을 뿐 로봇에서 수집하지 않는다.
-카메라 + 로봇 상태 + 타임스탬프를 묶어 에피소드 파일로 쓰는 코드가 필요하다.
-
-**데이터를 어떻게 옮기나 — 문서에 없다**
-
-데이터는 **로봇이 있는 노트북에서만 생성**되고 **GPU 가 있는 서버에서 소비**된다.
-두 번 만들 수 없으므로 한 번 만들고 옮겨야 하는데, 그 절차가 문서에 없다.
-
-| | 받는/옮기는 법이 문서에 있나 |
+| 빠진 것 | 필요한 곳 |
 |---|---|
-| `cosmos-policy/` | `VENDORED.md` — clone 명령 |
-| 모델 가중치 | `MODELS.md` — HF repo ID 자동 다운로드 |
-| **데이터셋** | **없음** |
-
-`ssh -p <SSH_PORT>` 이 이미 뚫려 있으므로 `rsync` 가 당장은 현실적이다.
-Git LFS 는 GitHub 무료 대역폭(1GB/월)을 금방 넘긴다.
-
-### 확인할 것
-
-**W2 범위: 상태 정리까지.** 복구는 하지 않는다.
-
-- [x] 716줄이 무엇을 하려던 코드인가 — **디지털 트윈**.
-      실물 로봇과 MuJoCo 시뮬에 **같은 Cartesian 목표를 동시에** 보내고
-      시뮬 렌더를 브라우저로 서빙한다. docstring 이 명시한다:
-      *"For every command sent to the real robot, it applies the same Cartesian
-      target to the MuJoCo Mirobot through IK and serves the live render"*
-- [x] `WRIST_UNDER_V1_XML_PATH` — `mirobot` 모듈 안에 있어야 하는데 모듈 자체가 없다
-- [x] `replay_hdf5.py` 의 기본 경로 파일 — `cosmos-policy/artifacts/` 아래.
-      그 디렉토리가 통째로 없다
-- [x] `replay_serial.py` / `replay_network.py` 의 재생 루프 구조 — 동일하다.
-      상태→G-code, 액션→그리퍼(바뀔 때만), period 대기. 전송 방식만 다르다
-- [ ] `MirobotCosmosEnv` 가 **서버(OASYS)에 남아 있는가** → W3
-- [ ] `replay_with_viewer.py`(290줄)로 대체 가능한가 → W3.
-      단 뷰어는 **저장된 PNG 를 읽는 것**이라 실시간 시뮬의 대체가 아니다
-
-### 정리
-
-> 초안이다. 근거는 위 절들에 있다.
-
-**무엇이 빠졌나 — 하나의 디렉토리로 수렴한다**
-
-빠진 것 대부분이 `cosmos-policy/artifacts/mirobot/` 아래를 가리킨다.
-그 경로가 **통째로 없다**.
-
-| 빠진 것 | 필요한 곳 | 성격 |
-|---|---|---|
-| `cosmos_policy.experiments.robot.mirobot` 패키지 | `replay_with_mujoco.py:41-42` | **업스트림에 없는 모듈.** clone 해도 안 옴 |
-| └ `MirobotCosmosEnv` | 시뮬 환경 래퍼 | 누군가 작성했던 코드 |
-| └ `paths.WRIST_UNDER_V1_XML_PATH` | MuJoCo 모델 XML | **Mirobot 3D 모델 파일** |
-| `artifacts/.../wrist_under_v1_pick_place/` | `replay_with_viewer.py:48-51` | 렌더 프레임 PNG |
-| └ `..._SCENE1_demos.hdf5` | `replay_hdf5.py` 기본 경로 | **수집된 데모 데이터셋** |
-| 손목 카메라 | `camera_bridge.py` | 하드웨어 + 코드 (카메라 1대만 연다) |
+| `cosmos_policy.experiments.robot.mirobot` 패키지 | `replay_with_mujoco.py:41-42` |
+| └ `MirobotCosmosEnv` (시뮬 환경 래퍼) | |
+| └ `WRIST_UNDER_V1_XML_PATH` (**MuJoCo 모델 XML**) | |
+| `artifacts/.../wrist_under_v1_pick_place/` 렌더 PNG | `replay_with_viewer.py:48-51` |
+| └ `..._SCENE1_demos.hdf5` (**수집된 데모**) | `replay_hdf5.py` 기본 경로 |
+| 손목 카메라 | 하드웨어 + `camera_bridge.py` |
 
 `cosmos_policy/experiments/robot/` 에는 `aloha/ libero/ robocasa/` 만 있다.
-`mirobot/` 은 업스트림 NVIDIA 저장소에 존재하지 않는 모듈이므로,
-**`docs/VENDORED.md` 절차대로 clone 해도 복구되지 않는다.**
+**`mirobot/` 은 업스트림에 없으므로 clone 해도 복구되지 않는다.**
 
-**이름에서 읽히는 것**
+`wrist_under_v1_pick_place` / `WRIST_UNDER_V1_XML_PATH` / `..._SCENE1_demos.hdf5` —
+세 이름이 맞물린다. **누군가 만들어 돌렸던 파이프라인**이고 산출물만 없는 것이다.
+→ **서버(OASYS) 확인이 먼저다.** 있으면 복구가 아니라 가져오기다.
 
-`wrist_under_v1_pick_place`, `WRIST_UNDER_V1_XML_PATH`,
-`pick_up_the_red_cube_and_place_it_on_the_green_target_SCENE1_demos.hdf5` —
-세 이름이 서로 맞물린다. **"손목 카메라를 아래에 단 v1 구성으로 pick-place
-데모를 수집하고 MuJoCo 모델까지 만들었던" 파이프라인**이 있었다는 뜻이다.
-그 산출물이 저장소에 없을 뿐이다.
+**716줄의 정체** — 디지털 트윈이다. docstring 이 명시한다:
+*"For every command sent to the real robot, it applies the same Cartesian target to
+the MuJoCo Mirobot through IK and serves the live render"*.
 
-→ 서버(OASYS)에 남아 있는지 확인할 것. 있으면 복구가 아니라 **가져오기**다.
-
-**지금 돌아가는 것 / 안 돌아가는 것**
-
-| | 파일 | 필요한 것 |
-|---|---|---|
-| 돈다 | `replay_serial`, `replay_demo0`, `replay_network`, `serial_bridge`, `camera_bridge` | 없음 (로봇/카메라만) |
-| 안 돈다 | `replay_hdf5` | HDF5 데이터셋 파일 |
-| 안 돈다 | `replay_with_viewer` | pillow + 렌더 프레임 PNG |
-| 안 돈다 | `replay_with_mujoco` | mujoco + **`mirobot` 모듈 전체** |
-
-**핵심 공백 — closed-loop 경로가 아예 없다**
-
-파일 6개 중 어느 것도 **카메라 → 정책 → 로봇** 을 잇지 않는다.
-
-```
-지금:   녹화된 궤적 ──▶ G-code ──▶ 로봇          (open-loop)
-필요:   카메라 ──▶ 정책 ──▶ G-code ──▶ 로봇 ──┐  (closed-loop)
-          ▲                                    │
-          └────────────────────────────────────┘
-```
-
-`camera_bridge.py` 는 브라우저용 MJPEG 스트림만 제공하고 재생 스크립트와
+**핵심 공백 — closed-loop 경로가 아예 없다.** 파일 어느 것도 카메라 → 정책 → 로봇을
+잇지 않는다. `camera_bridge.py` 는 브라우저용 MJPEG 만 내보내고 재생 스크립트와
 연결되어 있지 않다. **카메라와 로봇 제어가 서로 모르는 상태다.**
 
-`replay_with_mujoco.py` 가 유일하게 카메라를 끌어오지만(`LatestCameraFeed`),
-용도는 **화면에 같이 보여주기**이지 제어에 쓰는 것이 아니다.
+**쓰는 쪽 코드가 없다.** 읽는 코드(`replay_hdf5.py`)는 있는데 로봇에서 수집해 HDF5 로
+만드는 코드가 없다. `tools/demos_to_hdf5.py` 는 기존 데이터를 옮겨 담을 뿐이다.
 
-**`demos.py` 는 임시 형태다**
+**데이터 전송 절차가 문서에 없다.** 데이터는 **노트북에서만 생성**되고 **서버에서
+소비**된다. 두 번 만들 수 없으므로 한 번 만들고 옮겨야 하는데 그 절차가 없다.
+`cosmos-policy` 는 `VENDORED.md`, 모델은 `MODELS.md` 가 있지만 **데이터셋은 없다.**
+`ssh -p <SSH_PORT>` 이 이미 뚫려 있으니 `rsync` 가 현실적이다.
 
-14,292줄짜리 Python 딕셔너리 리터럴이고 docstring 이 스스로 지적한다 —
-*"이 모듈을 import 하면 그만큼(270KB) 메모리에 올라온다"*.
+**복구가 과제인가, 상태 정리가 과제인가** → **W2 는 상태 정리까지.** 이유 셋:
+① 빠진 것이 코드 몇 줄이 아니라 **파이프라인 하나**다
+② **서버에 남아 있을 가능성**이 크다 — 있으면 다시 만들 이유가 없다
+③ `replay_with_mujoco.py` 는 **디지털 트윈이지 학습 경로가 아니다.** 없어도 수집과
+파인튜닝은 진행된다
 
-- 계획서대로 **태스크당 150개**(`계획서:309`)를 모으면 4MB 넘는 `.py` 가 된다
-- **이미지가 들어가지 않는다.** 좌표와 액션뿐이라 VLA 학습에 쓸 수 없다
-- 앞으로 수집하는 데이터는 **HDF5** 로 가야 한다. LIBERO 도 그렇고,
-  `replay_hdf5.py` 도 그것을 전제로 쓰여 있다
-
-**복구가 과제인가, 상태 정리가 과제인가** → **W2 는 상태 정리까지.**
-
-복구는 하지 않는다. 이유는 셋이다.
-
-1. 빠진 것이 **코드 몇 줄이 아니라 파이프라인 하나**다 — 시뮬 환경 래퍼,
-   MuJoCo 모델 XML, 데모 데이터셋, 렌더 프레임
-2. **서버에 남아 있을 가능성**이 크다. 이름 세 개가 맞물리는 것으로 보아
-   누군가 만들어 돌렸던 것이고, `.gitignore` 때문에 저장소에 안 들어왔을 뿐이다.
-   있으면 다시 만들 이유가 없다 → 먼저 확인
-3. `replay_with_mujoco.py` 는 **디지털 트윈이지 학습 경로가 아니다.** 없어도
-   데이터 수집과 파인튜닝은 진행할 수 있다. 우선순위가 높지 않다
-
-> 다만 교수님이 복구를 의도하셨을 수 있으므로 다음 미팅에서 확인한다(6절).
-> 복구가 과제라면 **서버 확인 → 없으면 재작성** 순으로 W3 에 잡는다.
+> 교수님이 복구를 의도하셨을 수 있으므로 다음 미팅에서 확인한다(6절).
 
 ## 3. 의견 ③ — 액션을 Cartesian 에 둘 것인가 관절 공간에 둘 것인가
 
-**과제**
-정책이 내보낼 액션을 **EE(손끝 좌표) 공간에 둘지, 관절각 공간에 둘지** 결정한다.
-LIBERO 가 어느 쪽을 쓰는지, 그것이 6축 Mirobot 에 적용 가능한지가 근거가 된다.
-
-**산출물**
-결정 + 근거. `../plan/운영기준.md` §7 에 남긴다.
-이 결정이 **데모 수집 형식을 바꾸므로** 의견 ①과 묶여 있다.
+**과제** 정책이 내보낼 액션을 **EE 공간에 둘지, 관절각 공간에 둘지** 결정한다.
+**산출물** 결정 + 근거 → `../plan/운영기준.md` §7. **데모 수집 형식을 바꾸므로 의견 ①과 묶여 있다.**
 
 > 원문: "LIBERO 를 쓴다면 FK 와 IK 를 비교해서 어느 쪽을 쓰는 것이 맞을지 판단"
 
-### 왜 질문을 바꿔 적었나
+### 3-1. 왜 질문을 바꿔 적었나
 
-**FK 와 IK 는 고르는 것이 아니다.** 서로의 역연산이고 둘 다 쓴다.
-손이 어디 있는지 알려면 FK, 원하는 곳으로 보내려면 IK.
-
-진짜 선택지는 **"정책의 출력을 어느 공간에 둘 것이냐"** 다.
-계획서 `:325` 의 미결 표와 `plan/운영기준.md` §7 이 같은 얘기다.
+**FK 와 IK 는 고르는 것이 아니다.** 서로의 역연산이고 둘 다 쓴다 — 손이 어디 있는지
+알려면 FK, 원하는 곳으로 보내려면 IK. 진짜 선택지는 **출력을 어느 공간에 둘 것이냐**다.
 
 | | 관절각 7차원 | EE 4차원 |
 |---|---|---|
 | 구성 | J1~J6 + 그리퍼 | x, y, z + 그리퍼 (자세 고정) |
-| 장점 | IK 문제 없음 | 차원 절반. 소량 데이터에 유리 |
+| 장점 | IK 문제 없음 | 차원 절반, 소량 데이터에 유리 |
 | 단점 | 관절-시각 대응을 모델이 학습해야 함 | SDK IK 블랙박스, 특이점 근처 불연속 |
 
-**계획서 잠정 권고: EE 4차원.**
+**계획서 잠정 권고: EE 4차원** (`계획서:325`).
 
-### 조사 (오늘 가능)
+### 3-2. 지금까지의 근거
 
-- [ ] LIBERO 컨트롤러가 OSC 인지 IK 솔버인지 → robosuite 설정 필요.
-      `libero` 패키지는 clone 에 없음 (`libero_utils.py:23-24` 가 외부 import)
-- [x] **Mirobot 은 두 방식을 모두 지원한다** — 아래
-- [x] `serial_bridge.py` 가 관절각을 이미 읽고 있다 — 아래
-- [ ] 관절 수 7 대 6 — 관절 공간 액션이 호환되나 → 
-- [ ] `common/gcode.py` 가 IK 를 신경 쓰지 않는 이유 확인
+| 근거 | 어느 쪽 |
+|---|---|
+| LIBERO 액션이 Cartesian 델타 7차원 | EE |
+| LIBERO proprio 에 관절각 슬롯 없음 | EE |
+| 관절 수 7(Panda) 대 6(Mirobot) — **관절 공간은 애초에 비호환** | EE |
+| Mirobot 펌웨어가 IK 를 풀어 준다 (`M20`+`G90`) | EE 가능 |
+| Mirobot 이 관절 직접 지정도 된다 | 관절도 가능 |
+| `serial_bridge.py:184` 가 관절각 7개를 이미 읽는다 | 관절 데이터 확보됨 |
+| `serial_bridge.py:180` 이 `RxRyRz` 를 버린다 | **EE 자세는 파싱 복구 필요** |
 
-#### Mirobot 은 두 모드를 다 쓴다 — 구분은 모드 설정이다
+**Mirobot 은 두 모드를 다 쓴다.** G-code 문자열은 같고 모드에 따라 뜻이 바뀐다.
 
-G-code 문자열은 **똑같고** 모드에 따라 `X Y Z` 의 의미가 바뀐다.
-
-| | `robot/forward_kinematics.py` | `robot/inverse_kinematics.py` |
+| | `forward_kinematics.py` | `inverse_kinematics.py` |
 |---|---|---|
 | 모드 | `G91` (상대) | `M20` + `G90` (절대 Cartesian) |
-| 초기 명령 | `G0 X0 Y0 Z0 A0 B0 C0` (`:40`) | `G0 X198.67 Y0 Z230.72 ...` (`:41`) |
 | `X,Y,Z` 의 뜻 | **관절각 J1,J2,J3 (도)** | **좌표 x,y,z (mm)** |
-| `A,B,C` 의 뜻 | 관절각 J4,J5,J6 | 자세 각도 |
-| IK 를 푸는 주체 | 없음 — 관절을 직접 지정 | **Mirobot 펌웨어** |
+| IK 를 푸는 주체 | 없음 — 관절 직접 지정 | **Mirobot 펌웨어** |
 
 `forward_kinematics.py:74` 가 `G0 X{current_j1} ...` 로 관절각을 `X` 에 넣는다.
-같은 `G0 X..` 인데 `M20`/`M21` 스위치에 따라 mm 이기도 하고 도(degree)이기도 하다.
+**하드웨어가 한쪽을 강제하지 않는다.**
 
-**즉 선택지가 실제로 둘 다 열려 있다.** 펌웨어가 IK 를 풀어 주므로 Cartesian 으로
-가도 되고, 관절각을 직접 줘도 된다. 하드웨어가 한쪽을 강제하지 않는다.
+> 역설적으로 **지금 코드는 관절각 쪽이 더 온전하다.** `:184` 는 관절각 7개를 다 읽는데
+> `:180` 은 Cartesian 에서 자세를 버린다. EE 로 가려면 파싱을 먼저 고쳐야 한다.
+> 이것이 §7 결정에 영향을 주는지 검토할 것 →
 
-#### 관절각 데이터는 이미 확보된다
+### 3-3. 남은 확인
 
-`serial_bridge.py:184` 가 `Angle(ABCDXYZ)` 에서 **관절각 7개**를 파싱해
-`status["joint"]` 에 담는다. 관절 공간으로 결정되더라도 **데이터 수집은 이미 된다.**
+- [ ] LIBERO 컨트롤러가 OSC 인지 IK 솔버인지 — `libero` 패키지가 clone 에 없어
+      robosuite 설정을 볼 수 없다. 액션이 6+1 인 것으로 보아 `OSC_POSE` 가 유력
+- [ ] `common/gcode.py` 가 IK 를 신경 쓰지 않는 이유 확인
 
-반면 Cartesian 쪽은 `:180` 이 `RxRyRz` 를 버리고 XYZ 3개만 취한다 —
-**자세 정보가 유실된다.** 이건 의견 ① 의 proprio 변환 문제이기도 하다.
-
-> 역설적으로 **지금 코드는 관절각 쪽이 더 온전하다.** EE 자세를 쓰려면
-> 파싱을 먼저 고쳐야 한다. 이것이 §7 결정에 영향을 주는지 검토할 것 → 
-
-### 실물 실험 (로봇 필요 — 오늘 불가할 수 있음)
-
-계획서가 지정한 W2 절차:
-
-> 확정 전 **W2 에 직선 궤적을 EE 좌표로 명령하며 관절각 로깅**
-> → 튀는 구간 있으면 관절각으로 전환
-
-- [ ] 직선 궤적을 EE 좌표로 명령
-- [ ] 관절각 로깅
-- [ ] 튀는 구간 유무 → 
-- [ ] top-down 자세가 J5 범위(-180°~+40°) 안인지 (`계획서:258`)
-
-### 결정
-
-- **EE 4차원 / 관절각 7차원** → 
-- **근거** → 
-
-> 결정하면 `../plan/운영기준.md` §7 에 남긴다.
+**실물 실험과 최종 결정은 4절에 모아 두었다.**
 
 ---
 
