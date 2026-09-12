@@ -1,4 +1,5 @@
 # 문서 규칙과 목록
+UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행동 rollout trajectories를 모은 후 기존 VLA를 fine-tuning 하여 real-world task에서 deploy 및 실제상황에서도 vision input만으로 Task라도 달성하는것을 목표
 
 > **기준** · 확인 2026-09-09
 > 문서를 어디에 두고 어떻게 쓸지. 아래 목록이 이 저장소 문서의 색인이다.
