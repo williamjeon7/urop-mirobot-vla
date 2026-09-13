@@ -34,7 +34,8 @@ HELP = """\
   moving <dx_mm> [sec]        G0 을 보내고 ok 를 기다리지 않고 ? 폴링 — 이동 중 위치 보고 여부, ok 시점
   line <x|y|z> <len> <step>   EE 직선 이동, 스텝마다 관절각 기록 — 튀는 구간 탐지
   joint <X|Y|Z|A|B|C> <deg>   관절 모드로 한 축만 움직였다 되돌림 — Angle(ABCDXYZ) 순서 확인
-  send <gcode...>             임의 명령
+  euler [deg]                 관절 모드로 B(J5) 기울이고 C(J6) 돌림, 매 이동 정지 확인 — RxRyRz 합성 규약 (기본 10)
+  send <gcode...>             임의 명령 — 확인 없이 즉시 보낸다. 여러 줄을 붙여 넣으면 연달아 실행된다
   help / quit"""
 
 # label:숫자,숫자,... 한 덩어리. "Cartesian coordinate(XYZ RxRyRz):1,2,3" 처럼 괄호와 공백을 허용한다.
@@ -109,18 +110,18 @@ class Probe:
         self.log_file = log_path.open("a", encoding="utf-8")
 
     def log(self, kind: str, **data) -> None:
-        record = {"t_wall": time.time(), "t_mono": time.monotonic(), "kind": kind, **data}
+        record = {"t_wall": time.time(), "t_perf": time.perf_counter(), "kind": kind, **data}
         self.log_file.write(json.dumps(record, ensure_ascii=False) + "\n")
         self.log_file.flush()
 
     # --- 저수준 ---
 
     def read_lines(self, timeout_s: float, until=None) -> list[tuple[float, str]]:
-        """timeout_s 동안 줄을 모은다. until(line) 이 참이면 바로 멈춘다. [(monotonic, line)]"""
-        deadline = time.monotonic() + timeout_s
+        """timeout_s 동안 줄을 모은다. until(line) 이 참이면 바로 멈춘다. [(perf_counter, line)]"""
+        deadline = time.perf_counter() + timeout_s
         out: list[tuple[float, str]] = []
         pending = b""
-        while time.monotonic() < deadline:
+        while time.perf_counter() < deadline:
             chunk = self.ser.readline()
             if not chunk:
                 continue
@@ -131,17 +132,17 @@ class Probe:
             pending = b""
             if not line:
                 continue
-            out.append((time.monotonic(), line))
+            out.append((time.perf_counter(), line))
             if until is not None and until(line):
                 break
         if pending.strip():
-            out.append((time.monotonic(), pending.decode("utf-8", errors="replace").strip() + "  [잘림]"))
+            out.append((time.perf_counter(), pending.decode("utf-8", errors="replace").strip() + "  [잘림]"))
         return out
 
     def send(self, command: str, timeout_s: float = 30.0) -> tuple[list[tuple[float, str]], float | None]:
         """명령을 보내고 ok/error 까지 읽는다. (응답 줄, ok 까지 걸린 초)"""
         self.ser.reset_input_buffer()
-        t0 = time.monotonic()
+        t0 = time.perf_counter()
         self.ser.write((command + "\n").encode())
         lines = self.read_lines(timeout_s, until=lambda l: is_ok(l) or is_error(l))
         for _, line in lines:
@@ -154,10 +155,10 @@ class Probe:
         return lines, elapsed
 
     def status(self, timeout_s: float = 1.0, flush: bool = True):
-        """? 한 번. (상태 줄 또는 None, 걸린 초, 그 사이 받은 다른 줄 [(monotonic, line)])"""
+        """? 한 번. (상태 줄 또는 None, 걸린 초, 그 사이 받은 다른 줄 [(perf_counter, line)])"""
         if flush:
             self.ser.reset_input_buffer()
-        t0 = time.monotonic()
+        t0 = time.perf_counter()
         self.ser.write(b"?\n")
         lines = self.read_lines(timeout_s, until=is_status)
         if lines and is_status(lines[-1][1]):
@@ -177,10 +178,10 @@ class Probe:
 
     def wait_settled(self, timeout_s: float = 15.0) -> tuple[str | None, float | None]:
         """Idle 이면서 위치·관절각이 3회 연속 같으면 멈춘 것으로 본다."""
-        t0 = time.monotonic()
+        t0 = time.perf_counter()
         recent: list[tuple] = []
         last = None
-        while time.monotonic() - t0 < timeout_s:
+        while time.perf_counter() - t0 < timeout_s:
             status_line, _, _ = self.status(flush=False)
             if status_line is None:
                 continue
@@ -188,7 +189,7 @@ class Probe:
             parsed = fields(status_line)
             recent = (recent + [(find_field(parsed, "Cartesian"), find_field(parsed, "Angle"))])[-3:]
             if len(recent) == 3 and recent[0] == recent[1] == recent[2] and state_of(status_line).lower() == "idle":
-                return status_line, time.monotonic() - t0
+                return status_line, time.perf_counter() - t0
             time.sleep(0.05)
         print(f"  !! {timeout_s}s 안에 멈추지 않음 (마지막: {last})")
         return last, None
@@ -197,10 +198,10 @@ class Probe:
         """G0 을 보내고 ok 를 기다리지 않은 채 duration_s 동안 ? 를 폴링한다."""
         command = g0(target)
         self.ser.reset_input_buffer()
-        t0 = time.monotonic()
+        t0 = time.perf_counter()
         self.ser.write((command + "\n").encode())
         rows, ok_ms, misses = [], None, 0
-        while time.monotonic() - t0 < duration_s:
+        while time.perf_counter() - t0 < duration_s:
             status_line, _, others = self.status(timeout_s=0.5, flush=False)
             for t, line in others:  # ok 는 다음 폴링에서 읽히므로 폴링 간격만큼 늦게 찍힌다
                 if is_ok(line) and ok_ms is None:
@@ -212,7 +213,7 @@ class Probe:
                 continue
             parsed = fields(status_line)
             rows.append({
-                "t_ms": round((time.monotonic() - t0) * 1000),
+                "t_ms": round((time.perf_counter() - t0) * 1000),
                 "state": state_of(status_line),
                 "cart": find_field(parsed, "Cartesian"),
                 "angle": find_field(parsed, "Angle"),
@@ -233,7 +234,7 @@ class Probe:
         n = int(args[0]) if args else 1
         for i in range(n):
             self.ser.reset_input_buffer()
-            t0 = time.monotonic()
+            t0 = time.perf_counter()
             self.ser.write(b"?\n")
             lines = self.read_lines(1.5)  # 상태 줄에서 멈추지 않는다 — 뒤에 뭐가 더 오는지 본다
             print(f"--- ? #{i + 1}: {len(lines)}줄")
@@ -392,6 +393,35 @@ class Probe:
         if after:
             print(f"  복귀 후 Angle: {fmt(find_field(fields(after), 'Angle'))}")
 
+    def cmd_euler(self, args: list[str]) -> None:
+        """관절 모드에서 J5(B) 를 기울이고 J6(C) 를 돌린 뒤 정지 상태를 찍는다 — RxRyRz 합성 규약 확인."""
+        deg = clamp(float(args[0]) if args else 10.0, MAX_JOINT_DEG)
+        if not confirm(f"관절 모드(M21) 상대 이동 G0 B{deg:+.2f} → G0 C{deg:+.2f}, 매 이동 정지 확인 후 역순 복귀. 홈 근처에서만"):
+            return
+        before, _ = self.wait_settled()
+        settled: dict[str, str | None] = {}
+        for label, command in (("", "M21"), ("", "G91"), ("tilt", f"G0 B{deg:.2f}"), ("spin", f"G0 C{deg:.2f}"),
+                               ("", f"G0 C{-deg:.2f}"), ("", f"G0 B{-deg:.2f}")):
+            print(f"send: {command}")
+            lines, _ = self.send(command)
+            if lines and is_error(lines[-1][1]):
+                print("  에러 — 여기서 멈춘다. G90, M20 을 직접 보내 모드를 되돌릴 것")
+                self.log("euler", deg=deg, before=before, error=lines[-1][1], **settled)
+                return
+            if command.startswith("G0"):
+                line, _ = self.wait_settled()  # ok 는 수신 시점이라 멈출 때까지 기다린 뒤 다음 명령
+                if label:
+                    settled[label] = line
+        for command in ("G90", "M20"):
+            print(f"send: {command}")
+            self.send(command)
+        after, _ = self.wait_settled()
+        self.log("euler", deg=deg, before=before, after=after, **settled)
+        for name, line in (("before", before), ("tilt", settled.get("tilt")), ("spin", settled.get("spin")), ("after", after)):
+            if line:
+                parsed = fields(line)
+                print(f"  {name:<6} {state_of(line):<5} Angle {fmt(find_field(parsed, 'Angle'))}  |  Cart {fmt(find_field(parsed, 'Cartesian'))}")
+
     def cmd_send(self, args: list[str]) -> None:
         command = " ".join(args)
         print(f"send: {command}")
@@ -430,6 +460,7 @@ def main() -> None:
         "moving": probe.cmd_moving,
         "line": probe.cmd_line,
         "joint": probe.cmd_joint,
+        "euler": probe.cmd_euler,
         "send": probe.cmd_send,
     }
     try:
