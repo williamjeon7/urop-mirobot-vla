@@ -36,7 +36,9 @@ HELP = """\
   joint <X|Y|Z|A|B|C> <deg>   관절 모드로 한 축만 움직였다 되돌림 — Angle(ABCDXYZ) 순서 확인
   euler [deg]                 관절 모드로 B(J5) 기울이고 C(J6) 돌림, 매 이동 정지 확인 — RxRyRz 합성 규약 (기본 10)
   send <gcode...>             임의 명령 — 확인 없이 즉시 보낸다. 여러 줄을 붙여 넣으면 연달아 실행된다
-  help / quit"""
+  help / quit
+  moving·line·joint·euler 끝에 --stay 를 붙이면 끝난 자세에 그대로 둔다 (시작 자세로 복귀 안 함)
+                              예) line x 50 5 --stay"""
 
 # label:숫자,숫자,... 한 덩어리. "Cartesian coordinate(XYZ RxRyRz):1,2,3" 처럼 괄호와 공백을 허용한다.
 FIELD_RE = re.compile(
@@ -45,6 +47,7 @@ FIELD_RE = re.compile(
 JOINT_JUMP_WARN_DEG = 10.0  # line 에서 스텝 하나에 이보다 크게 변한 관절을 표시
 MAX_MOVE_MM = 100.0
 MAX_JOINT_DEG = 15.0
+STAY_FLAG = "--stay"
 
 
 def is_ok(line: str) -> bool:
@@ -98,6 +101,11 @@ def clamp(value: float, limit: float) -> float:
         print(f"  {value} → ±{limit} 로 제한")
         return limit if value > 0 else -limit
     return value
+
+
+def pop_stay(args: list[str]) -> tuple[list[str], bool]:
+    """인자에서 --stay 를 떼어낸다. 있으면 명령이 끝나도 시작 자세로 되돌리지 않는다."""
+    return [a for a in args if a != STAY_FLAG], STAY_FLAG in args
 
 
 def confirm(message: str) -> bool:
@@ -290,6 +298,7 @@ class Probe:
         )
 
     def cmd_moving(self, args: list[str]) -> None:
+        args, stay = pop_stay(args)
         dx = clamp(float(args[0]) if args else 30.0, MAX_MOVE_MM)
         duration_s = float(args[1]) if len(args) > 1 else 4.0
         start = self.current_pose()
@@ -297,7 +306,7 @@ class Probe:
             return
         target = list(start)
         target[0] += dx
-        if not confirm(f"{g0(start)}  →  {g0(target)}"):
+        if not confirm(f"{g0(start)}  →  {g0(target)}{'  (복귀 안 함)' if stay else ''}"):
             return
         command, ok_ms, misses, rows = self.move_and_poll(target, duration_s)
         print(f"send: {command}")
@@ -312,10 +321,14 @@ class Probe:
             print(f"  → 이동 중 위치가 갱신된다 (중간 X 값 {len(between)}종)")
         else:
             print("  → 중간 위치가 안 보인다 — 정지 상태만 보고하거나, 이동 중 ? 에 응답하지 않거나, 이동이 폴링보다 빠르다")
+        if stay:
+            print("  --stay: 도착 자세에 그대로 둔다")
+            return
         print("  시작 위치로 복귀")
         self.move_and_poll(start, duration_s)
 
     def cmd_line(self, args: list[str]) -> None:
+        args, stay = pop_stay(args)
         axis = args[0].lower()
         idx = "xyz".index(axis)
         length = clamp(float(args[1]), MAX_MOVE_MM)
@@ -325,7 +338,7 @@ class Probe:
         if start is None:
             return
         sign = 1.0 if length > 0 else -1.0
-        if not confirm(f"{axis} 방향 {length}mm 를 {step}mm × {n_steps}스텝, 시작 {g0(start)}"):
+        if not confirm(f"{axis} 방향 {length}mm 를 {step}mm × {n_steps}스텝, 시작 {g0(start)}{'  (복귀 안 함)' if stay else ''}"):
             return
 
         rows = []
@@ -350,7 +363,7 @@ class Probe:
             prev_angle = angle or prev_angle
             rows.append({"i": i, "target": target, "cart": find_field(parsed, "Cartesian"), "angle": angle,
                          "jump_deg": jump, "ok_s": ok_s, "settle_s": settle_s})
-        self.log("line", axis=axis, length=length, step=step, start=start, rows=rows)
+        self.log("line", axis=axis, length=length, step=step, start=start, stay=stay, rows=rows)
 
         print(f"  {'i':>3} {'목표':>8} {'실측':>8}  max|Δ관절|   Angle({letters})")
         for row in rows:
@@ -358,28 +371,34 @@ class Probe:
             flag = "  <-- 튐" if row["jump_deg"] > JOINT_JUMP_WARN_DEG else ""
             print(f"  {row['i']:>3} {row['target'][idx]:8.2f} {actual:8.2f}  {row['jump_deg']:9.2f}   {fmt(row['angle'])}{flag}")
         print(f"  스텝 {step}mm 에 관절이 {JOINT_JUMP_WARN_DEG}° 넘게 변하면 '튐' 표시. J5 범위(-180°~+40°)는 joint 로 순서를 확인한 뒤 읽을 것")
+        if stay:
+            print("  --stay: 마지막 스텝 자세에 그대로 둔다")
+            return
         print("  시작 위치로 복귀")
         self.send(g0(start))
         self.wait_settled()
 
     def cmd_joint(self, args: list[str]) -> None:
+        args, stay = pop_stay(args)
         letter = args[0].upper()
         if letter not in "XYZABC" or len(letter) != 1:
             print("  축은 X Y Z A B C 중 하나")
             return
         deg = clamp(float(args[1]), MAX_JOINT_DEG)
-        if not confirm(f"관절 모드(M21) 상대 이동 G0 {letter}{deg:+.2f} 후 되돌림. 홈 근처에서만"):
+        if not confirm(f"관절 모드(M21) 상대 이동 G0 {letter}{deg:+.2f} 후 {'그대로 둠' if stay else '되돌림'}. 홈 근처에서만"):
             return
         before, _ = self.wait_settled()
         for command in ("M21", "G91", f"G0 {letter}{deg:.2f}"):
             print(f"send: {command}")
             self.send(command)
         moved, _ = self.wait_settled()
-        for command in (f"G0 {letter}{-deg:.2f}", "G90", "M20"):
+        # --stay 여도 G90·M20 은 보낸다 — 관절·상대 모드로 남으면 다음 좌표 명령이 관절각으로 읽힌다
+        restore = ("G90", "M20") if stay else (f"G0 {letter}{-deg:.2f}", "G90", "M20")
+        for command in restore:
             print(f"send: {command}")
             self.send(command)
         after, _ = self.wait_settled()
-        self.log("joint", letter=letter, deg=deg, before=before, moved=moved, after=after)
+        self.log("joint", letter=letter, deg=deg, stay=stay, before=before, moved=moved, after=after)
         if not (before and moved):
             return
         f_before, f_moved = fields(before), fields(moved)
@@ -391,17 +410,20 @@ class Probe:
             label = letters[i] if i < len(letters) else "?"
             print(f"    [{i}] {label}: {b:8.2f} → {m:8.2f}{mark}")
         if after:
-            print(f"  복귀 후 Angle: {fmt(find_field(fields(after), 'Angle'))}")
+            print(f"  {'끝난 뒤' if stay else '복귀 후'} Angle: {fmt(find_field(fields(after), 'Angle'))}")
 
     def cmd_euler(self, args: list[str]) -> None:
         """관절 모드에서 J5(B) 를 기울이고 J6(C) 를 돌린 뒤 정지 상태를 찍는다 — RxRyRz 합성 규약 확인."""
+        args, stay = pop_stay(args)
         deg = clamp(float(args[0]) if args else 10.0, MAX_JOINT_DEG)
-        if not confirm(f"관절 모드(M21) 상대 이동 G0 B{deg:+.2f} → G0 C{deg:+.2f}, 매 이동 정지 확인 후 역순 복귀. 홈 근처에서만"):
+        if not confirm(f"관절 모드(M21) 상대 이동 G0 B{deg:+.2f} → G0 C{deg:+.2f}, 매 이동 정지 확인 후 {'그대로 둠' if stay else '역순 복귀'}. 홈 근처에서만"):
             return
         before, _ = self.wait_settled()
         settled: dict[str, str | None] = {}
-        for label, command in (("", "M21"), ("", "G91"), ("tilt", f"G0 B{deg:.2f}"), ("spin", f"G0 C{deg:.2f}"),
-                               ("", f"G0 C{-deg:.2f}"), ("", f"G0 B{-deg:.2f}")):
+        steps = [("", "M21"), ("", "G91"), ("tilt", f"G0 B{deg:.2f}"), ("spin", f"G0 C{deg:.2f}")]
+        if not stay:
+            steps += [("", f"G0 C{-deg:.2f}"), ("", f"G0 B{-deg:.2f}")]
+        for label, command in steps:
             print(f"send: {command}")
             lines, _ = self.send(command)
             if lines and is_error(lines[-1][1]):
@@ -416,7 +438,7 @@ class Probe:
             print(f"send: {command}")
             self.send(command)
         after, _ = self.wait_settled()
-        self.log("euler", deg=deg, before=before, after=after, **settled)
+        self.log("euler", deg=deg, stay=stay, before=before, after=after, **settled)
         for name, line in (("before", before), ("tilt", settled.get("tilt")), ("spin", settled.get("spin")), ("after", after)):
             if line:
                 parsed = fields(line)
