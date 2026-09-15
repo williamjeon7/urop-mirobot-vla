@@ -55,29 +55,52 @@
 
 **절차**
 
-- [ ] 서버에 무엇이 있는지 본다
+- [x] 서버에 무엇이 있는지 본다
   ```bash
   nvidia-smi                                   # GPU
   docker --version && docker images | grep -i cosmos   # Docker 사용 가능 여부, 이미지 존재
   ls <cosmos-policy clone 경로>/.venv          # uv 환경이 이미 있나
   ```
-  →
-- [ ] 설치 경로 — Docker(공식) / Docker 없이 uv 직접 →
-- [ ] LIBERO·robosuite 설치 →
-- [ ] import 확인 (`MUJOCO_GL=egl` 은 mujoco 화면 없는 렌더링의 일반적인 설정)
+  → (9/15) GPU **RTX 4090 × 4** (24GB). **Docker 없음** (podman·apptainer 도 없고 docker 그룹 권한도 없다).
+  uv 0.12.5 있음. **`~/UROP/cosmos-policy/.venv` 가 이미 있다** (9/7 생성, 13GB, Python 3.10.21).
+  서버에 EGL 라이브러리(`libEGL_nvidia`)가 있다. LIBERO demo 데이터(hdf5)는 서버에 없다
+- [x] 설치 경로 — Docker(공식) / Docker 없이 uv 직접 → **uv 직접 — 9/7 에 만든 `.venv` 를 그대로 쓴다.**
+  conda 는 끄고 켠다. **`uv run`·`uv sync` 는 쓰지 않는다** — lock 에 맞춰 다시 동기화하므로
+  `--extra cu128 --group libero` 를 빠뜨리면 libero 패키지가 지워질 수 있다
+  ```bash
+  conda deactivate                          # (base)/(urop) 이 없어질 때까지
+  cd ~/UROP && source cosmos-policy/.venv/bin/activate   # 프롬프트에 (cosmos-policy)
+  ```
+- [x] LIBERO·robosuite 설치 → **새로 설치하지 않았다 — 이미 들어 있다.** libero 0.1.1 (pypi), **robosuite 1.4.0**, mujoco 3.3.2,
+  bddl 1.0.1, torch 2.7.0+cu128, scipy 1.15.3. robosuite 는 위 표의 1.4.1 이 아니라 `uv.lock` 대로 **1.4.0** — ③ 액션 크기는 1.4.0 기준
+- [x] import 확인 (`MUJOCO_GL=egl` 은 mujoco 화면 없는 렌더링의 일반적인 설정)
   ```bash
   MUJOCO_GL=egl python -c "from libero.libero.envs import OffScreenRenderEnv; print('ok')"
   ```
-  →
-- [ ] 환경 하나 만들고 dummy action 20스텝 → MP4
+  → **ok** (약 20초). `mujoco.GLContext` 생성도 된다. 끝에 `c.free()` 를 안 부르면 종료 때
+  `Exception ignored in GLContext.__del__ ... EGLError` 가 찍히는데 해제 순서 문제일 뿐 결과와 무관
+- [x] 환경 하나 만들고 dummy action 20스텝 → MP4
   - 환경 생성 `get_libero_env()` (`libero_utils.py:30`), dummy action `[0,0,0,0,0,0,-1]` (`:42`)
   - 영상 저장 `save_rollout_video()` (`:61`) — `./rollouts/<날짜>/` 에 30fps
   - **렌더 이미지는 상하가 뒤집혀 나온다** — `np.flipud` 후 저장
     (`cosmos-policy/README.md:57`, `regenerate_libero_dataset.py:242`)
 
-  →
+  → **`rollouts/2026_09_15/11_52_14--dummy--libero_10_0--20steps.mp4`** — 256×256, 21프레임(초기 1 + 20), 0.7초.
+  `flipud` 후 똑바로 선다. 스크립트 `tools/libero_dummy_mp4.py` (`libero_utils` 는 torch·wandb 를 끌고 와서 쓰지 않고 같은 절차를 옮겼다)
+  ```bash
+  cd ~/UROP && python -m tools.libero_dummy_mp4        # --suite --task --steps --res --out
+  ```
+  - 태스크 `libero_10[0]` "put both the alphabet soup and the tomato sauce in the basket"
+  - 첫 관측 `eef_pos [-0.0375, -0.0054, 0.713]`, `eef_quat [0.9998, -0.0122, 0.0146, -0.0012]`.
+    dummy 20스텝 뒤 z 가 약 1cm 내려간다
+  - 영상은 `agentview` 만 저장. 관측에는 `robot0_eye_in_hand_image` (256×256) 도 있다
 
-**막힌 것 / 걸린 시간** →
+**막힌 것 / 걸린 시간** → 설치 0 (이미 있었다). 확인부터 직접 실행한 MP4 까지 약 30분 (11:20 → 11:52).
+- **에셋 자동 다운로드** — pypi libero 는 `~/.libero/config.yaml` 의 `assets` 를 보지 않고 패키지 안 `assets/` 만 찾는다.
+  없으면 HF `jadechoghari/libero-assets` 에서 **408MB 를 `~/.cache/libero/assets` 로 받는다** (`libero/libero/__init__.py:68-97`).
+  첫 테스트 실행에서 승인 없이 받아졌다. 내용은 서버의 openpi 복사본(`~/LIBERO/openpi/third_party/libero`, 공식 LIBERO)과 같다.
+  이후 실행은 `Local assets not found. Downloading...` 을 찍지만 바로 `Assets already downloaded` 로 넘어간다
+- `python -m tools.…` 는 `~/UROP` 에서 실행해야 한다 (`cosmos-policy/` 안에서는 `No module named 'tools'`)
 
 ---
 
