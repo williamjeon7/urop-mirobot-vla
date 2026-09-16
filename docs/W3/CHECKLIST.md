@@ -37,8 +37,8 @@
 ⑤ 미팅 준비
 ```
 
-**규칙** — 코드는 노트북에서 쓰고 **git** 으로 옮긴다. 실행은 장비가 있는 곳에서 한다.
-서버에서 직접 편집하지 않는다 — 저장소에 남지 않는다. `*.mp4` 와 `data/` 는 gitignore 라 **scp** 로 옮긴다.
+**규칙** — 실행은 장비가 있는 곳에서 한다. 코드와 문서는 **git** 으로 옮긴다.
+`*.mp4` 와 `data/` 는 gitignore 라 **scp** 로 옮긴다.
 
 ---
 
@@ -111,24 +111,28 @@
 ## 3. ② 오일러각 → 쿼터니언
 
 **산출물** Mirobot `RxRyRz` ↔ LIBERO `eef_quat` 변환 함수와 확인용 테스트.
-**어디서** **이 노트북** — 순수 코드. `urop` env 에 numpy 는 있고 scipy 는 없다.
+**어디서** **아무 데나** — 장비가 필요 없는 순수 코드. scipy 는 서버 `.venv` 에만 있다 (테스트 대조용).
 
 표현·규약·근거는 [ROTATION.md](ROTATION.md) 에 있다 — 회전 세 가지 표현, 파이프라인 자리별 대응,
 바꿔야 할 네 층(표현·단위·저장 순서·기준 프레임). 여기는 **작업**만 둔다.
 
 **절차**
 
-- [ ] 변환 코드 위치 (`common/` 에 두면 노트북·서버 양쪽에서 쓴다) →
-- [ ] 라이브러리 — scipy 는 저장소에도 서버 `urop` env 에도 없다. scipy 추가 / numpy 로 직접 →
+- [x] 변환 코드 위치 (`common/` 에 두면 노트북·서버 양쪽에서 쓴다) → **`common/rotation.py`** (9/16). 세 기계 모두 import 된다
+- [x] 라이브러리 — scipy 는 저장소에도 서버 `urop` env 에도 없다. scipy 추가 / numpy 로 직접
   - scipy 라면 `Rotation.from_euler("xyz", ..., degrees=True)` — **소문자가 extrinsic**. `as_quat()` 은 `xyzw`
-- [ ] 프레임 회전을 뺀 1·3·4 단계 먼저 작성 →
-- [ ] 테스트 — 답을 이미 아는 경우로
+  → **표준 라이브러리만.** numpy 도 안 쓴다 — `requirements/robot.txt` 에 numpy 가 없고(opencv 를 통해 딸려올 뿐),
+  숫자 3~4개라 이득도 없다. scipy 는 **테스트 대조용**으로만 (T12, 서버 `.venv`)
+- [x] 프레임 회전을 뺀 1·3·4 단계 먼저 작성 → 함수 12개. 목록은 [ROTATION.md](ROTATION.md) 8절
+- [x] 테스트 — 답을 이미 아는 경우로
   - `(0,0,0)` → 항등
   - 9/13 `euler` 측정값 재현 (`../W2/CHECKLIST.md` 4절 "RxRyRz 의 오일러 규약")
   - 왕복: 오일러 → 쿼터니언 → 오일러 가 원래 값
   - 부호: 180° 근처에서 조금씩 도는 궤적에서 부호가 튀지 않는지
 
-  →
+  → **`tests/test_rotation.py` 12개 통과** (`python -m tests.test_rotation`). 설계 T1~T13 은 그 파일 주석에 있다.
+  규약을 잡는 것은 T3(extrinsic·intrinsic 44.90° 차이)·T4(9/13 실측 재현)·T6(순서)·T12(scipy 500개 `1e-9` 일치)다.
+  왕복(T5)만으로는 못 잡는다 — 양방향이 같은 규약으로 틀리면 통과한다
 - [ ] ③ 결과로 프레임 회전 추가 →
 
 ---
@@ -136,14 +140,14 @@
 ## 4. ③ LIBERO 시뮬에서 Panda 움직여 보기
 
 **산출물** LIBERO 좌표계 확인 표. ②의 프레임 회전과 ④의 추종 루프가 여기에 달려 있다.
-**어디서** **OASYS** — 시뮬 실행. 스크립트는 노트북에서 쓰고 서버에서 `git pull` 로 가져간다.
+**어디서** **OASYS** — 시뮬 실행. 스크립트도 여기서 쓰고 커밋한다.
 
 **알고 있는 것**
 
 | | | 근거 |
 |---|---|---|
 | 관측 | `robot0_eef_pos`(m), `robot0_eef_quat`, `robot0_joint_pos`, `agentview_image` | `run_libero_eval.py:334`, `regenerate_libero_dataset.py:223-243` |
-| 액션 | `[Δx, Δy, Δz, Δrx, Δry, Δrz, gripper]` 델타. 컨트롤러는 OSC_POSE 로 **추정** | `../W2/W2_진행사항.md` 2절 |
+| 액션 | `[Δx, Δy, Δz, Δrx, Δry, Δrz, gripper]` 델타. 컨트롤러는 **OSC_POSE 확정**, 회전은 axis-angle | `env_wrapper.py:17,47`, `osc.py:250` (9/16) |
 | 그리퍼 | `-1` 이 열림 | `libero_utils.py:42` |
 
 **절차** — 시험마다 환경을 리셋한다
@@ -165,7 +169,11 @@
   | `Δry +` | | |
   | `Δrz +` | | |
 
-- [ ] 액션 크기 — `1.0` 한 스텝이 몇 m·몇 rad 인가 (robosuite OSC 기본값은 0.05m·0.5rad 로 알려져 있으나 **미확인**) →
+- [x] 액션 크기 — `1.0` 한 스텝이 몇 m·몇 rad 인가 (robosuite OSC 기본값은 0.05m·0.5rad 로 알려져 있으나 **미확인**)
+  → **확인 (9/16, 서버 소스).** LIBERO 는 robosuite 기본 `OSC_POSE` 를 그대로 쓴다 (`env_wrapper.py:17,47`).
+  `controllers/config/osc_pose.json` 의 `output_max = [0.05, 0.05, 0.05, 0.5, 0.5, 0.5]`, 입력은 `[-1, 1]` 로 잘린다
+  → **액션 1.0 = 0.05m / 0.5rad (28.6°)**. `"control_delta": true` 라 현재 자세 기준 **변화량**이다.
+  회전 3개는 **axis-angle** 로 읽는다 (`osc.py:250`). 실제로 그만큼 움직이는지는 축 시험에서 같이 본다
 - [ ] Mirobot 축과 대응 — Mirobot 은 홈에서 앞이 X+, J1+ 방향이 Y+ (`../W2/CHECKLIST.md` 4절 "관절 순서")
 
   | Mirobot | LIBERO |
@@ -175,7 +183,12 @@
   | Z | |
 
 - [ ] **프레임 회전 결정** → ②에 반영 →
-- [ ] LIBERO eef 위치의 기준점 — 그리퍼 끝인가 플랜지인가. Mirobot 은 플랜지라 자세를 바꾸면 위치 차이가 생긴다 →
+- [x] LIBERO eef 위치의 기준점 — 그리퍼 끝인가 플랜지인가. Mirobot 은 플랜지라 자세를 바꾸면 위치 차이가 생긴다
+  → **위치와 자세의 기준이 서로 다르다 (9/16, 서버 소스).**
+  - `eef_pos` = `grip_site` = **손가락 사이 파지점** (`single_arm.py:213,305`). 이 site 는 손(플랜지) 프레임에서 **z + 0.097m** (`panda_gripper.xml:20-21`)
+  - `eef_quat` = `right_hand` **바디의 자세** (`single_arm.py:309`) = 플랜지 프레임
+  - Mirobot 은 위치·자세 **둘 다 플랜지**다. 그래서 자세를 기울이면 파지점이 플랜지 둘레로 9.7cm 원호를 그린다
+    → 5-1 위치 변환에서 **오프셋 보정이 필요**하다 (보정 없이 맞추면 자세를 바꿀 때마다 위치가 어긋난다)
 
 ---
 

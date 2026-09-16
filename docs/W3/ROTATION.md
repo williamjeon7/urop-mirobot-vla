@@ -25,10 +25,10 @@
 |---|---|---|
 | Mirobot 보고 `Cartesian(XYZ RxRyRz)` | **오일러각** (도) | `robot/serial_bridge.py:180` |
 | Mirobot 명령 `G0 ... A B C` | **오일러각** (도) | `common/gcode.py:35` |
-| LIBERO 정책 입력 `proprio` 의 `eef_quat` | **쿼터니언** (`xyzw` 로 보인다, 5절) | `run_libero_eval.py:334` |
+| LIBERO 정책 입력 `proprio` 의 `eef_quat` | **쿼터니언** (`xyzw` **확정**, 5절) | `robosuite/robots/single_arm.py:309` |
 | 우리 STATE 벡터 5~8 칸 | **쿼터니언** (`wxyz`) | `common/schema.py:27` |
 | LIBERO 데이터셋 `ee_ori` | **axis-angle** | `regenerate_libero_dataset.py:237, 313` |
-| 정책 출력 액션 `Δrx Δry Δrz` | **axis-angle 형태의 델타** (*추정*) | `../W2/W2_진행사항.md` 2절 |
+| 정책 출력 액션 `Δrx Δry Δrz` | **axis-angle 델타** (**확정**, 5절 끝) | `robosuite/controllers/osc.py:250` |
 
 셋을 서로 직접 잇는 함수를 6개 만들면 금방 엉킨다. **쿼터니언을 가운데 두고** 양쪽만 만든다.
 
@@ -126,6 +126,8 @@ J5 를 10° 기울이고(y축), 이어서 J6 를 10° 돌렸다(기울어진 공
 
 - **norm 은 어느 쪽으로 읽어도 1 이다.** "유효한 쿼터니언인가" 검사로는 못 잡는다
 - 각도가 같아도 안심할 수 없다 — `demo_0` 은 180° 로 같은데 축이 `x`/`y` 로 갈린다
+- 표의 각도는 `w` 부호를 그대로 둔 값이다. `common/rotation.py` 는 **짧은 쪽**(≤180°)으로 돌려주므로
+  같은 자세가 `180.14°, +x` 대신 `179.86°, −x` 로 나온다 (7절)
 
 ### 판정
 
@@ -142,8 +144,30 @@ MuJoCo(=`wxyz`) 쿼터니언으로 넘긴다.
 → **자세는 둘 다 x축 180°(top-down)인데 적는 순서가 다르다.** `../W2/W2_진행사항.md` 1절에
 "순서까지 같다" 고 적혀 있던 것이 틀렸다.
 
-**아직 못 박지 못한 것** — robosuite 소스는 이 노트북에 없다. ③ 에서 `Δrx` 만 넣고 돌려
-네 숫자 중 어느 자리가 움직이는지 보면 확정된다 ([CHECKLIST.md](CHECKLIST.md) ③).
+**확정됨 (9/16, 서버에서 robosuite 소스 확인).** 시뮬을 돌릴 필요도 없었다 — 관측값을 만드는 줄이
+순서를 명시한다.
+
+| 근거 | |
+|---|---|
+| `robots/single_arm.py:309` | `T.convert_quat(sim.data.get_body_xquat(eef), to="xyzw")` — MuJoCo 의 `wxyz` 를 **`xyzw` 로 바꿔서** 내보낸다 |
+| `utils/transform_utils.py:317` | `mat2quat` 이 `(x,y,z,w)` 를 돌려준다고 docstring 에 적혀 있다 |
+| `utils/transform_utils.py:490` | `quat2axisangle` 이 `(x,y,z,w)` 를 받는다 — 5절 앞의 판정과 일치 |
+
+### 액션의 회전 3개는 쿼터니언이 아니다
+
+같은 확인에서 나온 것이다. LIBERO 는 robosuite 기본 컨트롤러 `OSC_POSE` 를 그대로 쓰고
+(`libero/libero/envs/env_wrapper.py:17,47`), 그 컨트롤러는 액션의 회전 3개를 **axis-angle** 로 읽는다 —
+`T.quat2mat(T.axisangle2quat(delta[3:6]))` (`controllers/osc.py:250`).
+
+→ **Panda 에 보내는 명령에는 쿼터니언이 없다.** 그래도 쿼터니언이 필요한 이유는 두 가지다.
+(1) proprio 의 `eef_quat` 은 쿼터니언이다 — 이번 주 검증 대상이 그것이다.
+(2) 델타를 만들려면 "목표(Mirobot 오일러)" 와 "현재(LIBERO 쿼터니언)" 를 같은 형식에서 빼야 한다.
+
+```
+Mirobot 오일러 ──▶ 쿼터니언(목표) ─┐
+                                   ├─▶ 상대 회전 ──▶ axis-angle ──▶ action
+LIBERO eef_quat (현재) ────────────┘
+```
 
 ### 코드에 남길 것
 
@@ -192,13 +216,117 @@ q_libero = F ⊗ q_mirobot     (왼쪽 곱,  pre)  — 월드 좌표축이 서�
 
 **결론** → (③ 이후)
 
+## 7. 부호 연속성 — `q` 와 `−q` 는 같은 자세다
+
+쿼터니언은 축 `n` 과 각도 `θ` 를 **절반 각도**로 적는다 — `q = [cos(θ/2), n·sin(θ/2)]`.
+`−q` 를 같은 규칙으로 읽으면 축은 `−n`, 각도는 `360° − θ` 다. **반대 축으로 나머지만큼 도는 것**이라
+도착하는 자세가 같다. 회전행렬로 가는 식은 성분 둘씩의 곱으로만 되어 있어 부호가 상쇄된다 —
+`R(q) = R(−q)`. 회전 하나에 쿼터니언이 정확히 두 개 있다.
+
+→ **쿼터니언을 회전으로 바꿔 쓰는 쪽은 부호를 못 느낀다.** Mirobot 에 보낼 오일러각, MuJoCo 자세,
+렌더링 모두 같다. **궤적 전체를 통째로 뒤집어도 로봇은 똑같이 움직인다.**
+
+### 그런데 숫자로는 가장 멀다
+
+| 자세 차이 `Δθ` | 숫자 거리 `‖q₁ − q₂‖` |
+|---|---|
+| 1° | 0.0087 |
+| 90° | 0.765 |
+| 180° | 1.414 |
+| **0° 인데 부호만 반대** | **2.000** ← 가장 먼 값 |
+
+- **숫자 거리** — 네 숫자를 4차원의 점으로 보고 잰 직선거리. `‖q₁ − q₂‖ = 2·sin(Δθ/4)`
+- **자세 거리** — `Δθ = 2·arccos(|q₁ · q₂|)`. 내적의 **절댓값**이 `q = −q` 를 흡수한다
+- 정책 입력·보간·오차 계산은 자세가 아니라 **이 숫자**를 본다. 그래서 자세가 안 변해도 숫자가 튀면 문제가 된다
+
+### `w ≥ 0` 규칙이 우리한테는 최악이다
+
+x축 둘레 176°→184° 를 1°씩 지나가며 재었다 (9/16). 자세가 1° 씩 변하므로 정상값은 0.009 다.
+
+| 규칙 | 최대 튐 | 어디서 |
+|---|---|---|
+| 그대로 | 0.009 | — |
+| **A. `w ≥ 0` 으로 맞추기** | **2.000** | 180° 를 넘는 스텝 |
+| **B. 직전과 내적이 음수면 뒤집기** | 0.009 | — |
+
+top-down 이 x축 180° 라 `w = cos(90°) ≈ 0` 이다. `w` 가 0 근처에서 진동하므로 A 를 쓰면 스텝마다 뒤집힌다.
+
+A 는 **"기준 자세 = 항등" 인 경우**일 뿐이다. 어떤 기준을 쓰든 작업 자세가 기준에서 90° 근처면
+내적이 0 근처라 흔들린다. 우리 작업 영역이 하필 항등에서 180° 떨어져 있어서 A 가 최악이 된다.
+
+### 결정
+
+1. **궤적 안 — 규칙 B.** `dot(q_i, q_{i−1}) < 0` 이면 뒤집는다
+2. **첫 값 — 계산된 그대로 둔다.** 궤적 바깥과 비교되지 않으면 부호는 행동을 바꾸지 않는다
+3. **오차 계산 — 오차 함수가 스스로 맞춘다.** `dot(q_target, q_cur) < 0` 이면 목표를 뒤집고 오차를 구한다.
+   안 하면 10° 돌면 될 것을 350° 돌라고 한다 — **행동이 실제로 달라지는 유일한 자리다**
+4. **기준 자세로 맞추기(canonicalize)는 데이터셋을 만들 때.** 에피소드 여러 개를 모아 정규화 통계를 낼 때
+   부호가 섞이면 평균·표준편차가 망가진다. 이번 주 범위 밖
+
+부호가 문제되는 자리는 **쿼터니언을 그대로 내보낼 때**(proprio)와 **오차를 계산할 때**뿐이다.
+LIBERO → Mirobot 방향(5-2)은 쿼터니언을 오일러각으로 바꿔 보내므로 부호와 무관하다.
+
+### 규칙 B 의 한계 — waypoint 간격
+
+내적 규칙은 두 후보 중 **가까운 쪽**을 고를 뿐이다. 이웃한 두 자세가 실제로 90° 이상 차이 나면
+어느 쪽이 실제로 지나간 길인지 알 수 없다 — `+z` 로 200° 돈 것과 `−z` 로 160° 돈 것이 구분되지 않는다.
+**waypoint 사이 자세 변화를 90° 이하로 유지한다** ([CHECKLIST.md](CHECKLIST.md) 5-2 의 추출 간격과 묶여 있다).
+
+### 코드에 남길 것
+
+- `enforce_sign_continuity(quats, q_prev=None)` — 궤적에 B 를 적용. `q_prev` 를 주면 첫 값도 거기에 맞춘다 (이어서 재생할 때)
+- **부호 맞추기는 오차 함수 안에서** 한다. 호출하는 쪽이 기억해야 하는 규칙으로 두지 않는다
+- 테스트 — 176°→184° 스윕에서 최대 튐이 0.01 이하
+
+## 8. `common/rotation.py` — 함수 목록
+
+**표준 라이브러리만 쓴다.** 로봇 노트북에 numpy 가 명시돼 있지 않고(`requirements/robot.txt`),
+숫자 3~4개짜리 계산이라 numpy 가 이득도 아니다. scipy 는 테스트 대조용으로만 쓴다 (서버 `.venv`).
+
+**모듈 안에서는 언제나 `wxyz`** 다. `xyzw` 는 LIBERO 로 나갈 때만, 그것도 이름에 순서를 박은 함수로.
+
+| 함수 | 입력 → 출력 | 비고 |
+|---|---|---|
+| `euler_xyz_deg_to_quat(rx, ry, rz)` | Mirobot 오일러(도) → `wxyz` | `qz ⊗ qy ⊗ qx` (4절) |
+| `quat_to_euler_xyz_deg(q)` | `wxyz` → 오일러(도) | 짐벌락이면 `rx = 0` 으로 몰아준다 |
+| `quat_wxyz_to_xyzw(q)` / `quat_xyzw_to_wxyz(q)` | 저장 순서 변환 | LIBERO 출입구 (5절) |
+| `axis_angle_to_quat(vec)` / `quat_to_axis_angle(q)` | axis-angle(rad) ↔ `wxyz` | **항상 짧은 쪽**(≤180°). robosuite 는 최대 360° |
+| `enforce_sign_continuity(quats, q_prev=None)` | 궤적 → 부호 맞춘 궤적 | 직전과 내적 < 0 이면 뒤집기 (7절) |
+| `quat_error_axis_angle(q_current, q_target)` | 두 자세 → axis-angle(rad) | **OSC_POSE 액션의 회전 3칸.** 부호를 함수 안에서 맞춘다 |
+| `quat_mul(a, b)` · `quat_conj(q)` · `quat_normalize(q)` · `quat_from_axis_deg(axis, deg)` · `quat_to_matrix(q)` | 보조 | `quat_mul(a, b)` = "b 먼저, a 나중" |
+
+### 두 방향에서 쓰는 순서
+
+```python
+# 5-1  Mirobot → LIBERO
+q = euler_xyz_deg_to_quat(rx, ry, rz)          # 도 → wxyz
+q = apply_frame_rotation(q)                     # ③ 이후
+proprio_quat = quat_wxyz_to_xyzw(q)             # LIBERO 로
+traj = enforce_sign_continuity(traj)            # 궤적 전체에 한 번
+action[3:6] = quat_error_axis_angle(q_cur, q_target)   # 추종 루프
+
+# 5-2  LIBERO → Mirobot
+q = axis_angle_to_quat(ee_ori)                  # 데이터셋 ee_ori
+q = apply_frame_rotation_inverse(q)             # ③ 이후
+rx, ry, rz = quat_to_euler_xyz_deg(q)           # G0 A B C
+```
+
+### 테스트
+
+```bash
+cd ~/UROP && python -m tests.test_rotation      # 저장소 최상위에서 -m 으로
+```
+
+설계(T1~T13)와 각 항목이 무엇을 잡는지는 `tests/test_rotation.py` 주석에 있다. 문서와 이중으로 두지 않는다.
+scipy 대조(T12)는 있는 환경에서만 돈다 — 서버 `.venv` 에서 무작위 회전 500개가 `1e-9` 안에서 일치했다 (9/16).
+
+**남은 것** — `apply_frame_rotation()` 은 6절의 `F` 가 정해져야 쓸 수 있다 (③ 이후).
+
 ## 앞으로 채울 것
 
 | 절 | 내용 | 언제 |
 |---|---|---|
 | 6 | 기준 프레임 — **결론만** 남음 | ③ 결과 후 |
-| 7 | 부호 연속성 — `q` 와 `−q` | |
-| 8 | 함수 목록 — `common/rotation.py` 쓰는 법 | 코드 작성 후 |
 
 ## 관련 문서
 
