@@ -1,7 +1,7 @@
 # 문서 규칙과 목록
 UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행동 rollout trajectories를 모은 후 기존 VLA를 fine-tuning 하여 real-world task에서 deploy 및 실제상황에서도 vision input만으로 Task라도 달성하는것을 목표
 
-> **기준** · 확인 2026-09-15
+> **기준** · 확인 2026-09-16
 > 문서를 어디에 두고 어떻게 쓸지. 아래 목록이 이 저장소 문서의 색인이다.
 
 문서가 늘어나면 "이게 무슨 문서였지", "아직 맞는 내용인가"를 매번 열어서 판단하게 된다.
@@ -26,6 +26,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W2 | [W2/W2_진행사항.md](W2/W2_진행사항.md) | LIBERO 관측/액션 구조, 우리 스키마와의 대응 |
 | W2 | [W2/CHECKLIST.md](W2/CHECKLIST.md) | 9/7 미팅 의견 세 항목 확인 목록 |
 | W3 | [W3/CHECKLIST.md](W3/CHECKLIST.md) | 9/14 미팅 의견 작업 목록 — Mirobot ↔ LIBERO proprio 교환 검증 |
+| W3 | [W3/ROTATION.md](W3/ROTATION.md) | 회전 표현(오일러·쿼터니언·axis-angle)과 Mirobot ↔ LIBERO 변환 규약 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 

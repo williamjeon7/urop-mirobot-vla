@@ -1,6 +1,6 @@
 # W3 — 작업 목록
 
-> **절차** · 확인 2026-09-15 · 기준 `cosmos-policy@18a2acc`, 9/13 실물 측정
+> **절차** · 확인 2026-09-16 · 기준 `cosmos-policy@18a2acc`, 9/13 실물 측정
 > 9/14 미팅 의견의 작업 목록. `→` 뒤 빈칸은 **미리 채우지 않는다** — 그 부분을 읽을 때 요청하면 그때 채운다.
 
 의견 원문과 결정은 [../meetings/2026-09-14.md](../meetings/2026-09-14.md) 에 있다. 여기는 **작업**만 둔다.
@@ -37,11 +37,15 @@
 ⑤ 미팅 준비
 ```
 
+**규칙** — 코드는 노트북에서 쓰고 **git** 으로 옮긴다. 실행은 장비가 있는 곳에서 한다.
+서버에서 직접 편집하지 않는다 — 저장소에 남지 않는다. `*.mp4` 와 `data/` 는 gitignore 라 **scp** 로 옮긴다.
+
 ---
 
 ## 2. ① OASYS 에 LIBERO 시뮬 환경
 
 **산출물** 서버에서 LIBERO 환경을 만들고 dummy action 으로 몇 스텝 돌린 MP4 한 개.
+**어디서** **OASYS** — mujoco·LIBERO·GPU 렌더링이 서버에만 있다.
 
 **알고 있는 것**
 
@@ -107,28 +111,10 @@
 ## 3. ② 오일러각 → 쿼터니언
 
 **산출물** Mirobot `RxRyRz` ↔ LIBERO `eef_quat` 변환 함수와 확인용 테스트.
+**어디서** **이 노트북** — 순수 코드. `urop` env 에 numpy 는 있고 scipy 는 없다.
 
-**알고 있는 것**
-
-| | | 근거 |
-|---|---|---|
-| Mirobot 규약 | `RxRyRz` 는 **extrinsic XYZ**, 단위 도(°) | 9/13 실측, `../W2/CHECKLIST.md` 4절 "좌표" |
-| Mirobot top-down | 홈 자세 = `(0,0,0)` = 항등 회전 | 같은 곳 |
-| Mirobot 보고 위치 | 그리퍼 끝이 아니라 **플랜지** | `../W2/CHECKLIST.md` 4절 "`?` 응답 형식" |
-| LIBERO 순서 | **`xyzw` 로 보인다** — `robot0_eef_quat` 를 robosuite `T.quat2axisangle` 에 그대로 넣는다 | `regenerate_libero_dataset.py:237`, `libero_utils.py:294` |
-| LIBERO top-down | 샘플 `[5:9] = 0.9996, −0.0005, −0.027, −0.0001` → `xyzw` 로 읽으면 x축 180° | `../W2/W2_진행사항.md` 1절 |
-| 우리 스키마 | `wxyz` 순 | `common/schema.py:27` |
-| 파서 | `Cartesian` 6개 중 XYZ 3개만 담는다 | `robot/serial_bridge.py:180-182` |
-
-**변환 단계 (Mirobot → LIBERO)**
-
-1. `RxRyRz`(°) → 회전 — extrinsic XYZ
-2. **프레임 회전** — Mirobot top-down(항등)을 LIBERO top-down(x축 180°)에 맞춘다. 앞에 곱할지 뒤에 곱할지는 ③에서 정한다
-3. `xyzw` 순서로 저장
-4. **부호 연속성** — `q` 와 `−q` 는 같은 자세다. top-down 근처는 `w≈0` 이라 "w≥0 으로 맞추기" 를 쓰면
-   스텝마다 부호가 뒤집힌다 → **직전 쿼터니언과의 내적이 음수면 뒤집는다**
-
-LIBERO → Mirobot 은 역순이다. 단 LIBERO 데이터셋의 자세는 쿼터니언이 아니라 **axis-angle** 로 저장돼 있다 (5-2).
+표현·규약·근거는 [ROTATION.md](ROTATION.md) 에 있다 — 회전 세 가지 표현, 파이프라인 자리별 대응,
+바꿔야 할 네 층(표현·단위·저장 순서·기준 프레임). 여기는 **작업**만 둔다.
 
 **절차**
 
@@ -150,6 +136,7 @@ LIBERO → Mirobot 은 역순이다. 단 LIBERO 데이터셋의 자세는 쿼터
 ## 4. ③ LIBERO 시뮬에서 Panda 움직여 보기
 
 **산출물** LIBERO 좌표계 확인 표. ②의 프레임 회전과 ④의 추종 루프가 여기에 달려 있다.
+**어디서** **OASYS** — 시뮬 실행. 스크립트는 노트북에서 쓰고 서버에서 `git pull` 로 가져간다.
 
 **알고 있는 것**
 
@@ -194,9 +181,13 @@ LIBERO → Mirobot 은 역순이다. 단 LIBERO 데이터셋의 자세는 쿼터
 
 ## 5. ④ 두 방향 재생
 
+**어디서** 실물은 **로봇 노트북**, 시뮬은 **OASYS**. 기기 사이를 오가는 것은 waypoint 목록(작다)과 MP4(scp).
+
 **공통** — 시간을 보지 않으므로 **waypoint 단위**로 재생한다. 한 waypoint 에 도달(정지)한 것을 확인하고 다음으로 간다.
 
 ### 5-1. Mirobot → LIBERO
+
+**어디서** Mirobot 실물 = 로봇 노트북, Panda 추종·영상 = OASYS.
 
 ```
 waypoint (Mirobot mm·°) ──▶ Mirobot 실물   G0 X Y Z A B C
@@ -227,6 +218,8 @@ waypoint (Mirobot mm·°) ──▶ Mirobot 실물   G0 X Y Z A B C
 
 ### 5-2. LIBERO → Mirobot
 
+**어디서** demo 내려받기·변환·영상 = OASYS, 실행 = 로봇 노트북.
+
 ```
 LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ 변환·축소 ──▶ Mirobot G0
      │
@@ -255,6 +248,8 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
 ---
 
 ## 6. ⑤ 미팅 준비
+
+**어디서** **발표할 노트북** — MP4 와 궤적 파일을 모아 둔다.
 
 - [ ] Panda MP4 두 개 (5-1, 5-2) 를 노트북에 받아 두기
 - [ ] 영상 시점을 미팅에서 Mirobot 을 보는 방향과 맞추기 — agentview 가 어느 쪽에서 보는지는 ③ 표
