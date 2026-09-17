@@ -1,6 +1,6 @@
 # 회전 표현과 변환 — Mirobot ↔ LIBERO
 
-> **참조** · 확인 2026-09-16 · 기준 `cosmos-policy@18a2acc`, 9/13 Mirobot 실측
+> **참조** · 확인 2026-09-17 · 기준 `cosmos-policy@18a2acc`, 9/13·9/17 Mirobot 실측
 > 자세를 어떤 형식으로 적고 서로 어떻게 바꾸나. 작업 목록은 [CHECKLIST.md](CHECKLIST.md) ② 에 있다.
 
 위치는 `x y z` 뿐이라 단위와 원점만 맞추면 된다. **자세는 적는 방법이 여러 가지**이고
@@ -214,8 +214,8 @@ q_libero = F ⊗ q_mirobot     (왼쪽 곱,  pre)  — 월드 좌표축이 서�
 | 축 대응표 | LIBERO 에서 `Δrx`·`Δry`·`Δrz` 를 하나씩 넣어 그리퍼가 기우는 방향을 보고 Mirobot 의 `Rx+`·`Ry+`·`Rz+` 와 맞춘다 |
 | 두 후보 재생 | 10° 기울인 자세를 post/pre 두 가지로 변환해 Panda 에 넣는다. 20° 차이는 눈으로 구분된다 |
 
-**결론** → **잠정 (9/17): 오른쪽 곱(post), `F = x축 180°`.** LIBERO 회전 축 시험에서 `Ry`·`Rz` 부호가 post 로만 맞았다.
-근거와 확정 전 남은 실물 확인 2건은 [LIBERO_AXES.md](LIBERO_AXES.md) 4절
+**결론** → **확정 (9/17): 오른쪽 곱(post), `F = x축 180°`.** LIBERO 회전 축 시험에서 `Ry`·`Rz` 부호가 post 로만 맞았고,
+실물에서 Mirobot `Y+` = 왼쪽, 그리퍼 조 좌우(Panda 와 같음)를 확인해 공구 축 90° 도 더 붙지 않는다. 근거는 [LIBERO_AXES.md](LIBERO_AXES.md) 4절
 
 ## 7. 부호 연속성 — `q` 와 `−q` 는 같은 자세다
 
@@ -321,13 +321,13 @@ cd ~/UROP && python -m tests.test_rotation      # 저장소 최상위에서 -m �
 설계(T1~T13)와 각 항목이 무엇을 잡는지는 `tests/test_rotation.py` 주석에 있다. 문서와 이중으로 두지 않는다.
 scipy 대조(T12)는 있는 환경에서만 돈다 — 서버 `.venv` 에서 무작위 회전 500개가 `1e-9` 안에서 일치했다 (9/16).
 
-**남은 것** — `apply_frame_rotation()` 은 6절의 `F` 가 정해져야 쓸 수 있다 (③ 이후).
+**남은 것** — `apply_frame_rotation()` 작성. 6절의 `F` 는 9/17 확정됐다 ([CHECKLIST.md](CHECKLIST.md) 3절 마지막 항목).
 
 ## 앞으로 채울 것
 
 | 절 | 내용 | 언제 |
 |---|---|---|
-| 6 | 기준 프레임 — 잠정 결론을 **확정** | 실물 확인 2건 뒤 (LIBERO_AXES.md 4절) |
+| 6 | 기준 프레임 — 잠정 결론을 **확정** | **완료 (9/17)** (LIBERO_AXES.md 4절) |
 
 ## 관련 문서
 
