@@ -19,6 +19,8 @@
 # 데이터셋 / 실행 산출물
 # ─────────────────────────────────────────────────────────────
 data/
+# LIBERO 영상·PNG (tools/libero_*.py) — *.mp4 만으로는 PNG 가 빠진다
+rollouts/
 logs/
 wandb/
 outputs/
