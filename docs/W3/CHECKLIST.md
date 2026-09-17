@@ -133,7 +133,8 @@
   → **`tests/test_rotation.py` 12개 통과** (`python -m tests.test_rotation`). 설계 T1~T13 은 그 파일 주석에 있다.
   규약을 잡는 것은 T3(extrinsic·intrinsic 44.90° 차이)·T4(9/13 실측 재현)·T6(순서)·T12(scipy 500개 `1e-9` 일치)다.
   왕복(T5)만으로는 못 잡는다 — 양방향이 같은 규약으로 틀리면 통과한다
-- [ ] ③ 결과로 프레임 회전 추가 →
+- [x] ③ 결과로 프레임 회전 추가 → **`mirobot_to_libero_quat` / `libero_to_mirobot_quat`, `FRAME_F` = x축 180° (9/17).**
+  T13 추가 — 홈, 왕복, LIBERO 실측 자세가 Mirobot `Ry +3.28` 로 읽히는지, 월드 축 +10° 가 세 축 모두 부호 그대로 옮겨지는지. 13개 통과
 
 ---
 
@@ -378,7 +379,18 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
 
 ## 10. 다음 미팅에 가져갈 질문
 
-- [ ]
+- [ ] **같은 액션이 두 로봇에서 다르게 움직인다 — 정책 출력을 Mirobot 에 옮길 때 액션의 의미를 어떻게 맞출까?** (9/17)
+
+  | | 액션 `x = 0.5` 를 한 번 받으면 |
+  |---|---|
+  | LIBERO Panda | 25mm 앞을 **목표로 잡고**, 한 스텝에 **약 6.5mm** 감 (스프링-댐퍼) |
+  | Mirobot | `현재 + 25mm` 로 `G0` 를 보내면 **25mm 를 다 가서 멈춤** (위치 제어) |
+
+  - LIBERO 데모와 Cosmos Policy 의 액션에는 "목표를 앞에 두면 조금씩 따라간다" 는 Panda 컨트롤러 특성이 섞여 있다.
+    그대로 옮기면 Mirobot 은 한 스텝에 약 4배 크게 움직인다 — [LIBERO_AXES.md](LIBERO_AXES.md) 2절
+  - 후보 — 액션 스케일 조정 / timestep·제어 주기로 맞추기 / Mirobot 데이터로 재학습. timestep·학습은 이번 주 범위 밖이라 방향만 묻는다
+  - 이번 주 두 방향 재생에는 영향이 없다. LIBERO → Mirobot 은 Panda 의 **실제 결과**를 기록해 보내고,
+    Mirobot → LIBERO 는 closed-loop 추종으로 도착을 확인한다
 
 ---
 

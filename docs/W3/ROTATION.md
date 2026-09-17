@@ -294,6 +294,7 @@ LIBERO → Mirobot 방향(5-2)은 쿼터니언을 오일러각으로 바꿔 보�
 | `axis_angle_to_quat(vec)` / `quat_to_axis_angle(q)` | axis-angle(rad) ↔ `wxyz` | **항상 짧은 쪽**(≤180°). robosuite 는 최대 360° |
 | `enforce_sign_continuity(quats, q_prev=None)` | 궤적 → 부호 맞춘 궤적 | 직전과 내적 < 0 이면 뒤집기 (7절) |
 | `quat_error_axis_angle(q_current, q_target)` | 두 자세 → axis-angle(rad) | **OSC_POSE 액션의 회전 3칸.** 부호를 함수 안에서 맞춘다 |
+| `mirobot_to_libero_quat(q)` / `libero_to_mirobot_quat(q)` | 프레임 회전 | `q ⊗ F` / `q ⊗ F⁻¹`, `FRAME_F` = x축 180° (6절, 9/17 확정) |
 | `quat_mul(a, b)` · `quat_conj(q)` · `quat_normalize(q)` · `quat_from_axis_deg(axis, deg)` · `quat_to_matrix(q)` | 보조 | `quat_mul(a, b)` = "b 먼저, a 나중" |
 
 ### 두 방향에서 쓰는 순서
@@ -301,14 +302,14 @@ LIBERO → Mirobot 방향(5-2)은 쿼터니언을 오일러각으로 바꿔 보�
 ```python
 # 5-1  Mirobot → LIBERO
 q = euler_xyz_deg_to_quat(rx, ry, rz)          # 도 → wxyz
-q = apply_frame_rotation(q)                     # ③ 이후
+q = mirobot_to_libero_quat(q)                   # q ⊗ F
 proprio_quat = quat_wxyz_to_xyzw(q)             # LIBERO 로
 traj = enforce_sign_continuity(traj)            # 궤적 전체에 한 번
 action[3:6] = quat_error_axis_angle(q_cur, q_target)   # 추종 루프
 
 # 5-2  LIBERO → Mirobot
 q = axis_angle_to_quat(ee_ori)                  # 데이터셋 ee_ori
-q = apply_frame_rotation_inverse(q)             # ③ 이후
+q = libero_to_mirobot_quat(q)                   # q ⊗ F⁻¹
 rx, ry, rz = quat_to_euler_xyz_deg(q)           # G0 A B C
 ```
 
@@ -321,7 +322,8 @@ cd ~/UROP && python -m tests.test_rotation      # 저장소 최상위에서 -m �
 설계(T1~T13)와 각 항목이 무엇을 잡는지는 `tests/test_rotation.py` 주석에 있다. 문서와 이중으로 두지 않는다.
 scipy 대조(T12)는 있는 환경에서만 돈다 — 서버 `.venv` 에서 무작위 회전 500개가 `1e-9` 안에서 일치했다 (9/16).
 
-**남은 것** — `apply_frame_rotation()` 작성. 6절의 `F` 는 9/17 확정됐다 ([CHECKLIST.md](CHECKLIST.md) 3절 마지막 항목).
+**위치**는 `common/workspace.py` 가 맡는다 — 월드 축이 같아 플랜지 변위를 mm 로 그대로 옮기고, 기준점 짝(Mirobot 홈 ↔ Panda 시작)과
+스케일만 둔다 (`python -m tests.test_workspace`). 롤아웃 기록을 G-code 로 바꾸는 도구는 `tools/libero_to_mirobot_gcode.py`.
 
 ## 앞으로 채울 것
 

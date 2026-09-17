@@ -18,7 +18,7 @@
     T10  짐벌락 ry = ±90°
     T11  불변량 — norm, 회전행렬 직교·det=+1
     T12  scipy 대조 (서버 .venv 에만 있다. 없으면 skip)  ← 독립 구현과 대조
-    T13  프레임 회전 F — ③ 축 시험 뒤에 추가
+    T13  프레임 회전 F — 홈, 왕복, LIBERO 실측으로 post/pre 가르기  ← 기준 프레임을 잡는다
 
 pytest 없이도 돌아간다:
 
@@ -37,8 +37,11 @@ from common.rotation import (
     IDENTITY,
     euler_xyz_deg_to_quat,
     quat_from_axis_deg,
+    FRAME_F,
     axis_angle_to_quat,
     enforce_sign_continuity,
+    libero_to_mirobot_quat,
+    mirobot_to_libero_quat,
     quat_conj,
     quat_mul,
     quat_error_axis_angle,
@@ -262,6 +265,32 @@ def test_t12_scipy_oracle():
 
         aa = quat_to_axis_angle(ours)
         assert max(abs(a - b) for a, b in zip(aa, ref.as_rotvec())) < 1e-9
+
+
+def test_t13_frame_rotation():
+    """q_libero = q_mirobot ⊗ F, F = x축 180° (9/17 확정). LIBERO_AXES.md 4절."""
+    # 홈 — Mirobot 항등 = LIBERO top-down
+    assert angle_between_deg(mirobot_to_libero_quat(IDENTITY), quat_from_axis_deg("x", 180.0)) < 1e-9
+
+    rng = random.Random(4)
+    for _ in range(200):
+        q = euler_xyz_deg_to_quat(rng.uniform(-180, 180), rng.uniform(-90, 90), rng.uniform(-180, 180))
+        assert angle_between_deg(libero_to_mirobot_quat(mirobot_to_libero_quat(q)), q) < 1e-9
+
+    # 9/17 LIBERO 안정 후 자세 — 그리퍼가 베이스 쪽(−x)으로 3.3° 기움. Mirobot 에서 뒤로 기울기는 Ry+
+    settled = quat_xyzw_to_wxyz((0.9996, 0.0002, -0.0286, 0.0001))
+    rx, ry, rz = quat_to_euler_xyz_deg(libero_to_mirobot_quat(settled))
+    assert abs(rx) < 0.1 and abs(ry - 3.28) < 0.05 and abs(rz) < 0.1, (rx, ry, rz)
+
+    # 월드 축 회전이 부호 그대로 옮겨지는가 — pre(F ⊗ q) 였다면 Ry·Rz 부호가 뒤집힌다
+    for axis, idx in (("x", 0), ("y", 1), ("z", 2)):
+        q_libero = quat_mul(quat_from_axis_deg(axis, 10.0), FRAME_F)       # top-down 에서 월드 축 +10°
+        euler = quat_to_euler_xyz_deg(libero_to_mirobot_quat(q_libero))
+        assert abs(euler[idx] - 10.0) < 1e-9, (axis, euler)
+
+    # Mirobot Ry +10 (플랜지 뒤로, 9/13) → LIBERO 에서 그리퍼가 −x 를 향해야 한다
+    m = quat_to_matrix(mirobot_to_libero_quat(euler_xyz_deg_to_quat(0.0, 10.0, 0.0)))
+    assert m[0][2] < -0.17 and m[2][2] < -0.98, [m[i][2] for i in range(3)]
 
 
 if __name__ == "__main__":

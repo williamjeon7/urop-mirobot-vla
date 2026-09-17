@@ -201,3 +201,23 @@ def quat_error_axis_angle(q_current: Quat, q_target: Quat) -> tuple[float, float
     `q` 와 `−q` 를 신경 쓰지 않아도 되게 하려는 것이다 — 안 그러면 10° 돌 것을 350° 돈다.
     """
     return quat_to_axis_angle(quat_mul(q_target, quat_conj(q_current)))
+
+
+# ── 프레임 회전 (ROTATION.md 6절, LIBERO_AXES.md 4절) ──────────
+# q_libero = q_mirobot ⊗ F. 두 로봇의 월드 축은 같고(평행이동만 다르다) 공구 좌표축만 돌아가 있다.
+# Mirobot 은 top-down 을 (0,0,0) 으로, LIBERO 는 x축 180° 로 적는다.
+#
+# **확정 (9/17)** — LIBERO 회전 축 시험에서 Ry·Rz 부호가 오른쪽 곱으로만 맞았고, Mirobot 실물에서
+# Y+ = 로봇 기준 왼쪽, 그리퍼 조 좌우(Panda 와 같음)를 확인해 공구 축 90° 도 붙지 않는다 (docs/W3/CHECKLIST.md 8절).
+# 실물에서 A15·B15·C20 이 LIBERO 의 Δrx+·Δry+·Δrz+ 와 같은 쪽으로 기울고 돈 것도 눈으로 봤다.
+FRAME_F: Quat = quat_from_axis_deg("x", 180.0)
+
+
+def mirobot_to_libero_quat(q_mirobot: Quat) -> Quat:
+    """Mirobot 자세(wxyz) → LIBERO 자세(wxyz). `q ⊗ F` — 오른쪽 곱이라 월드 축 회전은 그대로 옮겨진다."""
+    return quat_mul(q_mirobot, FRAME_F)
+
+
+def libero_to_mirobot_quat(q_libero: Quat) -> Quat:
+    """LIBERO 자세(wxyz) → Mirobot 자세(wxyz). `q ⊗ F⁻¹`."""
+    return quat_mul(q_libero, quat_conj(FRAME_F))
