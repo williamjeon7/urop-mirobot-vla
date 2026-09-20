@@ -243,7 +243,14 @@ waypoint (Mirobot mm·°) ──▶ Mirobot 실물   G0 X Y Z A B C
 - [ ] **Panda 추종 루프** — 5-2 의 2차 궤적을 만드는 데도 쓴다 ([CONTROL.md](CONTROL.md) 3절).
   waypoint 마다 `(목표 − 현재)` 를 액션 크기(③)로 나누고 **방향을 유지한 채 크기만** `1` 이하로 줄여,
   가까워질 때까지 반복. 매 스텝 이미지 저장. 자세 오차는 쿼터니언 차이를 axis-angle 로
-  - 수렴 기준 →
+  - 수렴 기준 → **위치 2mm · 자세 1° 안에 들고, 한 스텝 이동이 0.3mm·0.05° 이하면 도착** (9/20).
+    오차만 보면 지나가는 중일 수 있어 "멈췄나" 를 같이 본다. waypoint 하나에 최대 60스텝
+  → **만들었다 (9/20)** — 계산은 `common/servo.py` (테스트 6개), 루프는 `tools/libero_follow.py`.
+    목표는 **플랜지 자세**로 주고 컨트롤러에 넣기 전에 파지점으로 바꾼다 (`common/workspace.py` 의 `flange_to_grip`)
+  - **검증 (9/20)** — 우리 복합 동작의 waypoint 7개를 다시 따라가게 했다. 전부 도착, waypoint 당 11~33스텝,
+    남은 오차 최대 **1.90mm · 0.34°**. Mirobot G-code 로 바꿨다가 되돌린 목표로도 같은 결과 —
+    **LIBERO → Mirobot 좌표 → LIBERO 왕복이 2.34mm · 0.34° 안에서 맞는다**.
+    relative 파일로 하면 자세가 일정하게 3.3° 어긋나는데, 시작 기울기를 일부러 지운 만큼이다
 - [ ] MP4 →
 
 ### 5-2. LIBERO → Mirobot

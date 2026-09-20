@@ -31,3 +31,22 @@ def mirobot_to_libero_xyz_m(p_mirobot_mm, ref_libero_m, ref_mirobot_mm: Vec3 = M
                             scale: float = 1.0) -> Vec3:
     """Mirobot `X Y Z`(mm) → LIBERO 플랜지 위치(m, 월드). 위 함수의 역."""
     return tuple(q + (p - r) / 1000.0 / scale for p, q, r in zip(p_mirobot_mm, ref_libero_m, ref_mirobot_mm))  # type: ignore[return-value]
+
+
+# ── 플랜지 ↔ 파지점 (docs/W3/CONTROL.md 2절) ───────────────────
+# Panda 의 proprio `eef_pos` 는 파지점이고 플랜지는 그보다 공구 축(z)으로 97mm 위다.
+# 컨트롤러가 움직이는 점도 파지점이라, 플랜지 목표를 줄 때는 파지점 목표로 바꿔서 넣어야 한다.
+PANDA_FLANGE_TO_GRIP_M = 0.097  # robosuite/models/assets/grippers/panda_gripper.xml:20-21
+
+
+def flange_to_grip(p_flange, q_wxyz, offset_m: float = PANDA_FLANGE_TO_GRIP_M) -> Vec3:
+    """플랜지 위치 → 파지점 위치. 공구 축(회전행렬 3열) 방향으로 offset 만큼 내려간다."""
+    from common.rotation import quat_to_matrix  # 위치가 회전을 쓰는 유일한 자리
+
+    z_axis = [quat_to_matrix(q_wxyz)[i][2] for i in range(3)]
+    return tuple(p + a * offset_m for p, a in zip(p_flange, z_axis))  # type: ignore[return-value]
+
+
+def grip_to_flange(p_grip, q_wxyz, offset_m: float = PANDA_FLANGE_TO_GRIP_M) -> Vec3:
+    """파지점 위치 → 플랜지 위치."""
+    return flange_to_grip(p_grip, q_wxyz, -offset_m)
