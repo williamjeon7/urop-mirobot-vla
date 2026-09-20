@@ -27,6 +27,9 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W2 | [W2/CHECKLIST.md](W2/CHECKLIST.md) | 9/7 미팅 의견 세 항목 확인 목록 |
 | W3 | [W3/CHECKLIST.md](W3/CHECKLIST.md) | 9/14 미팅 의견 작업 목록 — Mirobot ↔ LIBERO proprio 교환 검증 |
 | W3 | [W3/ROTATION.md](W3/ROTATION.md) | 회전 표현(오일러·쿼터니언·axis-angle)과 Mirobot ↔ LIBERO 변환 규약 |
+| W3 | [W3/CONVERSION.md](W3/CONVERSION.md) | **값이 어떻게 바뀌나** — 두 방향 변환 단계, 코드 지도, 어디까지 맞는지 |
+| W3 | [W3/LIBERO_AXES.md](W3/LIBERO_AXES.md) | LIBERO 좌표계 측정 기록 — 축·회전·프레임 회전 `F` |
+| W3 | [W3/CONTROL.md](W3/CONTROL.md) | 두 로봇이 명령을 받아 움직이는 방식 비교 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 
