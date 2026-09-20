@@ -10,6 +10,16 @@ Mirobot 에 보낼 `G0` 명령 목록. 영상·기록(`rollouts/`, `data/`)은 g
 원본은 서버의 `data/compound/2026_09_17-10_44_39.jsonl`, 영상은 `rollouts/2026_09_17/compound/10_44_39--compound.mp4`.
 만든 도구는 `tools/libero_to_mirobot_gcode.py`, 규약은 [../docs/W3/LIBERO_AXES.md](../docs/W3/LIBERO_AXES.md) 4절.
 
+**실행기** — `tools/run_gcode.py` (로봇 노트북, 시리얼 직결)
+
+```bash
+python -m tools.run_gcode trajectories/2026_09_17-compound-relative.gcode --port COM4 --dry-run   # 좌표만 본다
+python -m tools.run_gcode trajectories/2026_09_17-compound-relative.gcode --port COM4             # 줄마다 확인하며
+```
+
+기본은 줄마다 묻는다 (Enter 보냄 / s 건너뜀 / q 중단). `--auto` 로 연달아, `--home` 으로 시작 전 호밍.
+`G0` 마다 `wait_settled` 로 멈춤을 확인하고 `?` 보고값을 `data/gcode_run/*.jsonl` 에 남긴다.
+
 **실행 규칙**
 - `;` 로 시작하는 줄은 설명이다. 건너뛴다
 - 앞의 `G90`(절대) `M20`(Cartesian) 을 먼저 보낸다
