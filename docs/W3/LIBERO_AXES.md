@@ -1,7 +1,8 @@
 # LIBERO 좌표계 확인 — ③ 측정 기록
 
 > **기록** · 측정 2026-09-16 ~ 09-17 · 기준 `cosmos-policy@18a2acc`, robosuite 1.4.0, `libero_90[7]`, Mirobot 실물 9/17
-> [CHECKLIST.md](CHECKLIST.md) ③ 의 측정 결과를 모은다. 작업 목록은 CHECKLIST, 회전 규약은 [ROTATION.md](ROTATION.md).
+> [CHECKLIST.md](CHECKLIST.md) ③ 의 측정 결과를 모은다. 작업 목록은 CHECKLIST, 회전 규약은 [ROTATION.md](ROTATION.md),
+> 두 로봇의 명령 방식 비교는 [CONTROL.md](CONTROL.md).
 
 Panda 에 액션 한 성분만 넣고 eef 가 어떻게 움직이는지 본다. 목적은 둘이다 —
 Mirobot 과 축을 맞추는 것, 그리고 ROTATION.md 6절의 프레임 회전 `F` 를 정하는 것.

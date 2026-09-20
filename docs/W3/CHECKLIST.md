@@ -240,7 +240,8 @@ waypoint (Mirobot mm·°) ──▶ Mirobot 실물   G0 X Y Z A B C
   - 정지 확인은 프로브 방식 (`tools/probe_mirobot.py` 의 `wait_settled`)
 - [ ] **위치 변환** — mm → m 과 원점. *제안*: Mirobot 홈을 Panda 초기 eef 위치에 맞추고 변위만 옮긴다 →
 - [ ] **자세 변환** — ②의 함수
-- [ ] **Panda 추종 루프** — waypoint 마다 `(목표 − 현재)` 를 액션 크기(③)로 나눠 `[-1, 1]` 로 자르고,
+- [ ] **Panda 추종 루프** — 5-2 의 2차 궤적을 만드는 데도 쓴다 ([CONTROL.md](CONTROL.md) 3절).
+  waypoint 마다 `(목표 − 현재)` 를 액션 크기(③)로 나누고 **방향을 유지한 채 크기만** `1` 이하로 줄여,
   가까워질 때까지 반복. 매 스텝 이미지 저장. 자세 오차는 쿼터니언 차이를 axis-angle 로
   - 수렴 기준 →
 - [ ] MP4 →
@@ -254,6 +255,19 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
      │
      └── agentview 이미지 ──▶ Panda MP4   (시뮬 없이 데이터셋 이미지로)
 ```
+
+**진행 방식 — 데이터셋 대신 시뮬에서 만든 복합 동작으로 먼저 (9/17 결정)**
+
+데이터셋 demo 대신 **우리가 LIBERO 에서 만든 복합 동작**을 Mirobot 으로 옮긴다. 데이터셋 다운로드가 필요 없고,
+동작 크기를 Mirobot 도달 범위와 J5 한계에 맞춰 정할 수 있다. 데이터셋 demo 는 이것이 되고 나서 본다.
+
+| | 궤적 | 만드는 방식 | 상태 |
+|---|---|---|---|
+| **1차** | 구간 3개, 플랜지 60·60·40mm + 회전 15~20°, waypoint 7개 | **고정 액션을 N번** — "여기로 가라" 가 아니라 "이 방향으로 10스텝". 결과를 받아 적는다 | 변환 끝, Mirobot 실행 대기 (`trajectories/`) |
+| **2차 (미팅용)** | 구간 5~6개, 블록 → 그릇 흉내 | **추종 루프(A)로 설계** — 목표 자세를 먼저 정하고 Panda 가 거기로 간다 ([CONTROL.md](CONTROL.md) 3절 ③) | 1차 성공 뒤 |
+
+1차가 고정 액션 방식인데도 되는 이유 — Mirobot 에 보내는 것은 명령이 아니라 **Panda 가 실제로 있었던 자세**다.
+2차에서 A 방법을 쓰면 원하는 자세를 바로 지정할 수 있고, 같은 목표 자세 목록을 양쪽 로봇에 줄 수 있다.
 
 **알고 있는 것**
 
@@ -388,6 +402,7 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
 
   - LIBERO 데모와 Cosmos Policy 의 액션에는 "목표를 앞에 두면 조금씩 따라간다" 는 Panda 컨트롤러 특성이 섞여 있다.
     그대로 옮기면 Mirobot 은 한 스텝에 약 4배 크게 움직인다 — [LIBERO_AXES.md](LIBERO_AXES.md) 2절
+  - 두 로봇이 명령을 받아 움직이는 방식 비교는 [CONTROL.md](CONTROL.md)
   - 후보 — 액션 스케일 조정 / timestep·제어 주기로 맞추기 / Mirobot 데이터로 재학습. timestep·학습은 이번 주 범위 밖이라 방향만 묻는다
   - 이번 주 두 방향 재생에는 영향이 없다. LIBERO → Mirobot 은 Panda 의 **실제 결과**를 기록해 보내고,
     Mirobot → LIBERO 는 closed-loop 추종으로 도착을 확인한다
@@ -399,5 +414,6 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
 - [../meetings/2026-09-14.md](../meetings/2026-09-14.md) — 의견 원문과 결정
 - [../W2/CHECKLIST.md](../W2/CHECKLIST.md) — 9/13 실물 측정(4절), Cartesian 을 고른 근거(3절)
 - [../W2/W2_진행사항.md](../W2/W2_진행사항.md) — LIBERO 관측/액션 규약
+- [CONTROL.md](CONTROL.md) — 두 로봇이 명령을 받아 움직이는 방식
 - [../plan/UROP_프로젝트_계획.md](../plan/UROP_프로젝트_계획.md) — §5 파지 자세, §6 액션 표현
 - `cosmos-policy/LIBERO.md`, `cosmos-policy/SETUP.md` — 환경 구성
