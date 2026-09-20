@@ -241,8 +241,11 @@ LIBERO 원본 자세 ──변환──▶ Mirobot G0 ──실물──▶ `?` 
 
 - [x] 실물 보고값 뽑기 → **`trajectories/2026_09_20-compound-measured.jsonl`·`.gcode`** (9/20).
   `python -m tools.roundtrip_check extract --run-log data/probe/20260920_105128.jsonl --gcode trajectories/2026_09_17-compound-relative.gcode --out trajectories/2026_09_20-compound-measured.jsonl`
-- [ ] **숫자 대조** — 되돌린 자세와 원본 롤아웃을 waypoint 마다 비교 (플랜지·파지점 mm, 자세 °) →
+- [x] **숫자 대조** — 되돌린 자세와 원본 롤아웃을 waypoint 마다 비교 (플랜지·파지점 mm, 자세 °)
   `python -m tools.roundtrip_check compare --measured trajectories/2026_09_20-compound-measured.jsonl --rollout data/compound/2026_09_17-10_44_39.jsonl`
+  → **최대 플랜지 0.30mm · 자세 0.05° · 파지점 0.30mm (9/20).** waypoint 7개 모두 0.3mm 안이다.
+  오차의 거의 전부가 **Z 가 일정하게 −0.25 ~ −0.29mm** 인 것 — 4절에 적힌 Mirobot 보고 Z 의 상수 오프셋이다.
+  x·y 는 0.07mm 이하, 자세는 0.05° 이하. **위치 변환·단위·원점·플랜지 오프셋·파일 반올림이 모두 맞다**
 - [ ] **영상** — `python -m tools.libero_follow --gcode trajectories/2026_09_20-compound-measured.gcode` →
   이 파일은 orientation **relative** 라 `libero_follow` 가 absolute 로 읽으면 자세가 3.3° 어긋난다 (아래 "검증" 과 같은 현상).
   영상 비교만 할지, absolute 로 다시 뽑을지 정할 것
