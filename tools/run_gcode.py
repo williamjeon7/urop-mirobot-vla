@@ -34,7 +34,7 @@ AXIS_LETTERS = "XYZABC"
 def parse_file(path: Path) -> list[tuple[str, str]]:
     """(설명, 명령) 목록. ';' 줄은 바로 다음 명령의 설명으로 쓴다."""
     out, label = [], ""
-    for raw in path.read_text().splitlines():
+    for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line:
             continue

@@ -6,9 +6,13 @@ Mirobot 에 보낼 `G0` 명령 목록. 영상·기록(`rollouts/`, `data/`)은 g
 |---|---|
 | `2026_09_17-compound-relative.gcode` | LIBERO Panda 복합 동작(구간 3개)을 옮긴 것. **시작 자세를 `(0,0,0)` 으로 두고 움직임만** — 첫 실물 실행용 |
 | `2026_09_17-compound-absolute.gcode` | 같은 궤적을 기록된 자세 그대로 — 시작이 `B 3.28`, 최대 `B 18.22`. J5 를 20° 까지 확인한 뒤에 |
+| `2026_09_20-compound-measured.jsonl` | relative 궤적을 **9/20 실물에서 실행한 `?` 보고값** (명령값도 같이). 왕복 검증의 입력 |
+| `2026_09_20-compound-measured.gcode` | 같은 보고값을 G-code 로 — `tools/libero_follow --gcode` 에 바로 넣을 수 있다 |
 
 원본은 서버의 `data/compound/2026_09_17-10_44_39.jsonl`, 영상은 `rollouts/2026_09_17/compound/10_44_39--compound.mp4`.
 만든 도구는 `tools/libero_to_mirobot_gcode.py`, 규약은 [../docs/W3/LIBERO_AXES.md](../docs/W3/LIBERO_AXES.md) 4절.
+`measured` 파일을 만들고 LIBERO 로 되돌려 원본과 대 보는 것은 `tools/roundtrip_check.py`,
+왕복이 무엇을 잡고 무엇을 못 잡는지는 [../docs/W3/CHECKLIST.md](../docs/W3/CHECKLIST.md) 5-1 (가).
 
 **실행기** — `tools/run_gcode.py` (로봇 노트북, 시리얼 직결)
 
