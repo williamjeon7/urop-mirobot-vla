@@ -13,7 +13,7 @@
 왕복  LIBERO 원본 ──변환──▶ Mirobot G0 ──실물──▶ `?` 보고값 ──역변환──▶ LIBERO
   잡는 것    실물 추종 오차, 위치 변환(원점·단위·스케일), 플랜지 ↔ 파지점 오프셋, 파일 반올림
   못 잡는 것 프레임 회전 `F` — 나갈 때 곱하고 들어올 때 나눠 **상쇄된다**. `F` 는 Mirobot 에서 출발하는
-             축별 시험으로 따로 잡는다 (docs/W3/CHECKLIST.md 5-1, ROTATION.md 7절 "왕복만으로는 못 잡는다")
+             축별 시험으로 따로 잡는다 (docs/W3/CHECKLIST.md 5-1, CHECKLIST.md 5-1 (가) "왕복만으로는 못 잡는다")
 
 `extract` 는 `--out` 옆에 같은 이름의 `.gcode` 도 쓴다. **보고값 그대로**의 G-code 라
 `python -m tools.libero_follow --gcode <그 파일>` 로 영상까지 이어갈 수 있다 (absolute 파일일 때).

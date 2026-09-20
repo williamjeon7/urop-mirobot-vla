@@ -43,8 +43,10 @@ Mirobot
 
 **플랜지** 는 팔 끝에서 공구를 붙이는 면이고, **파지점** 은 그리퍼 손가락 사이의 무는 점이다. 두 로봇이 서로 다른 점의
 좌표를 말하므로, 우리 변환은 **플랜지 ↔ 플랜지** 로 맞춘다 (`common/workspace.py`). Panda 롤아웃에서 `eef_pos`(파지점) 외에
-`flange_pos`(`robot0_right_hand`) 를 따로 기록하는 이유다. 파지점끼리 맞추려면 Mirobot 의 플랜지 → 파지점 길이가 필요한데
-아직 재지 않았다 ([CHECKLIST.md](CHECKLIST.md) 8절).
+`flange_pos`(`robot0_right_hand`) 를 따로 기록하는 이유다. 회전 중심이 서로 달라서, 플랜지끼리 맞추면 Mirobot 은
+Panda **플랜지**가 그린 경로(기울일 때 휘는 것 포함)를 그대로 따라가고 **손끝 궤적만 두 로봇이 달라진다** —
+9/20 실물 동작에서 팔이 되돌아온 양으로 드러났다 ([CHECKLIST.md](CHECKLIST.md) 5-2). 파지점끼리 맞추려면
+Mirobot 의 플랜지 → 파지점 길이가 필요한데 아직 재지 않았다 ([CHECKLIST.md](CHECKLIST.md) 8절).
 
 측정값과 근거는 [LIBERO_AXES.md](LIBERO_AXES.md) 2·3절, Mirobot 쪽은 [CHECKLIST.md](CHECKLIST.md) 8절, ③ "LIBERO eef 위치의 기준점".
 

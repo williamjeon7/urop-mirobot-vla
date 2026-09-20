@@ -37,7 +37,7 @@ from libero.libero import get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
 from PIL import Image
 
-from common.rotation import euler_xyz_deg_to_quat, mirobot_to_libero_quat
+from common.rotation import euler_xyz_deg_to_quat, mirobot_to_libero_quat, quat_mul
 from common.servo import GRIPPER_OPEN, pose_gap, servo_action
 from common.workspace import flange_to_grip, grip_to_flange, mirobot_to_libero_xyz_m
 
@@ -57,16 +57,22 @@ def targets_from_rollout(path: Path):
     return out
 
 
-def targets_from_gcode(path: Path, ref_flange_m):
-    """Mirobot G-code → LIBERO 목표. 기준점은 "Mirobot 홈 ↔ 지금 Panda 플랜지" (LIBERO_AXES.md 4절)."""
+def targets_from_gcode(path: Path, ref_flange_m, ref_quat=None):
+    """Mirobot G-code → LIBERO 목표. 기준점은 "Mirobot 홈 ↔ 지금 Panda 플랜지" (LIBERO_AXES.md 4절).
+
+    `ref_quat` 를 주면 **relative** 로 읽는다 — G-code 의 자세를 "시작 자세로부터의 회전" 으로 보고
+    지금 Panda 시작 자세에 얹는다. 없으면 absolute (`q ⊗ F`).
+    `tools/libero_to_mirobot_gcode.py --orientation` 과 같은 뜻이고, 파일을 만든 쪽과 읽는 쪽이 어긋나면
+    시작 기울기만큼(3.3°) 전체가 어긋난다.
+    """
     out = []
     for label, command in parse_file(path):
         pose = pose_of(command)
         if pose is None:
             continue
-        out.append((label or f"wp{len(out) + 1}",
-                    mirobot_to_libero_xyz_m(pose[:3], ref_flange_m),
-                    mirobot_to_libero_quat(euler_xyz_deg_to_quat(*pose[3:6]))))
+        q_mirobot = euler_xyz_deg_to_quat(*pose[3:6])
+        q_libero = quat_mul(q_mirobot, ref_quat) if ref_quat is not None else mirobot_to_libero_quat(q_mirobot)
+        out.append((label or f"wp{len(out) + 1}", mirobot_to_libero_xyz_m(pose[:3], ref_flange_m), q_libero))
     return out
 
 
@@ -75,6 +81,8 @@ def main() -> None:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--rollout", type=Path, help="롤아웃 jsonl 의 waypoint 를 목표로 (검증용)")
     source.add_argument("--gcode", type=Path, help="Mirobot G-code 를 변환해 목표로 (5-1)")
+    parser.add_argument("--orientation", choices=("absolute", "relative"), default="absolute",
+                        help="--gcode 를 만들 때 쓴 것과 같은 값으로. relative 는 시작 자세로부터의 회전으로 읽는다")
     parser.add_argument("--settle", type=int, default=30, help="시작 전 dummy 스텝")
     parser.add_argument("--max-steps", type=int, default=60, help="waypoint 하나에 쓸 최대 스텝")
     parser.add_argument("--pos-tol", type=float, default=2.0, help="도착 판정 위치 오차 (mm)")
@@ -113,12 +121,14 @@ def main() -> None:
         p_grip, q = read_pose(obs)
         start_flange = grip_to_flange(p_grip, q)
         targets = (targets_from_rollout(args.rollout) if args.rollout
-                   else targets_from_gcode(args.gcode, start_flange))
+                   else targets_from_gcode(args.gcode, start_flange,
+                                           q if args.orientation == "relative" else None))
         log.write(json.dumps({"meta": {"source": str(args.rollout or args.gcode), "task": task.name,
                                        "start_flange_m": list(start_flange), "targets": len(targets),
                                        "pos_tol_mm": args.pos_tol, "rot_tol_deg": args.rot_tol,
                                        "max_steps": args.max_steps}}, ensure_ascii=False) + "\n")
-        print(f"목표 {len(targets)}개 — {args.rollout or args.gcode}")
+        print(f"목표 {len(targets)}개 — {args.rollout or args.gcode}"
+              f"{'  (orientation relative)' if args.gcode and args.orientation == 'relative' else ''}")
         print(f"시작 플랜지 {np.round(start_flange, 4)} m\n")
         print(f"{'waypoint':12} | {'스텝':>4} | {'남은 위치':>9} {'남은 자세':>9} | {'처음 거리':>9} | 결과")
 

@@ -65,7 +65,7 @@ Mirobot G0 / ? 보고값   X Y Z (mm), A B C (도)
 
 | 파일 | 맡는 것 |
 |---|---|
-| `common/rotation.py` | 표현·순서·프레임 회전. `euler_xyz_deg_to_quat`, `quat_to_euler_xyz_deg`, `quat_wxyz_to_xyzw`, `mirobot_to_libero_quat`, `libero_to_mirobot_quat`, `quat_error_axis_angle`, `enforce_sign_continuity` |
+| `common/rotation.py` | 표현·저장 순서·프레임 회전 — 함수는 아래 표 |
 | `common/workspace.py` | 위치. `libero_to_mirobot_xyz_mm`, `mirobot_to_libero_xyz_m`, `flange_to_grip`, `grip_to_flange`, `MIROBOT_HOME_MM` |
 | `common/servo.py` | 목표 → 액션. `servo_action`, `pose_gap`, `reached`, `fit_to_unit` |
 | `tools/libero_compound_rollout.py` | Panda 복합 동작을 만들고 기록 (LIBERO → Mirobot 의 입력) |
@@ -74,25 +74,68 @@ Mirobot G0 / ? 보고값   X Y Z (mm), A B C (도)
 | `tools/roundtrip_check.py` | 실물 보고값을 뽑고 LIBERO 로 되돌려 원본과 비교 |
 | `tools/libero_follow.py` | 목표 목록을 Panda 가 따라감 (5-1) |
 
-테스트는 `tests/test_rotation.py`(13), `tests/test_workspace.py`(4), `tests/test_servo.py`(6).
+### `common/rotation.py` 의 함수
+
+**표준 라이브러리만 쓴다** ([CHECKLIST.md](CHECKLIST.md) 3절 ②). 비고의 절 번호는 [ROTATION.md](ROTATION.md) 의 절이다 — 규약과 근거는 거기 있다.
+
+| 함수 | 입력 → 출력 | 비고 |
+|---|---|---|
+| `euler_xyz_deg_to_quat(rx, ry, rz)` | Mirobot 오일러(도) → `wxyz` | `qz ⊗ qy ⊗ qx` (4절) |
+| `quat_to_euler_xyz_deg(q)` | `wxyz` → 오일러(도) | 짐벌락이면 `rx = 0` 으로 몰아준다 (4절) |
+| `quat_wxyz_to_xyzw(q)` / `quat_xyzw_to_wxyz(q)` | 저장 순서 변환 | LIBERO 출입구 (5절) |
+| `axis_angle_to_quat(vec)` / `quat_to_axis_angle(q)` | axis-angle(rad) ↔ `wxyz` | 짧은 쪽 관례 (8절). robosuite 는 최대 360° |
+| `enforce_sign_continuity(quats, q_prev=None)` | 궤적 → 부호 맞춘 궤적 | 직전과 내적 < 0 이면 뒤집기 (7절) |
+| `quat_error_axis_angle(q_current, q_target)` | 두 자세 → axis-angle(rad) | **OSC_POSE 액션의 회전 3칸.** 부호를 함수 안에서 맞춘다 (7절) |
+| `mirobot_to_libero_quat(q)` / `libero_to_mirobot_quat(q)` | 프레임 회전 | `q ⊗ F` / `q ⊗ F⁻¹`, `FRAME_F` = x축 180° (6절, 9/17 확정) |
+| `quat_mul(a, b)` · `quat_conj(q)` · `quat_normalize(q)` · `quat_from_axis_deg(axis, deg)` · `quat_to_matrix(q)` | 보조 | `quat_mul(a, b)` = "b 먼저, a 나중" |
+
+### 두 방향에서 쓰는 순서
+
+```python
+# 5-1  Mirobot → LIBERO
+q = euler_xyz_deg_to_quat(rx, ry, rz)          # 도 → wxyz
+q = mirobot_to_libero_quat(q)                   # q ⊗ F
+proprio_quat = quat_wxyz_to_xyzw(q)             # LIBERO 로
+traj = enforce_sign_continuity(traj)            # 궤적 전체에 한 번
+action[3:6] = quat_error_axis_angle(q_cur, q_target)   # 추종 루프
+
+# 5-2  LIBERO → Mirobot
+q = axis_angle_to_quat(ee_ori)                  # 데이터셋 ee_ori
+q = libero_to_mirobot_quat(q)                   # q ⊗ F⁻¹
+rx, ry, rz = quat_to_euler_xyz_deg(q)           # G0 A B C
+```
+
+### 테스트
+
+`tests/test_rotation.py`(13), `tests/test_workspace.py`(4), `tests/test_servo.py`(6). 저장소 최상위에서 `-m` 으로 돌린다.
+
+```bash
+cd ~/UROP && python -m tests.test_rotation
+```
+
+설계(T1~T13)와 각 항목이 무엇을 잡는지는 그 파일 주석에 있다 — 문서와 이중으로 두지 않는다.
+통과 기록은 [CHECKLIST.md](CHECKLIST.md) 3절 ②. scipy 대조(T12)는 scipy 가 있는 환경(서버 `.venv`)에서만 돈다.
 
 ## 5. 어디까지 맞는지 확인됐나
 
+파이프라인 전체를 한눈에 보는 표다. **숫자의 주인은 그 측정을 한 문서**이고, 여기는 한 줄 요약과 링크만 둔다.
+
 | 구간 | 확인 | 결과 |
 |---|---|---|
-| 변환 → 역변환 (계산만) | G-code 도구의 검산 | 위치 **0.007mm**, 자세 **0.006°** (파일 반올림 몫) |
-| LIBERO → Mirobot 좌표 → LIBERO (시뮬) | `libero_follow --gcode` 로 되따라감 | **2.34mm · 0.34°** (추종 루프 수렴 오차 포함) |
-| **실물 한 바퀴** — 변환 → Mirobot 실행 → 보고값 → 역변환 | `roundtrip_check compare` (9/20) | **0.30mm · 0.05°** — 거의 전부가 Mirobot 보고 Z 의 상수 오프셋(−0.27mm) |
-| 프레임 회전 `F` | Mirobot 실물 `A15`·`B15`·`C20` 방향 (9/17) | LIBERO `Δrx+`·`Δry+`·`Δrz+` 와 같은 쪽 |
+| 변환 → 역변환 (계산만) | G-code 도구의 검산 | 위치 **0.007mm** · 자세 **0.006°** (파일 반올림 몫) |
+| LIBERO → Mirobot 좌표 → LIBERO (시뮬) | `libero_follow --gcode` 로 되따라감 | **2.34mm · 0.34°** → [CHECKLIST.md](CHECKLIST.md) 5-1 |
+| **실물 한 바퀴** — 변환 → Mirobot 실행 → 보고값 → 역변환 | `roundtrip_check compare` (9/20) | **0.30mm · 0.05°** → [CHECKLIST.md](CHECKLIST.md) 5-1 (가) |
+| 프레임 회전 `F` | Mirobot 실물 `A15`·`B15`·`C20` 방향 (9/17) | LIBERO `Δrx+`·`Δry+`·`Δrz+` 와 같은 쪽 → [LIBERO_AXES.md](LIBERO_AXES.md) 4절 |
 
-**왕복은 `F` 를 잡지 못한다** — 나갈 때 곱하고 들어올 때 나눠 상쇄된다. `F` 는 축별 시험으로만 잡힌다
-([CHECKLIST.md](CHECKLIST.md) 5-1 (가)·(나), `tests/test_rotation.py` 의 T5 함정과 같은 구조).
+**왕복은 `F` 를 잡지 못한다.** `F` 는 축별 시험으로만 잡힌다 — 왜인지는 [CHECKLIST.md](CHECKLIST.md) 5-1 (가)·(나).
 
 ## 6. 아직 남은 어긋남
 
-| | 내용 |
-|---|---|
-| **회전 중심** | Panda 는 파지점, Mirobot(Cartesian `G0`)은 플랜지를 중심으로 돈다. 9/20 실물에서 기울기 16.59° 때 팔이 27.0mm 되돌아왔고 `97 × sin16.59° = 27.7mm` 와 맞는다. 플랜지끼리 맞춘 결과라 **손끝 궤적은 두 로봇이 다르다** |
-| **Mirobot 플랜지 → 파지점 길이** | 미측정 (손목 카메라 마운트 뒤). 손끝끼리 맞추려면 필요하다 |
-| **보고 Z 상수 오프셋** | Mirobot 이 명령보다 0.25~0.29mm 낮게 보고한다. 실제로 낮은지 보고만 낮은지는 외부 측정을 안 해 모른다 |
-| **절대/상대 혼동** | `measured` 파일은 relative 로 만든 궤적의 보고값이다. `libero_follow --gcode` 는 absolute 로 읽어 3.3° 어긋난다 |
+목록만 둔다. 설명과 숫자는 링크 쪽이 주인이다.
+
+| | 내용 | 어디에 |
+|---|---|---|
+| **회전 중심** | Panda 는 파지점, Mirobot(Cartesian `G0`)은 플랜지를 중심으로 돈다 | [CONTROL.md](CONTROL.md) 2절 · 실물 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-2 |
+| **Mirobot 플랜지 → 파지점 길이** | 미측정. 손끝끼리 맞추려면 필요하다 | [CHECKLIST.md](CHECKLIST.md) 8절 |
+| **보고 Z 상수 오프셋** | 명령보다 낮게 보고한다. 실제로 낮은지 보고만 낮은지는 외부 측정을 안 해 모른다 | 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-1·5-2 |
+| **절대/상대 혼동** | `measured` 파일은 relative, `libero_follow --gcode` 는 absolute 로 읽는다 | [CHECKLIST.md](CHECKLIST.md) 5-1 (가) |

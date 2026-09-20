@@ -1,6 +1,6 @@
 # W3 — 작업 목록
 
-> **절차** · 확인 2026-09-17 · 기준 `cosmos-policy@18a2acc`, 9/13·9/17 실물 측정
+> **절차** · 확인 2026-09-20 · 기준 `cosmos-policy@18a2acc`, 9/13·9/17 실물 측정
 > 9/14 미팅 의견의 작업 목록. `→` 뒤 빈칸은 **미리 채우지 않는다** — 그 부분을 읽을 때 요청하면 그때 채운다.
 
 의견 원문과 결정은 [../meetings/2026-09-14.md](../meetings/2026-09-14.md) 에 있다. 여기는 **작업**만 둔다.
@@ -123,7 +123,7 @@
   - scipy 라면 `Rotation.from_euler("xyz", ..., degrees=True)` — **소문자가 extrinsic**. `as_quat()` 은 `xyzw`
   → **표준 라이브러리만.** numpy 도 안 쓴다 — `requirements/robot.txt` 에 numpy 가 없고(opencv 를 통해 딸려올 뿐),
   숫자 3~4개라 이득도 없다. scipy 는 **테스트 대조용**으로만 (T12, 서버 `.venv`)
-- [x] 프레임 회전을 뺀 1·3·4 단계 먼저 작성 → 함수 12개. 목록은 [ROTATION.md](ROTATION.md) 8절
+- [x] 프레임 회전을 뺀 1·3·4 단계 먼저 작성 → 함수 12개. 목록은 [CONVERSION.md](CONVERSION.md) 4절 (규약은 [ROTATION.md](ROTATION.md))
 - [x] 테스트 — 답을 이미 아는 경우로
   - `(0,0,0)` → 항등
   - 9/13 `euler` 측정값 재현 (`../W2/CHECKLIST.md` 4절 "RxRyRz 의 오일러 규약")
@@ -308,7 +308,7 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
 줄마다 `?` 로 확인했다. 로그 `data/probe/20260920_105128.jsonl`.
 
 - **7개 전부 도착, 에러 0**, 매번 `Idle`. 명령 대비 **위치 0.30mm·자세 0.04° 이내**
-  (Z 는 늘 −0.25 ~ −0.29mm 낮다 — 4절의 상수 오프셋)
+  (Z 는 늘 −0.25 ~ −0.29mm 낮다 — `../W2/CHECKLIST.md` 4절의 상수 오프셋)
 - **J5 최대 +21.34°** (`seg2-end` — 앞으로 뻗은 채 뒤로 기운 자세). `+40°` 까지 18.7° 여유라 이 궤적은 J5 문제가 없다.
   `2026_09_17-compound-absolute.gcode` 는 시작 기울기 3.3° 가 더해져 **약 24.6°** 로 추정된다
 - 눈으로 본 세 구간의 방향이 Panda 영상과 같다. 구간 3 에서 `y` 액션이 없는데도 팔이 오른쪽으로 27.0mm 되돌아오는데,

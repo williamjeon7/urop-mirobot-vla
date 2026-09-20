@@ -1,7 +1,7 @@
 # 문서 규칙과 목록
 UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행동 rollout trajectories를 모은 후 기존 VLA를 fine-tuning 하여 real-world task에서 deploy 및 실제상황에서도 vision input만으로 Task라도 달성하는것을 목표
 
-> **기준** · 확인 2026-09-16
+> **기준** · 확인 2026-09-20
 > 문서를 어디에 두고 어떻게 쓸지. 아래 목록이 이 저장소 문서의 색인이다.
 
 문서가 늘어나면 "이게 무슨 문서였지", "아직 맞는 내용인가"를 매번 열어서 판단하게 된다.
@@ -25,11 +25,11 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 |---|---|---|
 | W2 | [W2/W2_진행사항.md](W2/W2_진행사항.md) | LIBERO 관측/액션 구조, 우리 스키마와의 대응 |
 | W2 | [W2/CHECKLIST.md](W2/CHECKLIST.md) | 9/7 미팅 의견 세 항목 확인 목록 |
-| W3 | [W3/CHECKLIST.md](W3/CHECKLIST.md) | 9/14 미팅 의견 작업 목록 — Mirobot ↔ LIBERO proprio 교환 검증 |
-| W3 | [W3/ROTATION.md](W3/ROTATION.md) | 회전 표현(오일러·쿼터니언·axis-angle)과 Mirobot ↔ LIBERO 변환 규약 |
-| W3 | [W3/CONVERSION.md](W3/CONVERSION.md) | **값이 어떻게 바뀌나** — 두 방향 변환 단계, 코드 지도, 어디까지 맞는지 |
-| W3 | [W3/LIBERO_AXES.md](W3/LIBERO_AXES.md) | LIBERO 좌표계 측정 기록 — 축·회전·프레임 회전 `F` |
-| W3 | [W3/CONTROL.md](W3/CONTROL.md) | 두 로봇이 명령을 받아 움직이는 방식 비교 |
+| W3 | [W3/CHECKLIST.md](W3/CHECKLIST.md) | 9/14 미팅 의견 **작업 목록과 상태·결과** — Mirobot ↔ LIBERO proprio 교환 검증 |
+| W3 | [W3/ROTATION.md](W3/ROTATION.md) | **회전 규약과 근거** — 표현 세 가지, 왜 extrinsic XYZ·`xyzw`·`F` |
+| W3 | [W3/CONVERSION.md](W3/CONVERSION.md) | **값이 어떻게 바뀌나** — 두 방향 변환 단계와 **코드 지도**(함수·모듈) |
+| W3 | [W3/LIBERO_AXES.md](W3/LIBERO_AXES.md) | **LIBERO 측정 원자료** — 축·회전 시험 표, 프레임 회전 `F` 의 근거 |
+| W3 | [W3/CONTROL.md](W3/CONTROL.md) | 두 로봇이 명령을 받아 움직이는 방식 비교 — **회전 중심** 포함 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 
@@ -105,6 +105,8 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 
 ## 문서를 고칠 때
 
+- **한 사실의 주인은 한 문서다.** 같은 내용을 두 곳에 적지 말고, 주인을 정해 나머지는 **링크**로 건다.
+  주인은 그 사실이 나온 곳이다 — 측정은 측정 기록 문서, 작업 결과는 작업 목록, 규약은 규약 문서.
 - 내용을 확인하거나 갱신했으면 **머리말의 `확인` 날짜를 갱신**한다.
 - 틀린 내용을 발견하면 고치거나, 못 고치면 **틀렸다고 적어 둔다.**
   방치된 틀린 문서는 없는 문서보다 나쁘다.
