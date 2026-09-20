@@ -37,10 +37,16 @@ Mirobot
 | 한 스텝 뒤 | 목표의 **약 25%** (위치 26%, 회전 23~25%) | **도착**해서 멈춘다 |
 | 도착 확인 | 관측을 다시 읽어 오차를 본다 | `?` 로 `Idle` 인지 본다 |
 | 막히면 | 힘이 걸린 채 멈춘다 (밀고 있다) | 모터가 계속 돌려다 스텝을 잃을 수 있다 |
+| **위치를 어디로 보고하나** | **파지점** — 손가락 사이 (`eef_pos` = `grip_site`). 플랜지에서 공구 축으로 97mm | **플랜지** — 홈 좌표가 링크 길이 합과 맞는다 (`../W2/CHECKLIST.md` 4절) |
 | 회전 중심 | **파지점**(`grip_site`) — 손끝이 제자리 | **플랜지** — Cartesian `G0` 로 자세만 바꿀 때 (9/17 실측) |
 | 명령하지 않은 축 | 10% 이하로 따라 움직인다 | 자세만 바꾸면 위치 0.07mm 이내 유지 (9/17) |
 
-측정값과 근거는 [LIBERO_AXES.md](LIBERO_AXES.md) 2·3절, Mirobot 쪽은 [CHECKLIST.md](CHECKLIST.md) 8절.
+**플랜지** 는 팔 끝에서 공구를 붙이는 면이고, **파지점** 은 그리퍼 손가락 사이의 무는 점이다. 두 로봇이 서로 다른 점의
+좌표를 말하므로, 우리 변환은 **플랜지 ↔ 플랜지** 로 맞춘다 (`common/workspace.py`). Panda 롤아웃에서 `eef_pos`(파지점) 외에
+`flange_pos`(`robot0_right_hand`) 를 따로 기록하는 이유다. 파지점끼리 맞추려면 Mirobot 의 플랜지 → 파지점 길이가 필요한데
+아직 재지 않았다 ([CHECKLIST.md](CHECKLIST.md) 8절).
+
+측정값과 근거는 [LIBERO_AXES.md](LIBERO_AXES.md) 2·3절, Mirobot 쪽은 [CHECKLIST.md](CHECKLIST.md) 8절, ③ "LIBERO eef 위치의 기준점".
 
 ## 3. Panda 를 목표 자세까지 가게 하려면
 
