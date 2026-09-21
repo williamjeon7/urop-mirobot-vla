@@ -379,8 +379,27 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
 **어디서** **발표할 노트북** — MP4 와 궤적 파일을 모아 둔다.
 
 - [ ] Panda MP4 두 개 (5-1, 5-2) 를 노트북에 받아 두기
-- [ ] 영상 시점을 미팅에서 Mirobot 을 보는 방향과 맞추기 — agentview 가 어느 쪽에서 보는지는 ③ 표
+
+  | 방향 | Panda 영상 | Mirobot 명령 파일 |
+  |---|---|---|
+  | **(가)** Mirobot → Panda | `rollouts/2026_09_21/follow/09_22_46--follow.mp4` | `trajectories/2026_09_21-mirobot-origin.gcode` |
+  | **(나)** LIBERO → Mirobot | `rollouts/2026_09_17/compound/10_44_39--compound.mp4` | `trajectories/2026_09_17-compound-relative.gcode` |
+  | (덤) 왕복 비교 | `rollouts/2026_09_21/compare/09_45_53--compare-agentview-waypoint.mp4` | — |
+
+- [x] **영상 시점** (9/21) → **하나를 고르지 않고 2×2 격자 그대로 보여준다.** 위 두 영상이 이미 네 시점이고
+  칸마다 카메라 이름이 찍혀 있다. 보는 자리에 맞는 칸을 그 자리에서 짚으면 된다
+
+  | Mirobot 을 보는 자리 | 맞는 칸 | 주의 |
+  |---|---|---|
+  | 로봇을 **마주 보고** (팔이 나를 향해 뻗음) | `agentview` (왼위) · `frontview` (오른위) | **좌우가 뒤집혀 보인다** — 로봇의 왼쪽이 화면 오른쪽 (③ 표) |
+  | 로봇의 **왼쪽 옆** | `sideview` (왼아래) | 로봇 앞(`+x`)이 화면 왼쪽, 베이스가 화면 오른쪽 |
+  | **위에서** | `birdview` (오른아래) | 로봇이 화면 위쪽, `+x` 가 화면 아래 |
+
+  왕복 비교 영상만 단일 시점(`agentview`)이다 — 두 개를 나란히 놓느라 그랬다.
+  다른 시점이 필요하면 `tools/compare_rollouts.py --camera` 로 몇 초 만에 다시 뽑는다 (시뮬을 다시 안 돌린다)
+
 - [ ] Mirobot 궤적 두 개를 명령 파일로 저장 — 미팅에서 한 번에 실행
+  → 위 표의 `.gcode` 두 개. 둘 다 `trajectories/` 에 있고 `tools/run_gcode.py` 로 돈다
 - [ ] Mirobot 동작 휴대폰 백업 영상 — **(가)** 는 `2026_09_21-mirobot-origin.gcode`, **(나)** 는 `2026_09_17-compound-relative.gcode`. 둘 다 `--stream` 으로
 - [ ] 로봇 노트북·케이블·COM 포트 (9/13 은 COM4)
 
