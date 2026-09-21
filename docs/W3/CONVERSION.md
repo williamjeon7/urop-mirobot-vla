@@ -61,6 +61,44 @@ Mirobot G0 / ? 보고값   X Y Z (mm), A B C (도)
 도착 판정                위치 2mm·자세 1° 안 + 한 스텝 이동 0.3mm·0.05° 이하
 ```
 
+## 3-1. 시작 자세를 어떻게 다룰까 — relative 와 absolute
+
+**문제** — LIBERO Panda 의 시작 자세는 정확한 top-down 이 아니고, task·초기 상태마다 **1.5°~6.8°** 씩 다르다
+([LIBERO_AXES.md](LIBERO_AXES.md) 1절 "왜 기울어져 있나"). Mirobot 은 홈에서 `RxRyRz = (0,0,0)` 으로 딱 떨어진다.
+둘을 어떻게 짝지을지 정해야 한다.
+
+**두 버전을 다 만들어 봤다.** `--orientation` 으로 고른다 (쓰는 쪽·읽는 쪽 둘 다 같은 값이어야 한다).
+
+| | 내보낼 때 (`libero_to_mirobot_gcode.py:61-63`) | 읽어올 때 (`libero_follow.py:74`) | Mirobot `(0,0,0)` 이 뜻하는 것 |
+|---|---|---|---|
+| **absolute** | `q_mirobot = q_libero ⊗ F⁻¹` | `q_libero = q_mirobot ⊗ F` | **정확한 top-down** |
+| **relative** | `q_mirobot = q_libero ⊗ q_시작⁻¹` | `q_libero = q_mirobot ⊗ q_시작` | **그 판의 Panda 시작 자세** (기운 채로) |
+
+### 결과
+
+- **왕복 오차는 둘 다 0 이다.** 같은 값으로 나눴다 곱하므로 대수적으로 정확히 상쇄된다.
+  실측 왕복 자세 오차 **0.05°** 가 그 증거다 (9/20~21, [CHECKLIST.md](CHECKLIST.md) 5-1 (가)).
+  시작 기울기를 "미미해서 무시" 한 것이 아니라 **빼 뒀다 도로 얹는 것**이다
+- **relative 는 대신 절대 대응이 옮겨간다.** Mirobot 홈을 "기운 Panda 시작 자세" 와 짝지으므로,
+  실물 Mirobot 의 절대 자세가 Panda 와 내내 **3.28° 다르다** (그날 판의 기울기만큼).
+  손끝으로 치면 `97 × sin3.28° = 5.6mm`. 눈으로는 안 보이지만 0 은 아니다
+- **relative 파일은 그 판에 묶인다.** "그날 그 시작 자세로부터의 회전" 이라, task 나 초기 상태를 바꾸면 뜻이 달라진다.
+  absolute 는 Mirobot 절대 자세라 어디서 읽든 같다
+- **쓰는 쪽과 읽는 쪽이 어긋나면** 궤적 전체가 시작 기울기만큼 **일정하게** 치우친다 (모양은 맞고 통째로 기운다).
+  커지는 오차가 아니다
+
+| 파일 | 방식 | 실물 |
+|---|---|---|
+| `2026_09_17-compound-relative.gcode` | relative | **9/20 실행** — 7/7 도착, J5 최대 21.34° |
+| `2026_09_17-compound-absolute.gcode` | absolute | 미실행. 시작이 `B 3.28`, J5 약 24.6° 로 추정 |
+| `2026_09_21-mirobot-origin.gcode` | absolute | 미실행 (5-1 (나)) |
+
+### 정한 것 (9/21) — **absolute 를 기본으로 한다**
+
+9/17 에 relative 를 고른 이유는 Mirobot 이 홈에서 출발해 첫 줄이 깔끔하다는 것과, absolute 면 모든 waypoint 의 `B` 에
+3.28° 가 얹혀 J5 가 올라간다는 것이었다. 그때는 J5 여유를 몰랐다. 9/20 에 21.34° 까지 문제없는 것을 봤으니
+이제 **대응 관계가 판에 묶이지 않는 absolute 가 낫다**. 9/17 relative 파일은 이미 실물에서 돈 기록이 있어 그대로 둔다.
+
 ## 4. 코드 지도
 
 | 파일 | 맡는 것 |
