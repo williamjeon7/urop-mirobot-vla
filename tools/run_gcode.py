@@ -117,6 +117,8 @@ def run_stream(probe, entries, moves: int, poll_timeout: float, settle_timeout: 
                   if (pose := pose_of(command)) is not None]
     samples, sent, misses, recent = [], [], 0, []
     index, awaiting_ok, failed, done_at = 0, False, None, None
+    period = 1.0 / poll_hz if poll_hz > 0 else 0.0
+    slot = 0  # 고정 격자의 몇 번째 칸을 기다리는 중인가
     t0 = time.perf_counter()
 
     while True:
@@ -130,8 +132,12 @@ def run_stream(probe, entries, moves: int, poll_timeout: float, settle_timeout: 
             print(f"[{index}/{moves}] +{t_send:6.2f}s  {label:<14} {command}")
             awaiting_ok = True
 
-        if poll_hz > 0 and samples:
-            wait = samples[-1]["t_s"] + 1.0 / poll_hz - (time.perf_counter() - t0)
+        # 고정 격자 t0 + k·period 에 맞춰 묻는다. "마지막 샘플 + period" 로 재면 왕복 시간 T 가 매번 더해져
+        # 주기가 period + T 가 된다 (9/21 실물에서 20Hz 설정이 9.3Hz 로 찍힌 원인).
+        if period:
+            now = time.perf_counter() - t0
+            slot = max(slot, int(now / period) + 1)  # 못 따라가면 빈 칸은 건너뛴다
+            wait = slot * period - now
             if wait > 0:
                 time.sleep(wait)
         status_line, _, others = probe.status(timeout_s=poll_timeout, flush=False)
@@ -151,8 +157,7 @@ def run_stream(probe, entries, moves: int, poll_timeout: float, settle_timeout: 
         cart, angle = find_field(parsed, "Cartesian"), find_field(parsed, "Angle")
         row = {"t_s": round(time.perf_counter() - t0, 4), "state": state_of(status_line),
                "cart": cart, "angle": angle}
-        samples.append(row)
-        probe.log("stream_sample", **row)
+        samples.append(row)  # 샘플마다 log() 하면 write+flush 가 루프에 들어간다 — 끝에 한 번 쓴다
 
         # 다 보냈으면 마지막 이동이 끝나기를 기다린다 — 판정은 wait_settled 와 같다
         recent = (recent + [(cart, angle)])[-3:]
@@ -167,8 +172,14 @@ def run_stream(probe, entries, moves: int, poll_timeout: float, settle_timeout: 
                 break
 
     total_s = time.perf_counter() - t0
+    probe.log("stream", total_s=total_s, poll_hz=poll_hz, misses=misses, sent=sent, rows=samples)
     hz = len(samples) / total_s if total_s else 0.0
-    print(f"\n{len(samples)}개 자세를 받았다 — {total_s:.1f}s 동안 {hz:.0f}Hz (무응답 {misses}회)")
+    gaps = [b["t_s"] - a["t_s"] for a, b in zip(samples, samples[1:])]
+    spread = (f"  간격 {min(gaps)*1000:.0f}~{max(gaps)*1000:.0f}ms, 중앙 "
+              f"{sorted(gaps)[len(gaps)//2]*1000:.0f}ms" if gaps else "")
+    print(f"\n{len(samples)}개 자세를 받았다 — {total_s:.1f}s 동안 {hz:.1f}Hz (무응답 {misses}회){spread}")
+    if poll_hz > 0 and hz < poll_hz * 0.8:
+        print(f"  !! {poll_hz:.0f}Hz 를 못 맞췄다 — `?` 왕복이 {1000/poll_hz:.0f}ms 보다 오래 걸린다는 뜻이다")
 
     print_closest(sent, samples)
     return index
