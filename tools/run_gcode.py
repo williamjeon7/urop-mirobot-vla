@@ -10,6 +10,33 @@
 기본은 **줄마다 확인**이다 (Enter 보냄 / s 건너뜀 / q 중단). 익숙해지면 `--auto`.
 전송·정지 판정·기록은 `tools/probe_mirobot.py` 의 `Probe` 를 그대로 쓴다 (9/13·9/17 실물에서 쓰인 코드).
 
+**세 가지 모드** — 멈추느냐, 무엇을 남기느냐가 다르다.
+
+| | 묻나 | waypoint 마다 멈추나 | 남는 기록 |
+|---|---|---|---|
+| 기본 | 줄마다 | 예 | waypoint 마다 정지 자세 하나 |
+| `--auto` | 아니오 | 예 | waypoint 마다 정지 자세 하나 |
+| `--stream` | 아니오 | **아니오 — 이어서 흐른다** | **움직이는 내내 시간 찍힌 자세** (수십 Hz) |
+
+`--stream` 이 성립하는 근거 둘, 모두 9/13 실물에서 확인한 것이다 (`docs/W2/CHECKLIST.md` 719줄).
+
+1. `G0` 의 `ok` 는 **도착이 아니라 접수** 신호다 — ≤66ms 에 오는데 이동은 ≈1.15s 걸린다.
+   그래서 `ok` 만 보고 다음 줄을 보내면 펌웨어 버퍼에 쌓여 멈추지 않고 이어진다.
+   버퍼가 차면 `ok` 가 늦게 오면서 **저절로 속도가 맞는다** (GRBL 의 send-response 흐름 제어)
+2. `?` 는 **실시간 명령**이라 버퍼를 쓰지 않고 즉시 답한다 — 30mm 이동 1.15s 동안 **89회, 무응답 0**.
+   움직이는 중에도 계속 받을 수 있다
+
+그래서 멈추지 않으면서 기록도 남는다. 다만 **자세의 성격이 다르다.**
+
+- `--auto` 는 **도착해서 선** 자세다. 명령값과 바로 대 볼 수 있어 5-1 변환 검증의 입력이 된다
+- `--stream` 은 **지나가는 중**의 자세다. 버퍼가 이어 붙이며 모서리를 깎으므로 waypoint 를 정확히 밟지 않는다.
+  끝에 waypoint 마다 **가장 가까이 지나간 거리**를 찍어 준다 — 그 값이 모서리가 얼마나 깎였는지다
+
+변환이 맞는지 보려면 `--auto`, 실제로 쓰는 모습(연속 동작·연속 기록)을 보려면 `--stream`.
+
+**`--stream` 주의** — 보낸 줄은 취소되지 않는다. 중간에 `Ctrl-C` 를 눌러도 이미 버퍼에 들어간 이동은 끝까지 간다.
+처음 보는 궤적은 `--auto` 로 먼저 돌려 보고 나서 쓸 것.
+
 **주의** — `--home` 을 주지 않으면 호밍하지 않는다. 파일의 첫 줄이 보통 홈 근처라, 로봇이 엉뚱한 자세에 있으면
 첫 이동이 크다. 처음에는 `--dry-run` 으로 좌표를 보고, 비상정지에 손이 닿는 곳에서 시작할 것.
 """
@@ -24,7 +51,7 @@ from pathlib import Path
 
 from common.gcode import HOME_SEQUENCE
 from common.workspace import MIROBOT_HOME_MM
-from tools.probe_mirobot import Probe, fields, find_field, fmt, is_error, serial, state_of
+from tools.probe_mirobot import Probe, fields, find_field, fmt, is_error, is_ok, serial, state_of
 
 REACH_WARN_MM = 280.0  # 수평 거리. 도달 약 315mm — 여유를 둔다
 ANGLE_WARN_DEG = 30.0
@@ -74,21 +101,134 @@ def show_plan(entries) -> None:
               f" | {reach:6.1f} | {from_home:6.1f}mm{'  !! ' + ', '.join(flags) if flags else ''}")
 
 
+def run_stream(probe, entries, moves: int, poll_timeout: float, settle_timeout: float,
+               poll_hz: float = 20.0) -> int:
+    """멈추지 않고 보내면서 `?` 로 계속 받는다. 보낸 줄 수를 돌려준다.
+
+    한 바퀴마다 (1) 보낼 줄이 남았고 앞 줄의 `ok` 가 왔으면 한 줄 쓰고, (2) `?` 를 한 번 물어 기록한다.
+    `ok` 를 기다렸다 보내는 것이 GRBL 의 흐름 제어다 — 버퍼가 차면 `ok` 가 늦어지며 저절로 맞춰진다.
+    `?` 는 버퍼를 쓰지 않으므로 그 사이에 끼워 넣어도 이동에 영향이 없다.
+
+    기록 속도는 `poll_hz` 로 묶는다. 기본 20Hz 는 **LIBERO 제어 주기와 같은 값**이라, 나중에 이 기록을
+    그대로 시뮬 쪽과 스텝 단위로 맞춰 볼 수 있다. 포트가 허용하는 만큼 물으면 훨씬 빠르지만
+    (9/13 실물 77Hz) 그만큼 쓸모가 있는 것은 아니다.
+    """
+    moves_todo = [(label, command, pose) for label, command in entries
+                  if (pose := pose_of(command)) is not None]
+    samples, sent, misses, recent = [], [], 0, []
+    index, awaiting_ok, failed, done_at = 0, False, None, None
+    t0 = time.perf_counter()
+
+    while True:
+        if not awaiting_ok and index < len(moves_todo):
+            label, command, pose = moves_todo[index]
+            probe.ser.write((command + "\n").encode())
+            index += 1
+            t_send = time.perf_counter() - t0
+            sent.append({"index": index, "label": label, "commanded": pose, "t_s": round(t_send, 4)})
+            probe.log("stream_send", index=index, label=label, cmd=command, commanded=pose, t_s=t_send)
+            print(f"[{index}/{moves}] +{t_send:6.2f}s  {label:<14} {command}")
+            awaiting_ok = True
+
+        if poll_hz > 0 and samples:
+            wait = samples[-1]["t_s"] + 1.0 / poll_hz - (time.perf_counter() - t0)
+            if wait > 0:
+                time.sleep(wait)
+        status_line, _, others = probe.status(timeout_s=poll_timeout, flush=False)
+        for _, line in others:
+            if is_ok(line):
+                awaiting_ok = False
+            elif is_error(line):
+                failed = line
+        if failed:
+            print(f"  !! {failed} — 보내기를 멈춘다 (버퍼에 든 이동은 계속 간다)")
+            break
+
+        if status_line is None:
+            misses += 1
+            continue
+        parsed = fields(status_line)
+        cart, angle = find_field(parsed, "Cartesian"), find_field(parsed, "Angle")
+        row = {"t_s": round(time.perf_counter() - t0, 4), "state": state_of(status_line),
+               "cart": cart, "angle": angle}
+        samples.append(row)
+        probe.log("stream_sample", **row)
+
+        # 다 보냈으면 마지막 이동이 끝나기를 기다린다 — 판정은 wait_settled 와 같다
+        recent = (recent + [(cart, angle)])[-3:]
+        if index >= len(moves_todo) and not awaiting_ok:
+            if done_at is None:
+                done_at = time.perf_counter()
+            if len(recent) == 3 and recent[0] == recent[1] == recent[2] \
+                    and state_of(status_line).lower() == "idle":
+                break
+            if time.perf_counter() - done_at > settle_timeout:
+                print(f"  !! 다 보내고 {settle_timeout}s 안에 멈추지 않았다 (마지막: {status_line})")
+                break
+
+    total_s = time.perf_counter() - t0
+    hz = len(samples) / total_s if total_s else 0.0
+    print(f"\n{len(samples)}개 자세를 받았다 — {total_s:.1f}s 동안 {hz:.0f}Hz (무응답 {misses}회)")
+
+    print_closest(sent, samples)
+    return index
+
+
+def print_closest(sent, samples) -> None:
+    """waypoint 마다 **가장 가까이 지나간 곳**. 위치와 자세를 따로 센다.
+
+    지나가는 중의 기록이라 waypoint 를 정확히 밟지 않는다 — 버퍼가 이어 붙이며 모서리를 깎기 때문이다.
+    위치와 자세를 섞어 하나의 수로 만들려면 "1° 를 몇 mm 로 칠까" 를 정해야 하는데 근거가 없어서, 따로 센다.
+    홈 근처 waypoint 들처럼 **XYZ 가 같고 각도만 다른** 구간에서는 위치 열이 0 이고 자세 열이 정보를 갖는다.
+
+    명령을 보낸 순서대로 실행되므로, 찾는 구간도 앞 waypoint 가 가장 가까웠던 시점 뒤로만 본다.
+    그렇게 하지 않으면 XYZ 가 같은 waypoint 들이 서로의 샘플을 집는다.
+    """
+    usable = [r for r in samples if r["cart"] and len(r["cart"]) >= 6]
+    print(f"\n{'설명':14} | {'보낸 때':>7} | {'위치':>9} {'그때':>7} | {'자세':>8} {'그때':>7}")
+    start = 0
+    for mark in sent:
+        window = [(i, r) for i, r in enumerate(usable) if i >= start and r["t_s"] >= mark["t_s"]]
+        if not window:
+            print(f"{mark['label']:14} | {mark['t_s']:6.2f}s | {'기록 없음':>9}")
+            continue
+        i_pos, best_pos = min(window, key=lambda ir: math.dist(ir[1]["cart"][:3], mark["commanded"][:3]))
+        i_rot, best_rot = min(window, key=lambda ir: max(abs(r - c) for r, c
+                                                         in zip(ir[1]["cart"][3:6], mark["commanded"][3:6])))
+        print(f"{mark['label']:14} | {mark['t_s']:6.2f}s | "
+              f"{math.dist(best_pos['cart'][:3], mark['commanded'][:3]):6.2f}mm {best_pos['t_s']:6.2f}s | "
+              f"{max(abs(r - c) for r, c in zip(best_rot['cart'][3:6], mark['commanded'][3:6])):6.2f}° "
+              f"{best_rot['t_s']:6.2f}s")
+        start = max(start, i_pos, i_rot)  # 뒤 waypoint 는 둘 다 지난 뒤에서만 찾는다
+    print("\n두 열은 **모서리가 얼마나 깎였는지**다 — 0 에 가까우면 그 waypoint 를 거의 밟고 지나갔다는 뜻.")
+    print("변환 검증에 쓸 '도착해서 선' 자세가 필요하면 --auto 로 다시 돌린다")
+
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("gcode", type=Path)
     parser.add_argument("--port", default="COM4")
     parser.add_argument("--baudrate", type=int, default=115200)
     parser.add_argument("--auto", action="store_true", help="줄마다 묻지 않는다")
+    parser.add_argument("--stream", action="store_true",
+                        help="멈추지 않고 연달아 보내면서 `?` 로 계속 자세를 받는다 (실제 운용에 가까운 모습)")
+    parser.add_argument("--poll-timeout", type=float, default=0.3, help="--stream 에서 `?` 한 번을 기다리는 초")
+    parser.add_argument("--poll-hz", type=float, default=20.0,
+                        help="--stream 기록 속도. 기본 20Hz 는 LIBERO 제어 주기와 같다. 0 이면 상한 없음")
     parser.add_argument("--dry-run", action="store_true", help="보내지 않고 계획만 보여준다")
     parser.add_argument("--home", action="store_true", help="시작 전에 호밍 ($22=1 $H M20 G90) — 로봇이 크게 움직인다")
     parser.add_argument("--settle-timeout", type=float, default=20.0)
     parser.add_argument("--log-dir", default="data/gcode_run")
     args = parser.parse_args()
 
+    if args.stream:
+        args.auto = True
+
     entries = parse_file(args.gcode)
     moves = sum(1 for _, c in entries if pose_of(c) is not None)
-    print(f"{args.gcode} — 명령 {len(entries)}줄 (이동 {moves}개)")
+    print(f"{args.gcode} — 명령 {len(entries)}줄 (이동 {moves}개)"
+          f"{'  [stream — 멈추지 않고 이어서, 보고값 안 남음]' if args.stream else ''}")
     show_plan(entries)
     if args.dry_run:
         print("\n--dry-run: 아무것도 보내지 않았다")
@@ -96,6 +236,8 @@ def main() -> None:
 
     if serial is None:
         raise SystemExit("pyserial 이 없다: python -m pip install pyserial")
+    if args.stream:
+        print("\n!! stream: 보낸 줄은 취소되지 않는다. Ctrl-C 를 눌러도 버퍼에 들어간 이동은 끝까지 간다")
     if input(f"\n{args.port} 로 보낸다. 비상정지에 손이 닿는가? [y/N] ").strip().lower() != "y":
         print("취소")
         return
@@ -118,6 +260,15 @@ def main() -> None:
                 return
             for command in HOME_SEQUENCE:
                 probe.send(command, timeout_s=60.0)
+
+        if args.stream:
+            for _, command in entries:  # G90, M20 같은 설정 줄을 먼저
+                if pose_of(command) is None:
+                    print(f"[설정] {command}")
+                    probe.send(command)
+            index = run_stream(probe, entries, moves, args.poll_timeout, args.settle_timeout, args.poll_hz)
+            print(f"\n{index}개 이동을 보냈다\nlog: {log_path}")
+            return
 
         index = 0
         for label, command in entries:

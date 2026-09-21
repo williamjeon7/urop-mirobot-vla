@@ -25,6 +25,15 @@ python -m tools.run_gcode trajectories/2026_09_17-compound-relative.gcode --port
 기본은 줄마다 묻는다 (Enter 보냄 / s 건너뜀 / q 중단). `--auto` 로 연달아, `--home` 으로 시작 전 호밍.
 `G0` 마다 `wait_settled` 로 멈춤을 확인하고 `?` 보고값을 `data/gcode_run/*.jsonl` 에 남긴다.
 
+```bash
+python -m tools.run_gcode trajectories/2026_09_21-mirobot-origin.gcode --port COM4 --auto     # 멈춰 가며, 정지 자세 기록
+python -m tools.run_gcode trajectories/2026_09_21-mirobot-origin.gcode --port COM4 --stream   # 안 멈추고, 20Hz 연속 기록
+```
+
+`--stream` 은 **멈추지 않고 이어서** 움직이면서 `?` 로 계속 자세를 받는다. `G0` 의 `ok` 가 도착이 아니라
+**접수** 신호이고 `?` 는 버퍼를 쓰지 않는 실시간 명령이라 가능하다 (9/13 실물 근거는 `../docs/W2/CHECKLIST.md:719`).
+변환 검증에 쓸 '도착해서 선' 자세는 `--auto`, 실제 운용에 가까운 연속 동작·연속 기록은 `--stream`.
+
 **실행 규칙**
 - `;` 로 시작하는 줄은 설명이다. 건너뛴다
 - 앞의 `G90`(절대) `M20`(Cartesian) 을 먼저 보낸다
