@@ -177,7 +177,7 @@ cd ~/UROP && python -m tests.test_rotation
 |---|---|---|
 | 변환 → 역변환 (계산만) | G-code 도구의 검산 | 위치 **0.007mm** · 자세 **0.006°** (파일 반올림 몫) |
 | LIBERO → Mirobot 좌표 → LIBERO (시뮬) | `libero_follow --gcode` 로 되따라감 | **2.34mm · 0.34°** → [CHECKLIST.md](CHECKLIST.md) 5-1 |
-| **실물 한 바퀴** — 변환 → Mirobot 실행 → 보고값 → 역변환 | `roundtrip_check compare` (9/20) | **0.30mm · 0.05°** → [CHECKLIST.md](CHECKLIST.md) 5-1 (가) |
+| **실물 왕복** (숫자가 도는 것이다 — 로봇이 도는 것이 아니다) — 변환 → Mirobot 실행 → 보고값 → 역변환 | `roundtrip_check compare` (9/20) | **0.30mm · 0.05°** → [CHECKLIST.md](CHECKLIST.md) 5-1 (가) |
 | 프레임 회전 `F` | Mirobot 실물 `A15`·`B15`·`C20` 방향 (9/17) | LIBERO `Δrx+`·`Δry+`·`Δrz+` 와 같은 쪽 → [LIBERO_AXES.md](LIBERO_AXES.md) 4절 |
 
 **왕복은 `F` 를 잡지 못한다.** `F` 는 축별 시험으로만 잡힌다 — 왜인지는 [CHECKLIST.md](CHECKLIST.md) 5-1 (가)·(나).
