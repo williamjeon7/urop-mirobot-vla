@@ -254,23 +254,29 @@ LIBERO 원본 자세 ──변환──▶ Mirobot G0 ──실물──▶ `?` 
 
 Mirobot 에서 **출발**하는 궤적이라 `F` 를 한 번만 통과한다. 틀리면 영상에서 방향이 어긋나 보인다.
 
-- [ ] **시험 궤적** — 홈 근처에서 한 축씩 크게. 작은 각도부터 늘린다
+- [x] **시험 궤적** — 홈 근처에서 한 축씩 크게. 작은 각도부터 늘린다
+  → **`trajectories/2026_09_21-mirobot-origin.gcode` (9/21), waypoint 16개.** 각도는 절대값이다
 
   | # | 동작 | Mirobot waypoint (X Y Z Rx Ry Rz) |
   |---|---|---|
   | 1 | 홈 | `198.67 0 230.72 0 0 0` (9/13) |
-  | 2 | Rx 만 | |
-  | 3 | Ry 만 | |
-  | 4 | Rz 만 | |
-  | 5 | 위치 이동 + 자세 | |
+  | 2 | Rx 만 | `198.67 0 230.72 20 0 0` |
+  | 3 | Ry 만 | `198.67 0 230.72 0 20 0` |
+  | 4 | Rz 만 | `198.67 0 230.72 0 0 25` |
+  | 5 | 위치 이동 + 자세 | 블록 → 그릇 흉내 9개: 다가가 내려가 들고, 왼쪽으로 건너가며 돌려 놓고 물러난다 |
 
-  각도 →
+  각도 → **Rx 20° · Ry 20° · Rz 25°**, 2·3·4 사이마다 홈으로 돌아온다 (한 번에 한 축만 보이게).
+  5 의 최대는 `Rx 15 Ry 10 Rz 25`, 수평 거리 최대 243mm, Z 최저 172mm —
+  도달 한계(~315mm)와 J5(+40°) 에 여유를 두고 잡았다
 - [x] **실물에서 먼저** — `G0` 의 `A B C` 가 `?` 보고 `RxRyRz` 와 **같은 값·같은 규약**인가. 한 축씩 명령하고 보고값과 비교 →
   **`A`·`B`·`C` 모두 같다 (9/17)** — 8절
   - 명령 형식 `G0 X.. Y.. Z.. A.. B.. C..` (`common/gcode.py:35`)
   - 정지 확인은 프로브 방식 (`tools/probe_mirobot.py` 의 `wait_settled`)
-- [ ] **위치 변환** — mm → m 과 원점. *제안*: Mirobot 홈을 Panda 초기 eef 위치에 맞추고 변위만 옮긴다 →
-- [ ] **자세 변환** — ②의 함수
+- [x] **위치 변환** — mm → m 과 원점. *제안*: Mirobot 홈을 Panda 초기 eef 위치에 맞추고 변위만 옮긴다 →
+  **그대로 했다.** Mirobot 홈 ↔ Panda 시작 **플랜지** `(-0.2062, 0.0133, 1.2735) m` 을 짝짓고 변위만 옮긴다
+  (`common/workspace.py` 의 `mirobot_to_libero_xyz_m`). 파지점이 아니라 플랜지끼리 맞춘다
+- [x] **자세 변환** — ②의 함수 → `mirobot_to_libero_quat` (`q ⊗ F`). Mirobot 각도가 절대값이라
+  `libero_follow --orientation absolute` 로 읽는다. 그래서 첫 waypoint 에서 Panda 시작 기울기 3.3° 가 먼저 펴진다
 - [ ] **Panda 추종 루프** — 5-2 의 2차 궤적을 만드는 데도 쓴다 ([CONTROL.md](CONTROL.md) 3절).
   waypoint 마다 `(목표 − 현재)` 를 액션 크기(③)로 나누고 **방향을 유지한 채 크기만** `1` 이하로 줄여,
   가까워질 때까지 반복. 매 스텝 이미지 저장. 자세 오차는 쿼터니언 차이를 axis-angle 로
@@ -282,7 +288,14 @@ Mirobot 에서 **출발**하는 궤적이라 `F` 를 한 번만 통과한다. �
     남은 오차 최대 **1.90mm · 0.34°**. Mirobot G-code 로 바꿨다가 되돌린 목표로도 같은 결과 —
     **LIBERO → Mirobot 좌표 → LIBERO 왕복이 2.34mm · 0.34° 안에서 맞는다**.
     relative 파일로 하면 자세가 일정하게 3.3° 어긋나는데, 시작 기울기를 일부러 지운 만큼이다
-- [ ] MP4 →
+- [x] MP4 → **`rollouts/2026_09_21/follow/09_22_46--follow.mp4` (9/21).** 329스텝 32.9s, waypoint 16개 전부 도착,
+  남은 오차 최대 **1.95mm · 0.33°**. 기록은 `data/follow/2026_09_21-09_22_46.jsonl`
+  `python -m tools.libero_follow --gcode trajectories/2026_09_21-mirobot-origin.gcode --orientation absolute`
+- [ ] **실물 실행** — 로봇이 없어 **G-code 대로 갔다고 가정하고** Panda 영상을 먼저 뽑았다 (9/21).
+  로봇이 오면 `python -m tools.run_gcode trajectories/2026_09_21-mirobot-origin.gcode --port COM4` 로 확인할 것 →
+  - 거부되는 줄이 있는가 (IK 실패·J5 한계). 가정으로 못 덮는 유일한 부분이다
+  - `?` 보고값이 명령값과 얼마나 차이 나는가. 9/20 왕복에서는 0.30mm·0.05° 였다.
+    이 수준이면 위 영상을 그대로 쓰고, 어긋나면 보고값으로 영상만 다시 뽑는다
 
 ### 5-2. LIBERO → Mirobot
 
