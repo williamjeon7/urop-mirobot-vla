@@ -135,7 +135,7 @@ cd ~/UROP && python -m tests.test_rotation
 
 | | 내용 | 어디에 |
 |---|---|---|
-| **회전 중심** | Panda 는 파지점, Mirobot(Cartesian `G0`)은 플랜지를 중심으로 돈다 | [CONTROL.md](CONTROL.md) 2절 · 실물 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-2 |
+| **회전 중심** | Panda 는 파지점, Mirobot(Cartesian `G0`)은 플랜지를 중심으로 돈다. 손끝이 `ΔL` 만큼 어긋난다 | [CONTROL.md](CONTROL.md) **2-1절** · 실물 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-2 |
 | **Mirobot 플랜지 → 파지점 길이** | 미측정. 손끝끼리 맞추려면 필요하다 | [CHECKLIST.md](CHECKLIST.md) 8절 |
 | **보고 Z 상수 오프셋** | 명령보다 낮게 보고한다. 실제로 낮은지 보고만 낮은지는 외부 측정을 안 해 모른다 | 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-1·5-2 |
 | **절대/상대 혼동** | `measured` 파일은 relative, `libero_follow --gcode` 는 absolute 로 읽는다 | [CHECKLIST.md](CHECKLIST.md) 5-1 (가) |

@@ -326,7 +326,7 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
   `2026_09_17-compound-absolute.gcode` 는 시작 기울기 3.3° 가 더해져 **약 24.6°** 로 추정된다
 - 눈으로 본 세 구간의 방향이 Panda 영상과 같다. 구간 3 에서 `y` 액션이 없는데도 팔이 오른쪽으로 27.0mm 되돌아오는데,
   **Panda 는 파지점을 중심으로 돌고 우리는 플랜지끼리 맞췄기 때문**이다 — `97 × sin16.59° = 27.7mm` 와 맞는다
-  ([CONTROL.md](CONTROL.md) 2절). 5-1 위치 보정이 필요하다는 근거가 실물 숫자로 생겼다
+  ([CONTROL.md](CONTROL.md) **2-1절** — 손끝 보정이 왜 필요한지 표로 정리). 5-1 위치 보정이 필요하다는 근거가 실물 숫자로 생겼다
 - 보고값은 `trajectories/2026_09_20-compound-measured.jsonl`·`.gcode` 로 뽑아 뒀다 → **5-1 (가) 왕복 검증의 입력**
 
 1차가 고정 액션 방식인데도 되는 이유 — Mirobot 에 보내는 것은 명령이 아니라 **Panda 가 실제로 있었던 자세**다.
