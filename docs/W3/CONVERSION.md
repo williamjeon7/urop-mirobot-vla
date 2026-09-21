@@ -74,6 +74,21 @@ Mirobot G0 / ? 보고값   X Y Z (mm), A B C (도)
 | **absolute** | `q_mirobot = q_libero ⊗ F⁻¹` | `q_libero = q_mirobot ⊗ F` | **정확한 top-down** |
 | **relative** | `q_mirobot = q_libero ⊗ q_시작⁻¹` | `q_libero = q_mirobot ⊗ q_시작` | **그 판의 Panda 시작 자세** (기운 채로) |
 
+**이름이 거꾸로 읽힌다 — 맞춰 주는 쪽은 `absolute` 다.** "relative = 기준을 맞춘다" 로 읽히기 쉬운데 반대다.
+relative 는 시작 기울기를 파일에서 **지우는** 것이라 Mirobot 이 홈에 그대로 있으면 되고, 맞추는 동작이 없다.
+absolute 는 Mirobot 이 실제로 그만큼 기울여 Panda 시작 자세를 따라간다. 두 파일의 첫 줄이 그 차이다.
+
+```
+relative   G0 X198.67 Y0.00 Z230.72 A0.00  B-0.00 C0.00     홈 그대로
+absolute   G0 X198.67 Y0.00 Z230.72 A-0.01 B 3.28 C0.02     3.28° 기울여 맞춤
+           (둘째 줄도 B 4.01 vs B 7.29 — 궤적 전체가 3.28° 씩 옮겨가 있다)
+```
+
+| 이름 | 무엇에 상대적/절대적인가 |
+|---|---|
+| **relative** | **Panda 시작 자세**에 상대적 → 시작이 정의상 0, Mirobot 은 홈에 그대로 |
+| **absolute** | **월드 top-down**(`F` 규약)에 절대적 → Panda 가 기울어 있으면 Mirobot 도 기울인다 |
+
 ### 결과
 
 - **왕복 오차는 둘 다 0 이다.** 같은 값으로 나눴다 곱하므로 대수적으로 정확히 상쇄된다.
