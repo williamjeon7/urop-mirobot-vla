@@ -1,6 +1,6 @@
 # LIBERO 좌표계 확인 — ③ 측정 기록
 
-> **기록** · 측정 2026-09-16 ~ 09-17 · 기준 `cosmos-policy@18a2acc`, robosuite 1.4.0, `libero_90[7]`, Mirobot 실물 9/17
+> **기록** · 측정 2026-09-16 ~ 09-21 · 기준 `cosmos-policy@18a2acc`, robosuite 1.4.0, `libero_90[7]`, Mirobot 실물 9/17·9/21
 > [CHECKLIST.md](CHECKLIST.md) ③ 의 측정 결과를 모은다. 작업 목록은 CHECKLIST, 회전 규약은 [ROTATION.md](ROTATION.md),
 > 두 로봇의 명령 방식 비교는 [CONTROL.md](CONTROL.md).
 
@@ -222,6 +222,5 @@ Mirobot 의 월드 축 회전이 LIBERO 에서도 같은 월드 축 회전으로
 
 ## 앞으로 채울 것
 
-| 절 | 내용 | 상태 |
-|---|---|---|
-| 4 | 프레임 회전 `F` — **잠정 결론을 확정** | **완료 (9/17)** |
+없다. 마지막 미결이던 4절 프레임 회전 `F` 는 **확정됐다 (9/17)** — 9/21 Mirobot 출발 궤적 실물 실행에서
+한 번 더 확인했다 ([CHECKLIST.md](CHECKLIST.md) 5-1 (나)).

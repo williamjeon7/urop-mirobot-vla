@@ -8,7 +8,7 @@ Mirobot 에 보낼 `G0` 명령 목록. 영상·기록(`rollouts/`, `data/`)은 g
 | `2026_09_17-compound-absolute.gcode` | 같은 궤적을 기록된 자세 그대로 — 시작이 `B 3.28`, 최대 `B 18.22`. J5 를 20° 까지 확인한 뒤에 |
 | `2026_09_20-compound-measured.jsonl` | relative 궤적을 **9/20 실물에서 실행한 `?` 보고값** (명령값도 같이). 왕복 검증의 입력 |
 | `2026_09_20-compound-measured.gcode` | 같은 보고값을 G-code 로 — `tools/libero_follow --gcode` 에 바로 넣을 수 있다 |
-| `2026_09_21-mirobot-origin.gcode` | **Mirobot 에서 출발하는 궤적** (5-1 (나)). 앞 7줄은 한 축씩(A20/B20/C25, 사이사이 홈), 뒤 9줄은 블록 → 그릇 흉내. 각도는 **절대값** — 읽는 쪽도 `--orientation absolute` |
+| `2026_09_21-mirobot-origin.gcode` | **Mirobot 에서 출발하는 궤적** (5-1 (나)). 앞 7줄은 한 축씩(A20/B20/C25, 사이사이 홈), 뒤 9줄은 블록 → 그릇 흉내. 각도는 **절대값** — 읽는 쪽도 `--orientation absolute`. **9/21 실물 실행 완료** — 16/16 도착, 거부된 줄 0, 0.306mm |
 
 원본은 서버의 `data/compound/2026_09_17-10_44_39.jsonl`, 영상은 `rollouts/2026_09_17/compound/10_44_39--compound.mp4`.
 만든 도구는 `tools/libero_to_mirobot_gcode.py`, 규약은 [../docs/W3/LIBERO_AXES.md](../docs/W3/LIBERO_AXES.md) 4절.
@@ -27,12 +27,14 @@ python -m tools.run_gcode trajectories/2026_09_17-compound-relative.gcode --port
 
 ```bash
 python -m tools.run_gcode trajectories/2026_09_21-mirobot-origin.gcode --port COM4 --auto     # 멈춰 가며, 정지 자세 기록
-python -m tools.run_gcode trajectories/2026_09_21-mirobot-origin.gcode --port COM4 --stream   # 안 멈추고, 20Hz 연속 기록
+python -m tools.run_gcode trajectories/2026_09_21-mirobot-origin.gcode --port COM4 --stream   # 안 멈추고 연속 기록
 ```
 
 `--stream` 은 **멈추지 않고 이어서** 움직이면서 `?` 로 계속 자세를 받는다. `G0` 의 `ok` 가 도착이 아니라
 **접수** 신호이고 `?` 는 버퍼를 쓰지 않는 실시간 명령이라 가능하다 (9/13 실물 근거는 `../docs/W2/CHECKLIST.md:719`).
 변환 검증에 쓸 '도착해서 선' 자세는 `--auto`, 실제 운용에 가까운 연속 동작·연속 기록은 `--stream`.
+기록 속도는 `--poll-hz` (기본 20Hz) 로 정하는데, 실제로 나오는 값은 `?` 왕복 시간에 달렸다 —
+끝에 간격 min/중앙/max 를 찍어 준다. 9/21 첫 실행은 9.87초·모서리 깎임 ≤1.35mm 였다.
 
 **실행 규칙**
 - `;` 로 시작하는 줄은 설명이다. 건너뛴다

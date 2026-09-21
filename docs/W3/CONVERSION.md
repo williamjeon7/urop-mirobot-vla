@@ -178,9 +178,13 @@ cd ~/UROP && python -m tests.test_rotation
 | 변환 → 역변환 (계산만) | G-code 도구의 검산 | 위치 **0.007mm** · 자세 **0.006°** (파일 반올림 몫) |
 | LIBERO → Mirobot 좌표 → LIBERO (시뮬) | `libero_follow --gcode` 로 되따라감 | **2.34mm · 0.34°** → [CHECKLIST.md](CHECKLIST.md) 5-1 |
 | **실물 왕복** (숫자가 도는 것이다 — 로봇이 도는 것이 아니다) — 변환 → Mirobot 실행 → 보고값 → 역변환 | `roundtrip_check compare` (9/20) | **0.30mm · 0.05°** → [CHECKLIST.md](CHECKLIST.md) 5-1 (가) |
-| 프레임 회전 `F` | Mirobot 실물 `A15`·`B15`·`C20` 방향 (9/17) | LIBERO `Δrx+`·`Δry+`·`Δrz+` 와 같은 쪽 → [LIBERO_AXES.md](LIBERO_AXES.md) 4절 |
+| 같은 왕복의 **끝에서 끝** — 원본 Panda 자세 vs 되돌아와 다시 세운 Panda 자세 | 위 + 추종 잔차 (9/21) | **2.09mm · 0.35°** (도착 기준을 0.5mm 로 조이면 **0.69mm**) → 5-1 (가) |
+| **Mirobot → LIBERO 한 방향** — 명령대로 실물이 가는가 | `run_gcode --auto`, 16 waypoint (9/21) | **16/16 도착, 거부된 줄 0, 0.306mm · 0.015°** → 5-1 (나) |
+| **멈추지 않는 실행** — 버퍼가 이어 붙일 때 모서리가 깎이는 양 | `run_gcode --stream` (9/21) | **≤1.35mm · 0.2°** → 5-1 (나) |
+| 프레임 회전 `F` | ① Mirobot 실물 `A15`·`B15`·`C20` 방향 (9/17) ② **Mirobot 출발 16-waypoint 궤적을 실물에서 돌려 Panda 영상과 눈으로 대 봄 (9/21)** | 둘 다 같은 쪽 → [LIBERO_AXES.md](LIBERO_AXES.md) 4절 · [ROTATION.md](ROTATION.md) 6절 |
 
-**왕복은 `F` 를 잡지 못한다.** `F` 는 축별 시험으로만 잡힌다 — 왜인지는 [CHECKLIST.md](CHECKLIST.md) 5-1 (가)·(나).
+**왕복은 `F` 를 잡지 못한다.** `F` 는 **한 방향** 궤적으로만 잡힌다 — 왜인지는 [CHECKLIST.md](CHECKLIST.md) 5-1 (가)·(나).
+그 한 방향 시험이 9/21 에 끝나면서 **이번 주 검증은 닫혔다.**
 
 ## 6. 아직 남은 어긋남
 
@@ -191,4 +195,4 @@ cd ~/UROP && python -m tests.test_rotation
 | **회전 중심** | Panda 는 파지점, Mirobot(Cartesian `G0`)은 플랜지를 중심으로 돈다. 손끝이 `ΔL` 만큼 어긋난다 | [CONTROL.md](CONTROL.md) **2-1절** · 실물 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-2 |
 | **Mirobot 플랜지 → 파지점 길이** | **55mm 로 쟀다 (9/21, 자, ±5mm).** `ΔL = 42mm` — 이제 손끝끼리 맞출 수 **있다**. 어느 쪽으로 맞출지가 남았다 | [CONTROL.md](CONTROL.md) 2-1절 · [CHECKLIST.md](CHECKLIST.md) 8절·10절 |
 | **보고 Z 상수 오프셋** | 명령보다 낮게 보고한다. 실제로 낮은지 보고만 낮은지는 외부 측정을 안 해 모른다 | 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-1·5-2 |
-| **절대/상대 혼동** | `measured` 파일은 relative, `libero_follow --gcode` 는 absolute 로 읽는다 | [CHECKLIST.md](CHECKLIST.md) 5-1 (가) |
+| ~~**절대/상대 혼동**~~ | **해결 (9/21).** 쓴 방식대로 읽으면 된다 (`--orientation relative`). 앞으로는 판에 묶이지 않는 **absolute 를 기본**으로 한다 | 위 **3-1절** |

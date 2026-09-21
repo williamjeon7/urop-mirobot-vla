@@ -1,6 +1,6 @@
 # 명령을 주면 무슨 일이 일어나나 — Panda(LIBERO) vs Mirobot
 
-> **참조** · 확인 2026-09-20 · 기준 robosuite 1.4.0 소스, 9/17 LIBERO 측정과 Mirobot 실물
+> **참조** · 확인 2026-09-21 · 기준 robosuite 1.4.0 소스, 9/17 LIBERO 측정과 9/17·9/20·9/21 Mirobot 실물
 > 두 로봇이 명령을 어떻게 받아 움직이는지. 측정값은 [LIBERO_AXES.md](LIBERO_AXES.md), 작업은 [CHECKLIST.md](CHECKLIST.md).
 
 둘 다 "손을 어디에 둘지" 를 받는다(Cartesian). 다른 것은 **그 목표까지 어떻게 가느냐**다.
