@@ -246,9 +246,15 @@ LIBERO 원본 자세 ──변환──▶ Mirobot G0 ──실물──▶ `?` 
   → **최대 플랜지 0.30mm · 자세 0.05° · 파지점 0.30mm (9/20).** waypoint 7개 모두 0.3mm 안이다.
   오차의 거의 전부가 **Z 가 일정하게 −0.25 ~ −0.29mm** 인 것 — 4절에 적힌 Mirobot 보고 Z 의 상수 오프셋이다.
   x·y 는 0.07mm 이하, 자세는 0.05° 이하. **위치 변환·단위·원점·플랜지 오프셋·파일 반올림이 모두 맞다**
-- [ ] **영상** — `python -m tools.libero_follow --gcode trajectories/2026_09_20-compound-measured.gcode` →
-  이 파일은 orientation **relative** 라 `libero_follow` 가 absolute 로 읽으면 자세가 3.3° 어긋난다 (아래 "검증" 과 같은 현상).
-  영상 비교만 할지, absolute 로 다시 뽑을지 정할 것
+- [x] **영상** (9/21) — 이 파일은 orientation **relative** 다. 9/17 에 변환할 때 Panda 시작 기울기 3.3° 를
+  일부러 빼고 "시작 자세로부터의 회전" 만 적었고, Mirobot 은 홈(`0 0 0`)에서 그걸 실행했으므로 `?` 값도 같은 뜻이다.
+  되돌릴 때도 그 회전을 **Panda 의 실제 시작 자세 위에 얹어야** 한다 — absolute 로 다시 뽑는 것이 아니라 **`--orientation relative` 로 읽는다**
+  `python -m tools.libero_follow --gcode trajectories/2026_09_20-compound-measured.gcode --orientation relative`
+  → **waypoint 7개 전부 도착, 최대 1.90mm · 0.34°** (137스텝). `rollouts/2026_09_21/follow/09_45_06--follow.mp4`
+  - **비교 영상** — `rollouts/2026_09_21/compare/09_45_53--compare-agentview-waypoint.mp4`.
+    왼쪽 9/17 LIBERO 원본, 오른쪽 Mirobot 실물을 거쳐 돌아온 것. waypoint 로 맞추고 먼저 끝난 쪽은 그 자리에서 기다린다
+    `python -m tools.compare_rollouts --left rollouts/2026_09_17/compound/10_44_39--compound.mp4 --left-log data/compound/2026_09_17-10_44_39.jsonl --right rollouts/2026_09_21/follow/09_45_06--follow.mp4 --right-log data/follow/2026_09_21-09_45_06.jsonl --camera agentview`
+  - → **눈으로 거의 같다 (9/21).** 숫자(0.30mm)와 영상이 같은 말을 한다
 
 #### (나) 축별 시험 — `F` 를 실제로 잡는다
 
@@ -277,7 +283,7 @@ Mirobot 에서 **출발**하는 궤적이라 `F` 를 한 번만 통과한다. �
   (`common/workspace.py` 의 `mirobot_to_libero_xyz_m`). 파지점이 아니라 플랜지끼리 맞춘다
 - [x] **자세 변환** — ②의 함수 → `mirobot_to_libero_quat` (`q ⊗ F`). Mirobot 각도가 절대값이라
   `libero_follow --orientation absolute` 로 읽는다. 그래서 첫 waypoint 에서 Panda 시작 기울기 3.3° 가 먼저 펴진다
-- [ ] **Panda 추종 루프** — 5-2 의 2차 궤적을 만드는 데도 쓴다 ([CONTROL.md](CONTROL.md) 3절).
+- [x] **Panda 추종 루프** — Mirobot 에서 온 목표 자세를 Panda 가 찾아가게 하는 것 ([CONTROL.md](CONTROL.md) 3절 ③).
   waypoint 마다 `(목표 − 현재)` 를 액션 크기(③)로 나누고 **방향을 유지한 채 크기만** `1` 이하로 줄여,
   가까워질 때까지 반복. 매 스텝 이미지 저장. 자세 오차는 쿼터니언 차이를 axis-angle 로
   - 수렴 기준 → **위치 2mm · 자세 1° 안에 들고, 한 스텝 이동이 0.3mm·0.05° 이하면 도착** (9/20).
