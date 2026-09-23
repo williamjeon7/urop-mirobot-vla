@@ -17,6 +17,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 |---|---|
 | [SETUP_LINUX.md](SETUP_LINUX.md) | 서버→터널→노트북→로봇 3창 실행 절차, 트러블슈팅 |
 | [VENDORED.md](VENDORED.md) | 외부 저장소(cosmos-policy, RosForMirobot) 받는 법 |
+| [PAPERS.md](PAPERS.md) | 논문 목록과 받는 법 (LIBERO, robosuite, Cosmos Policy). PDF 는 gitignore |
 | [MODELS.md](MODELS.md) | 모델 가중치 받는 법, HF 캐시 위치 |
 
 ### 주차별 — 그 주 조사·실험으로 나온 것
