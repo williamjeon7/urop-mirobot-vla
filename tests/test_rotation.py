@@ -250,7 +250,7 @@ def test_t12_scipy_oracle():
     try:
         from scipy.spatial.transform import Rotation
     except ImportError:
-        print("    (scipy 없음 — T12 skip)")
+        print("    (scipy 없음, T12 skip)")  # em-dash 는 cp949 콘솔에서 죽는다
         return
 
     rng = random.Random(3)
