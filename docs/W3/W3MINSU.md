@@ -1,6 +1,7 @@
 https://github.com/williamjeon7/urop-mirobot-vla -> github 주소
 
-https://aluminum-print-c83.notion.site/3-3e14291bfc4d804aa2e1c693bdaaaff1?pvs=74 -> 노션 정리본 사이트 주소
+https://aluminum-print-c83.notion.site/3-3e14291bfc4d804aa2e1c693bdaaaff1?pvs=74 
+-> 노션 정리본 사이트 주소
 
 # 1. ROTATION.md
 
