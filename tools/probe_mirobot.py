@@ -5,7 +5,8 @@ docs/W2/CHECKLIST.md §4 "실물에서 확인할 것" 을 명령 하나씩으로
 포트를 열면 보드가 리셋될 수 있으므로, 한 번 열어 둔 채 명령을 입력하는 대화형이다.
 응답은 원문 그대로 찍고 data/probe/<시각>.jsonl 에 전부 남긴다.
 
-    python -m tools.probe_mirobot --port COM7
+    urop\Scripts\Activate.ps1
+    python -m tools.probe_mirobot --port COM4
 """
 
 from __future__ import annotations
