@@ -85,6 +85,7 @@ def main() -> None:
                         help="--gcode 를 만들 때 쓴 것과 같은 값으로. relative 는 시작 자세로부터의 회전으로 읽는다")
     parser.add_argument("--settle", type=int, default=30, help="시작 전 dummy 스텝")
     parser.add_argument("--max-steps", type=int, default=60, help="waypoint 하나에 쓸 최대 스텝")
+    parser.add_argument("--horizon", type=int, help="에피소드 길이. 기본은 계획에서 계산한다 (아래 HORIZON 주석)")
     parser.add_argument("--pos-tol", type=float, default=2.0, help="도착 판정 위치 오차 (mm)")
     parser.add_argument("--rot-tol", type=float, default=1.0, help="도착 판정 자세 오차 (도)")
     parser.add_argument("--suite", default="libero_90")
@@ -104,8 +105,15 @@ def main() -> None:
     log_path = args.log_dir / f"{time.strftime('%Y_%m_%d')}-{stamp}.jsonl"
     log = log_path.open("w")
 
+    # HORIZON — robosuite 는 `horizon` 스텝이 지나면 에피소드를 끝내고, 그 뒤 `env.step` 은
+    # "executing action in terminated episode" 로 죽는다. 기본값 1000 은 긴 궤적에 모자라다
+    # (61 waypoint 는 1000 스텝에서 끊겼다, 9/28). 그래서 계획의 최악값으로 미리 잡는다.
+    planned = (sum(1 for _, command in parse_file(args.gcode) if pose_of(command) is not None) if args.gcode
+               else sum(1 for line in args.rollout.open() if json.loads(line).get("waypoint")))
+    horizon = args.horizon or args.settle + planned * args.max_steps + 10
+
     env = OffScreenRenderEnv(bddl_file_name=bddl, camera_names=list(CAMERAS),
-                             camera_heights=args.res, camera_widths=args.res)
+                             camera_heights=args.res, camera_widths=args.res, horizon=horizon)
     frames, keyframes, results, n = [], [], [], 0
     try:
         env.seed(0)
@@ -124,9 +132,10 @@ def main() -> None:
                    else targets_from_gcode(args.gcode, start_flange,
                                            q if args.orientation == "relative" else None))
         log.write(json.dumps({"meta": {"source": str(args.rollout or args.gcode), "task": task.name,
+                                       "orientation": args.orientation if args.gcode else None,
                                        "start_flange_m": list(start_flange), "targets": len(targets),
                                        "pos_tol_mm": args.pos_tol, "rot_tol_deg": args.rot_tol,
-                                       "max_steps": args.max_steps}}, ensure_ascii=False) + "\n")
+                                       "max_steps": args.max_steps, "horizon": horizon}}, ensure_ascii=False) + "\n")
         print(f"목표 {len(targets)}개 — {args.rollout or args.gcode}"
               f"{'  (orientation relative)' if args.gcode and args.orientation == 'relative' else ''}")
         print(f"시작 플랜지 {np.round(start_flange, 4)} m\n")
