@@ -374,7 +374,7 @@ python .\test_libero_tabletop.py
 
 실행 후 `libero_tabletop_test.png`가 생성되면 성공
 
-![LIBERO Tabletop 테스트](./LIBERO/images/libero_tabletop_test.png)
+![LIBERO Tabletop 테스트](./images/libero_tabletop_test.png)
 
 ### 6\. 새 LIBERO BDDL task를 작업명세서로 작성하고, 실제 Tabletop 시뮬레이션에서 돌아가는지 검증
 
@@ -577,7 +577,7 @@ Saved: custom_bddl_test.png
 
 문구가 나오고 PNG에 예상한 장면이 보이면 BDDL 로딩, 환경 생성, 초기화, 이미지 출력이 정상적으로 이루어진 것이다. 현재는 initial state를 띄우는 과정이다. 7번에서는 action 전달과 goal 판정을 확인하고, 실제 서랍 열기 성공은 목표를 달성하는 action을 실행한 뒤 검증한다.
 
-![Custom BDDL Test](./LIBERO/images/custom_bddl_test.png)
+![Custom BDDL Test](./images/custom_bddl_test.png)
 
 ---
 
@@ -589,7 +589,7 @@ Saved: custom_bddl_test.png
 
 실시간 viewer는 7.2의 전체 코드에 초기 goal 검사와 zero action 테스트까지 포함되어 있다. 실시간 화면을 확인하려면 7.2의 코드로 파일 내용을 교체한 뒤 실행한다.
 
-![LIBERO 실시간 agentview](./LIBERO/images/libero_live_agentview.png)
+![LIBERO 실시간 agentview](./images/libero_live_agentview.png)
 
 #### 6.5) Windows 렌더링 설정 유지하기
 
@@ -807,7 +807,7 @@ env.close()
 cv2.destroyAllWindows()
 ```
 
-![7.2 실행 결과: Success False](./LIBERO/images/bddl_zero_action_test.png)
+![7.2 실행 결과: Success False](./images/bddl_zero_action_test.png)
 
 **실행 및 결과 확인**
 
@@ -939,7 +939,7 @@ success_after = env.check_success()
 print("After opening drawer:", success_after)
 ```
 
-![7.3 실행 결과: Success True](./LIBERO/images/bddl_goal_condition_success.png)
+![7.3 실행 결과: Success True](./images/bddl_goal_condition_success.png)
 
 ```text
 ===== 7.3 Goal Condition Test =====
@@ -1276,7 +1276,7 @@ if __name__ == "__main__":
         print("사용자가 실행을 종료했습니다.")
 ```
 
-![7.4 Panda action 실행 결과: Success True](./LIBERO/images/panda_drawer_action_result.png)
+![7.4 Panda action 실행 결과: Success True](./images/panda_drawer_action_result.png)
 
 저장한 뒤 실행한다. 창에는 각 단계와 현재 성공 여부가 표시된다. 실행 중 영상 창에서 `q`, `Q`, `ESC`를 누르거나 터미널에서 `Ctrl+C`를 누르면 종료한다.
 
