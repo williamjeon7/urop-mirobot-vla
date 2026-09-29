@@ -433,6 +433,7 @@ python -m tools.run_gcode trajectories/2026_09_28-mirobot-origin-x4.gcode --port
 ## 9. W5 로 넘기는 것
 
 **W4 는 "질문 다섯에 답한다" 를 달성했다.** 아래는 남은 것이고, **무엇에 막혀 있는지로** 묶었다.
+**진행은 [../W5/CHECKLIST.md](../W5/CHECKLIST.md) 에 적는다** — 여기는 넘길 때의 목록으로 둔다.
 
 ### (가) 로봇 노트북의 기록만 옮기면 되는 것 — 실물 없이 끝난다
 
