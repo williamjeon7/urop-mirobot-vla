@@ -179,19 +179,38 @@ VSCode PowerShell 터미널에서 다음 명령 실행
 
 설치가 끝나면 VSCode를 완전히 종료한 후 다시 실행한다.
 
-#### 3.2) PowerShell PATH에 Anaconda 등록
+#### 3.2) PowerShell에서 conda activate 바로 사용하기
 
-`& "$env:USERPROFILE\anaconda3\Scripts\conda.exe" --version` -> 설치 확인
+먼저 설치를 확인한다.
 
-`& "$env:USERPROFILE\anaconda3\Scripts\conda.exe" init powershell` -> PowerShell에 conda 등록. 최초 설정 후 VSCode를 재실행하면 새 터미널에서도 적용된다.
+```powershell
+& "$env:USERPROFILE\anaconda3\Scripts\conda.exe" --version
+```
 
-VSCode를 닫고 재실행한다.
+새 PowerShell 터미널에서도 `conda`를 바로 쓰려면 아래 명령을 한 번 실행한다.
 
-`conda --version`으로 설치 확인
+```powershell
+$liberoCondaProfile = $PROFILE.CurrentUserAllHosts
+New-Item -ItemType Directory -Path (Split-Path -Parent $liberoCondaProfile) -Force | Out-Null
+if (-not (Test-Path -LiteralPath $liberoCondaProfile)) {
+    New-Item -ItemType File -Path $liberoCondaProfile | Out-Null
+}
+if ((Get-Content -LiteralPath $liberoCondaProfile -Raw) -notlike '*anaconda3\shell\condabin\conda-hook.ps1*') {
+    Add-Content -LiteralPath $liberoCondaProfile -Value @'
+$condaHook = Join-Path $env:USERPROFILE 'anaconda3\shell\condabin\conda-hook.ps1'
+if (Test-Path -LiteralPath $condaHook) { . $condaHook }
+'@
+}
+```
 
-`conda`가 인식되지 않으면 PowerShell 실행 정책을 확인한다.
+VSCode 터미널을 닫고 새 PowerShell 터미널을 열어 `conda --version`으로 확인한다. 이후에는 hook 명령을 따로 입력할 필요가 없다.
 
-`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+프로필 실행이 차단된다는 오류가 날 때만 현재 사용자 실행 정책을 확인하고 `RemoteSigned`로 설정한다.
+
+```powershell
+Get-ExecutionPolicy -List
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
 
 #### 3.3) LIBERO 환경 생성
 
@@ -214,6 +233,8 @@ conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/ms
 `python --version`을 실행하면 `Python 3.8.13`이라고 나와야 한다. 이번 LIBERO 환경은 이 버전을 기준으로 한다. 그리고 터미널 앞에 `(libero)`가 뜨는지 확인한다. 이후 설치와 실행은 이 환경에서 진행한다.
 
 ### 4\. LIBERO 설치
+
+앞에서 만든 `libero` 환경을 활성화한 상태에서 설치를 진행한다.
 
 1. `python -m pip install "pip<25" setuptools wheel`
 
@@ -1301,3 +1322,225 @@ Final goal success: True
 ```
 
 결과 이미지는 `LIBERO/images/panda_drawer_action_result.png`에 저장된다. Panda가 `env.step(action)`으로 손잡이를 잡고 서랍을 연 뒤 `env.check_success()`가 `False → True`로 바뀌면 실제 task 수행에 성공한 것이다. 목표 위치에 도달하지 못하거나 최종 goal이 `False`이면 오류를 출력하므로, 접근 위치와 grasp 상태를 확인한다.
+
+### 8. BDDL 구성 요소 변경 및 새로운 요소 추가를 통한 Custom Task 검증
+
+#### 8.1) 검증 목적과 기존 Task 대비 변경 범위
+
+이번 단계에서는 BDDL의 주요 Task 정의 요소를 변경하거나 새로 추가하여,
+새로운 Custom Task를 구성할 수 있는지 검증한다.
+
+검증 대상은 다음 요소이다.
+
+```text
+Object
+Fixture / Table
+Region
+Init
+Goal
+```
+
+각 요소의 의미는 다음과 같다.
+
+| 요소 | 의미 | 현재 서랍 Task 기준 예 |
+| --- | --- | --- |
+| `Object` | Task에서 사용하는 조작 대상 물체 | plate, bowl, wine bottle 등의 object |
+| `Fixture / Table` | Object가 놓이거나 Task가 수행되는 기준 환경 요소 | main_table, wooden_cabinet |
+| `Region` | Object가 배치되거나 상태를 판단할 공간 영역 | main table 위의 배치 영역, drawer region |
+| `Init` | Simulation 시작 시 Object와 Fixture의 초기 상태 | Object의 시작 위치, 서랍의 초기 상태 |
+| `Goal` | Task가 성공했다고 판단하는 최종 조건 | `(Open wooden_cabinet_1_middle_region)` |
+
+이번 검증에서는 단순히 기존 값을 다른 값으로 바꾸는 것뿐만 아니라,
+현재 BDDL 파일에 존재하지 않는 요소를 새로 추가하는 경우도 포함한다.
+
+이때 다음 두 경우를 구분한다.
+
+```text
+1. 현재 BDDL에는 없지만 LIBERO가 이미 지원하는 요소
+
+2. LIBERO 자체에도 존재하지 않는 새로운 요소
+```
+
+첫 번째 경우에는 LIBERO가 이미 지원하는 Object, Fixture, Predicate 등을 이용할 수 있으므로,
+BDDL의 `:objects`, `:regions`, `:fixtures`, `:init`, `:goal` 등을
+추가하거나 수정하여 새로운 Task를 구성할 수 있는지 실제로 검증한다.
+
+```text
+현재 BDDL에는 없음
++
+LIBERO에는 이미 존재함
+        ↓
+BDDL에 새 요소 추가
+        ↓
+환경 생성
+        ↓
+초기 상태 확인
+        ↓
+Action 실행
+        ↓
+Goal Condition 확인
+```
+
+두 번째 경우에는 BDDL에 이름만 추가한다고 자동으로 사용할 수 있는 것은 아니다.
+
+예를 들어 LIBERO 자체에 존재하지 않는 완전히 새로운 Object를 사용하려면
+새로운 Object asset과 Object 등록 과정이 필요할 수 있다.
+
+또한 LIBERO가 지원하지 않는 새로운 종류의 Init Condition이나
+Goal Condition을 사용하려면 해당 상태를 해석하고 판정할 수 있는
+Predicate 구현이 추가로 필요할 수 있다.
+
+```text
+LIBERO 자체에도 없는 요소
+        ↓
+BDDL만 수정해서는 사용할 수 없음
+        ↓
+Object asset / Object 등록 / Predicate 구현 등
+LIBERO 내부 구조 확장 필요
+```
+
+BDDL의 각 요소는 서로 독립적으로만 변경되는 것이 아니라,
+Task 구조에 따라 서로 연결되어 있다.
+
+특히 Table이나 Fixture가 변경되면
+그 위에 Object를 배치하기 위해 사용하던 Region도
+새 기준 환경에 맞게 다시 정의해야 한다.
+
+예를 들어 기존 Region이 다음과 같이 `main_table`을 기준으로 정의되어 있다면,
+
+```lisp
+(bowl_region
+    (:target main_table)
+    (:ranges (
+        (0.10 -0.05 0.15 0.00)
+    ))
+)
+```
+
+새로운 Task에서 다른 Table이나 Fixture를 사용하게 될 경우
+Region의 `:target`도 새로운 기준 대상에 맞게 변경해야 한다.
+
+```lisp
+(bowl_region
+    (:target new_table)
+    (:ranges (
+        (...)
+    ))
+)
+```
+
+이때 `:target` 이름만 바꾸는 것으로 끝나는 것이 아니라,
+새 Table이나 Fixture의 크기, 위치, 방향에 맞게
+Region의 `:ranges` 좌표도 다시 설정해야 할 수 있다.
+
+따라서 BDDL 구성 요소의 변경 관계는 다음과 같이 볼 수 있다.
+
+```text
+Fixture / Table 변경
+        ↓
+Region의 target 및 range 수정
+        ↓
+Init에서 새 Region 사용
+        ↓
+Object의 초기 배치 변경
+```
+
+Object를 새로 추가하는 경우에도
+해당 Object를 실제 Scene에 배치하려면 Region과 Init이 함께 필요하다.
+
+```text
+Object 추가
+        ↓
+배치할 Region 정의
+        ↓
+Init에서 Object와 Region 연결
+```
+
+Goal 역시 Object, Region, Fixture의 변경에 따라 함께 수정해야 한다.
+
+```text
+Object / Fixture / Region 변경
+        ↓
+Task의 최종 성공 상태도 변경
+        ↓
+Goal Condition 수정
+```
+
+즉 새로운 Task를 만들 때는 각 항목을 개별적으로 바꾸는 것보다,
+다음과 같은 의존 관계를 고려해야 한다.
+
+```text
+Fixture / Table
+        ↓
+Region
+        ↓
+Init
+        ↓
+Object 초기 배치
+
+Object + Fixture / Region
+        ↓
+Goal
+```
+
+따라서 8번에서는 다음 범위를 구분하여 진행한다.
+
+```text
+[실제 실행 검증]
+
+현재 BDDL에는 없지만
+LIBERO가 이미 지원하는
+
+Object
+Fixture / Table
+Region
+Init
+Goal
+
+을 새로 추가하거나 변경
+        ↓
+Custom BDDL 작성
+        ↓
+LIBERO Tabletop 환경 생성
+        ↓
+Task 실행 및 Goal Condition 검증
+```
+
+```text
+[확장 구조 정리]
+
+LIBERO 자체에도 없는
+
+새 Object
+새 Fixture
+새 Region 구조
+새 Init Condition
+새 Goal Condition
+
+을 사용하려는 경우
+        ↓
+BDDL 외에 어떤 LIBERO 구조를
+추가하거나 수정해야 하는지 정리
+```
+
+이번 검증의 목적은 기존 BDDL의 일부 값을 단순히 수정하는 것에 그치지 않고,
+`Object`, `Fixture / Table`, `Region`, `Init`, `Goal`과 같은
+주요 구성 요소를 변경하거나 새로 추가하여
+새로운 manipulation Task를 정의할 수 있는지 확인하는 것이다.
+
+또한 Table이나 Fixture가 변경될 때 Region과 Init도 함께 수정되어야 하는 것처럼,
+BDDL 요소 간의 의존 관계를 고려하여 새로운 Task를 구성할 수 있는지 확인한다.
+
+최종적으로 BDDL만으로 설정 가능한 범위와
+LIBERO 내부 확장이 필요한 범위를 구분하는 것을 목표로 한다.
+#### 8.2) 새로운 Task 설계 및 Object·Region·Init·Goal 선정
+
+#### 8.3) 변경 요소를 반영한 Custom BDDL 작성
+
+#### 8.4) 환경 로딩과 초기 상태 검증
+
+#### 8.5) Action 실행과 Goal Condition 검증
+
+#### 8.6) BDDL로 설정 가능한 범위와 LIBERO에 없는 새로운 요소를 추가할 때 필요한 확장 구조 정리
+
+#### 8.7) 최종 검증 결과 정리
