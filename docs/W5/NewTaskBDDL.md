@@ -1325,214 +1325,42 @@ Final goal success: True
 
 ### 8. BDDL 구성 요소 변경 및 새로운 요소 추가를 통한 Custom Task 검증
 
-#### 8.1) 검증 목적과 기존 Task 대비 변경 범위
+#### 8.1) 검증 목적과 고려 사항
 
-이번 단계에서는 BDDL의 주요 Task 정의 요소를 변경하거나 새로 추가하여,
-새로운 Custom Task를 구성할 수 있는지 검증한다.
+기존 Tabletop 환경에서 새로운 Custom Task를 정의할 때 `Object`, `Region`, `Init`, `Goal` 네 요소를 검토한다. 네 요소를 모두 변경해야 하는 것은 아니다. 먼저 기존 Task에서 유지할 항목과 바꿀 항목을 정하고, 변경한 정의가 환경의 초기 상태와 성공 판정에 실제로 반영되는지 확인한다.
 
-검증 대상은 다음 요소이다.
+| 요소 | 구체적으로 고려할 사항 |
+| --- | --- |
+| `Object` | 조작 대상이 무엇인지, 기존 BDDL의 물체를 그대로 사용할지 또는 LIBERO에 등록된 다른 물체를 `:objects`에 추가할지 정한다. 새 물체를 쓰면 배치할 공간과 초기 조건도 함께 확인한다. |
+| `Region` | 물체의 시작 위치와 목표 위치를 어느 `:target`을 기준으로 정의할지 정한다. Table을 유지하고 작업 영역만 바꾸는 경우에는 `main_table`을 그대로 두고 `:ranges`의 좌표가 물체 크기와 로봇 도달 범위에 맞는지 확인한다. |
+| `Init` | 시작 시 각 물체가 어느 Region에 놓이고 Fixture가 어떤 상태여야 하는지 정한다. `:init`에서 참조하는 물체와 Region의 이름이 실제 정의와 일치하는지, 초기 배치가 Goal을 이미 만족하지 않는지 확인한다. |
+| `Goal` | 성공으로 인정할 물체와 상태 또는 영역을 정한다. `:goal`에 사용한 Predicate가 LIBERO에서 지원되는지 확인하고, 초기 상태에서는 `False`, 목표 상태에서는 `True`가 되는지 검사한다. |
 
-```text
-Object
-Fixture / Table
-Region
-Init
-Goal
+`Predicate`는 시뮬레이션의 현재 상태가 조건을 만족하는지 `True` 또는 `False`로 판단하는 함수다. 아래 코드는 `docs/W5/LIBERO/libero/libero/envs/predicates/base_predicates.py`의 [`On`과 `Open` 구현](./LIBERO/libero/libero/envs/predicates/base_predicates.py)에서 가져왔다.
+
+```python
+class On(BinaryAtomic):
+    def __call__(self, arg1, arg2):
+        return arg2.check_ontop(arg1)
+
+class Open(UnaryAtomic):
+    def __call__(self, arg):
+        return arg.is_open()
 ```
 
-각 요소의 의미는 다음과 같다.
+예를 들어 BDDL의 `(On wine_bottle_1 main_table_wine_bottle_region)`은 `On`에 와인병과 영역을 전달한다. `check_ontop()`이 와인병이 그 영역 위에 있다고 판단하면 `True`를 반환한다. `(Open wooden_cabinet_1_middle_region)`은 `is_open()`으로 해당 서랍이 열렸는지 판단한다. `:init`은 시작할 때 만족시킬 조건을, `:goal`은 성공 여부를 확인할 조건을 적는 곳이다. `And`는 여러 조건을 모두 만족해야 한다는 논리 연산자다.
 
-| 요소 | 의미 | 현재 서랍 Task 기준 예 |
+| 요소 | BDDL에서 확인할 항목 | 검증 기준 |
 | --- | --- | --- |
-| `Object` | Task에서 사용하는 조작 대상 물체 | plate, bowl, wine bottle 등의 object |
-| `Fixture / Table` | Object가 놓이거나 Task가 수행되는 기준 환경 요소 | main_table, wooden_cabinet |
-| `Region` | Object가 배치되거나 상태를 판단할 공간 영역 | main table 위의 배치 영역, drawer region |
-| `Init` | Simulation 시작 시 Object와 Fixture의 초기 상태 | Object의 시작 위치, 서랍의 초기 상태 |
-| `Goal` | Task가 성공했다고 판단하는 최종 조건 | `(Open wooden_cabinet_1_middle_region)` |
+| `Object` | `:objects`의 인스턴스 이름과 물체 종류, `:obj_of_interest`의 대상 | 물체 종류가 LIBERO에 등록되어 있고 인스턴스 이름이 중복되지 않는지, Init·Goal에서 참조하는 물체가 실제로 선언되어 생성되는지 확인한다. |
+| `Region` | `:regions`의 영역 이름, `:target`, `:ranges`, 필요한 경우 `:yaw_rotation` | `:target`이 존재하는 Table·Fixture·Object를 가리키는지, 좌표 범위와 회전이 유효한지, 물체를 놓을 수 있고 로봇이 도달할 수 있는지 확인한다. Table을 유지하면서 작업 영역만 바꾸는 경우에는 `:target`을 유지하고 `:ranges`를 검토한다. |
+| `Init` | `:init`의 각 Predicate와 인수로 사용한 Object·Region·Fixture 이름 | 참조하는 이름과 Predicate가 유효한지, 서로 충돌하는 초기 조건이 없는지, `env.reset()` 후 지정한 위치와 상태가 재현되는지 확인한다. |
+| `Goal` | `:goal`의 Predicate, 논리 조합(`And` 등), 목표 대상 | 성공 조건이 Task 지시문과 일치하고 지원되는 Predicate로 표현되는지 확인한다. 초기 상태에서는 `env.check_success()`가 `False`이고 목표를 달성한 상태에서는 `True`인지 검증한다. |
 
-이번 검증에서는 단순히 기존 값을 다른 값으로 바꾸는 것뿐만 아니라,
-현재 BDDL 파일에 존재하지 않는 요소를 새로 추가하는 경우도 포함한다.
+`Fixture`는 캐비닛·스토브처럼 장면에 배치되는 고정 요소이고, `Table`은 물체 배치의 기준면이다. 기존 Fixture와 Table을 유지한다면 추가 선언은 필요 없다. Table 위 작업 영역만 바꾸는 경우에는 Region의 `:target`을 유지하고 `:ranges`를 조정한다. Fixture나 Table 자체를 바꿀 경우에는 연결된 Region과 Init의 참조도 함께 확인한다.
 
-이때 다음 두 경우를 구분한다.
+LIBERO에 이미 등록된 물체와 지원되는 Predicate는 BDDL에 추가해 사용할 수 있다. LIBERO에 없는 물체 모델이나 새로운 판정 방식이 필요하다면 BDDL 수정 외에 모델 등록 또는 Predicate 구현이 필요하다. 해당 확장 범위는 뒤에서 별도로 정리한다.
 
-```text
-1. 현재 BDDL에는 없지만 LIBERO가 이미 지원하는 요소
-
-2. LIBERO 자체에도 존재하지 않는 새로운 요소
-```
-
-첫 번째 경우에는 LIBERO가 이미 지원하는 Object, Fixture, Predicate 등을 이용할 수 있으므로,
-BDDL의 `:objects`, `:regions`, `:fixtures`, `:init`, `:goal` 등을
-추가하거나 수정하여 새로운 Task를 구성할 수 있는지 실제로 검증한다.
-
-```text
-현재 BDDL에는 없음
-+
-LIBERO에는 이미 존재함
-        ↓
-BDDL에 새 요소 추가
-        ↓
-환경 생성
-        ↓
-초기 상태 확인
-        ↓
-Action 실행
-        ↓
-Goal Condition 확인
-```
-
-두 번째 경우에는 BDDL에 이름만 추가한다고 자동으로 사용할 수 있는 것은 아니다.
-
-예를 들어 LIBERO 자체에 존재하지 않는 완전히 새로운 Object를 사용하려면
-새로운 Object asset과 Object 등록 과정이 필요할 수 있다.
-
-또한 LIBERO가 지원하지 않는 새로운 종류의 Init Condition이나
-Goal Condition을 사용하려면 해당 상태를 해석하고 판정할 수 있는
-Predicate 구현이 추가로 필요할 수 있다.
-
-```text
-LIBERO 자체에도 없는 요소
-        ↓
-BDDL만 수정해서는 사용할 수 없음
-        ↓
-Object asset / Object 등록 / Predicate 구현 등
-LIBERO 내부 구조 확장 필요
-```
-
-BDDL의 각 요소는 서로 독립적으로만 변경되는 것이 아니라,
-Task 구조에 따라 서로 연결되어 있다.
-
-특히 Table이나 Fixture가 변경되면
-그 위에 Object를 배치하기 위해 사용하던 Region도
-새 기준 환경에 맞게 다시 정의해야 한다.
-
-예를 들어 기존 Region이 다음과 같이 `main_table`을 기준으로 정의되어 있다면,
-
-```lisp
-(bowl_region
-    (:target main_table)
-    (:ranges (
-        (0.10 -0.05 0.15 0.00)
-    ))
-)
-```
-
-새로운 Task에서 다른 Table이나 Fixture를 사용하게 될 경우
-Region의 `:target`도 새로운 기준 대상에 맞게 변경해야 한다.
-
-```lisp
-(bowl_region
-    (:target new_table)
-    (:ranges (
-        (...)
-    ))
-)
-```
-
-이때 `:target` 이름만 바꾸는 것으로 끝나는 것이 아니라,
-새 Table이나 Fixture의 크기, 위치, 방향에 맞게
-Region의 `:ranges` 좌표도 다시 설정해야 할 수 있다.
-
-따라서 BDDL 구성 요소의 변경 관계는 다음과 같이 볼 수 있다.
-
-```text
-Fixture / Table 변경
-        ↓
-Region의 target 및 range 수정
-        ↓
-Init에서 새 Region 사용
-        ↓
-Object의 초기 배치 변경
-```
-
-Object를 새로 추가하는 경우에도
-해당 Object를 실제 Scene에 배치하려면 Region과 Init이 함께 필요하다.
-
-```text
-Object 추가
-        ↓
-배치할 Region 정의
-        ↓
-Init에서 Object와 Region 연결
-```
-
-Goal 역시 Object, Region, Fixture의 변경에 따라 함께 수정해야 한다.
-
-```text
-Object / Fixture / Region 변경
-        ↓
-Task의 최종 성공 상태도 변경
-        ↓
-Goal Condition 수정
-```
-
-즉 새로운 Task를 만들 때는 각 항목을 개별적으로 바꾸는 것보다,
-다음과 같은 의존 관계를 고려해야 한다.
-
-```text
-Fixture / Table
-        ↓
-Region
-        ↓
-Init
-        ↓
-Object 초기 배치
-
-Object + Fixture / Region
-        ↓
-Goal
-```
-
-따라서 8번에서는 다음 범위를 구분하여 진행한다.
-
-```text
-[실제 실행 검증]
-
-현재 BDDL에는 없지만
-LIBERO가 이미 지원하는
-
-Object
-Fixture / Table
-Region
-Init
-Goal
-
-을 새로 추가하거나 변경
-        ↓
-Custom BDDL 작성
-        ↓
-LIBERO Tabletop 환경 생성
-        ↓
-Task 실행 및 Goal Condition 검증
-```
-
-```text
-[확장 구조 정리]
-
-LIBERO 자체에도 없는
-
-새 Object
-새 Fixture
-새 Region 구조
-새 Init Condition
-새 Goal Condition
-
-을 사용하려는 경우
-        ↓
-BDDL 외에 어떤 LIBERO 구조를
-추가하거나 수정해야 하는지 정리
-```
-
-이번 검증의 목적은 기존 BDDL의 일부 값을 단순히 수정하는 것에 그치지 않고,
-`Object`, `Fixture / Table`, `Region`, `Init`, `Goal`과 같은
-주요 구성 요소를 변경하거나 새로 추가하여
-새로운 manipulation Task를 정의할 수 있는지 확인하는 것이다.
-
-또한 Table이나 Fixture가 변경될 때 Region과 Init도 함께 수정되어야 하는 것처럼,
-BDDL 요소 간의 의존 관계를 고려하여 새로운 Task를 구성할 수 있는지 확인한다.
-
-최종적으로 BDDL만으로 설정 가능한 범위와
-LIBERO 내부 확장이 필요한 범위를 구분하는 것을 목표로 한다.
 #### 8.2) 새로운 Task 설계 및 Object·Region·Init·Goal 선정
 
 #### 8.3) 변경 요소를 반영한 Custom BDDL 작성
