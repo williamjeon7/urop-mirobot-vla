@@ -35,7 +35,14 @@ import re
 from pathlib import Path
 
 from common.rotation import euler_xyz_deg_to_quat, mirobot_to_libero_quat, quat_mul, quat_xyzw_to_wxyz
-from common.workspace import flange_to_grip, grip_to_flange, mirobot_to_libero_xyz_m
+from common.workspace import (
+    LEGACY_POINT,
+    POINTS,
+    flange_to_grip,
+    grip_to_flange,
+    mirobot_to_libero_flange_m,
+    read_point_marker,
+)
 from tools.roundtrip_check import angle_deg
 from tools.run_gcode import parse_file, pose_of
 
@@ -82,11 +89,13 @@ def read_visits(log_path: Path) -> tuple[dict, list[dict]]:
     return meta, visits
 
 
-def read_targets(gcode: Path, start_flange_m, ref_quat=None) -> list[tuple[str, tuple, tuple]]:
+def read_targets(gcode: Path, start_flange_m, start_quat, orientation: str = "absolute",
+                 point: str = LEGACY_POINT) -> list[tuple[str, tuple, tuple]]:
     """G-code → (이름, 플랜지 위치 m, 플랜지 자세 wxyz). `tools/libero_follow.targets_from_gcode` 와 같은 식.
 
     libero 를 끌어오지 않으려고 여기 다시 적었다 — `libero_follow` 는 import 만으로 시뮬레이터가 붙는다.
     맞게 옮겼는지는 아래 `check_self` 가 기록의 `gap_mm`·`gap_deg` 와 대 봐서 확인한다.
+    `start_quat`(Panda 시작 자세)는 relative 이거나 파지점 기준일 때만 쓴다 — 옛 플랜지·absolute 기록은 None 이어도 된다.
     """
     out = []
     for label, command in parse_file(gcode):
@@ -94,8 +103,9 @@ def read_targets(gcode: Path, start_flange_m, ref_quat=None) -> list[tuple[str, 
         if pose is None:
             continue
         q_mirobot = euler_xyz_deg_to_quat(*pose[3:6])
-        q = quat_mul(q_mirobot, ref_quat) if ref_quat is not None else mirobot_to_libero_quat(q_mirobot)
-        out.append((label or f"wp{len(out) + 1}", mirobot_to_libero_xyz_m(pose[:3], start_flange_m), q))
+        q = quat_mul(q_mirobot, start_quat) if orientation == "relative" else mirobot_to_libero_quat(q_mirobot)
+        p = mirobot_to_libero_flange_m(pose[:3], q_mirobot, q, start_flange_m, start_quat, point)
+        out.append((label or f"wp{len(out) + 1}", p, q))
     return out
 
 
@@ -164,10 +174,14 @@ def analyse(log_path: Path, args) -> dict:
     orientation = args.orientation or meta.get("orientation") or "absolute"
     reference = read_reference(args.reference) if args.reference else None
 
-    ref_quat = start_quat_of(meta, reference) if orientation == "relative" else None
-    if orientation == "relative" and ref_quat is None:
-        raise SystemExit(f"{log_path}: relative 기록인데 시작 자세를 모른다 — --reference 를 같이 줄 것")
-    targets = read_targets(gcode, meta["start_flange_m"], ref_quat)
+    # 어느 점끼리 맞춘 기록인가 — --point > 기록 meta (9/30 부터) > G-code 머리말 > 표시 없음 = 플랜지 (옛 기록)
+    point = (args.point or meta.get("point")
+             or (read_point_marker(gcode.read_text(encoding="utf-8")) if gcode.is_file() else None) or LEGACY_POINT)
+    needs_quat = orientation == "relative" or point == "grip"
+    ref_quat = start_quat_of(meta, reference) if needs_quat else None
+    if needs_quat and ref_quat is None:
+        raise SystemExit(f"{log_path}: {orientation}·{point} 기록인데 시작 자세를 모른다 — --reference 를 같이 줄 것")
+    targets = read_targets(gcode, meta["start_flange_m"], ref_quat, orientation, point)
     if [label for label, _, _ in targets] != [v["label"] for v in visits]:
         raise SystemExit(f"{log_path}: waypoint 목록이 {gcode} 와 다르다 — --gcode 를 확인할 것\n"
                          f"  기록 {len(visits)}개, 파일 {len(targets)}개")
@@ -182,10 +196,10 @@ def analyse(log_path: Path, args) -> dict:
         end_to_end = [errors_to_reference(v, reference[v["base"]]) for v in visits]
 
     rounds = sorted({v["round"] for v in visits})
-    print(f"\n{'=' * 100}\n{log_path}  ←  {gcode}  (orientation {orientation})")
+    print(f"\n{'=' * 100}\n{log_path}  ←  {gcode}  (orientation {orientation}, point {point})")
     print(f"waypoint {len(visits)}개 · {sum(v['steps'] for v in visits)}스텝 · 회차 {len(rounds)}"
           f" · 멈춤 기준 {meta.get('pos_tol_mm')}mm · {meta.get('rot_tol_deg')}°")
-    borrowed = orientation == "relative" and not meta.get("start_flange_quat_wxyz")
+    borrowed = needs_quat and not meta.get("start_flange_quat_wxyz")
     print(f"목표 재구성 검산 — 기록의 gap 과 최대 차이 {gap:.2e} (mm · °)"
           + ("  ← 시작 자세를 원본 롤아웃에서 빌려 온 몫" if borrowed else "  ← 0 이어야 한다"))
     if gap > (1e-3 if borrowed else 1e-9):
@@ -353,6 +367,8 @@ def main() -> None:
     parser.add_argument("--gcode", type=Path, help="목표 G-code. 기본은 기록 meta 의 source")
     parser.add_argument("--orientation", choices=("absolute", "relative"),
                         help="기본은 기록 meta 의 값. 9/20~21 기록에는 없어 직접 줘야 한다")
+    parser.add_argument("--point", choices=POINTS,
+                        help="어느 점끼리 맞춘 기록인지. 기본은 기록 meta → G-code 머리말 → flange (9/28 까지의 기록)")
     parser.add_argument("--reference", type=Path,
                         help="원본 Panda 롤아웃 jsonl — 주면 '끝에서 끝' 도 같이 낸다 (검산용)")
     parser.add_argument("--plot", type=Path, help="그림을 쓸 경로 (matplotlib 필요)")

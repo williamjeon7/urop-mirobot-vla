@@ -14,6 +14,9 @@
   잡는 것    실물 추종 오차, 위치 변환(원점·단위·스케일), 플랜지 ↔ 파지점 오프셋, 파일 반올림
   못 잡는 것 프레임 회전 `F` — 나갈 때 곱하고 들어올 때 나눠 **상쇄된다**. `F` 는 Mirobot 에서 출발하는
              축별 시험으로 따로 잡는다 (docs/W3/CHECKLIST.md 5-1, CHECKLIST.md 5-1 (가) "왕복만으로는 못 잡는다")
+             파지점 기준(9/30~)의 Mirobot 길이 55mm 도 같다 — 같은 값으로 나갔다 들어와 상쇄된다. 외부 측정으로만 잡힌다
+
+어느 점끼리 맞춘 파일인지는 G-code 머리말 `; point grip|flange` 로 안다. 표시가 없으면 9/28 까지의 파일 — 플랜지.
 
 `extract` 는 `--out` 옆에 같은 이름의 `.gcode` 도 쓴다. **보고값 그대로**의 G-code 라
 `python -m tools.libero_follow --gcode <그 파일>` 로 영상까지 이어갈 수 있다 (absolute 파일일 때).
@@ -37,7 +40,14 @@ from common.rotation import (
     quat_mul,
     quat_xyzw_to_wxyz,
 )
-from common.workspace import flange_to_grip, mirobot_to_libero_xyz_m
+from common.workspace import (
+    LEGACY_POINT,
+    POINTS,
+    flange_to_grip,
+    mirobot_to_libero_flange_m,
+    point_marker,
+    read_point_marker,
+)
 from tools.probe_mirobot import fields, find_field, is_status, state_of
 from tools.run_gcode import parse_file, pose_of
 
@@ -55,15 +65,16 @@ def key_of(pose) -> tuple:
     return tuple(round(v, 2) for v in pose)
 
 
-def read_gcode(path: Path) -> tuple[list[tuple[str, list[float]]], float, str]:
-    """(이름, [X Y Z A B C]) 목록과 머리말의 scale·orientation."""
+def read_gcode(path: Path) -> tuple[list[tuple[str, list[float]]], float, str, str]:
+    """(이름, [X Y Z A B C]) 목록과 머리말의 scale·orientation·point. point 표시가 없으면 플랜지 (옛 파일)."""
     wps = [(label, pose) for label, command in parse_file(path)
            if (pose := pose_of(command)) is not None]
     scale, orientation = 1.0, "absolute"
-    for line in path.read_text(encoding="utf-8").splitlines():
+    text = path.read_text(encoding="utf-8")
+    for line in text.splitlines():
         if line.startswith(";") and (m := HEADER_RE.search(line)):
             scale, orientation = float(m.group(1)), m.group(2)
-    return wps, scale, orientation
+    return wps, scale, orientation, read_point_marker(text) or LEGACY_POINT
 
 
 def reported_by_pose(log_path: Path) -> dict[tuple, dict]:
@@ -98,14 +109,14 @@ def reported_by_pose(log_path: Path) -> dict[tuple, dict]:
 
 
 def cmd_extract(args) -> None:
-    wps, scale, orientation = read_gcode(args.gcode)
+    wps, scale, orientation, point = read_gcode(args.gcode)
     reported = reported_by_pose(args.run_log)
     missing = [label for label, pose in wps if key_of(pose) not in reported]
     if missing:
         raise SystemExit(f"기록에서 못 찾은 waypoint: {missing}\n  {args.run_log} 에 그 좌표의 G0 와 상태 줄이 있는지 볼 것")
 
     rows = []
-    print(f"{args.gcode}  —  waypoint {len(wps)}개, scale {scale}, orientation {orientation}")
+    print(f"{args.gcode}  —  waypoint {len(wps)}개, scale {scale}, orientation {orientation}, point {point}")
     print(f"\n{'waypoint':12} | {'명령 X Y Z':>26} | {'보고 X Y Z':>26} | {'Δ위치':>8} | {'Δ자세 (Rx Ry Rz)':>24}")
     worst_pos = worst_rot = 0.0
     for label, pose in wps:
@@ -122,7 +133,7 @@ def cmd_extract(args) -> None:
     print(f"\n실물 추종 오차 — 위치 최대 {worst_pos:.3f}mm, 자세 최대 {worst_rot:.3f}°")
 
     meta = {"meta": {"run_log": args.run_log.as_posix(), "gcode": args.gcode.as_posix(),
-                     "scale": scale, "orientation": orientation, "waypoints": len(rows),
+                     "scale": scale, "orientation": orientation, "point": point, "waypoints": len(rows),
                      "note": "reported_* 는 Mirobot `?` 보고값 (플랜지 mm, extrinsic XYZ 도)"}}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", encoding="utf-8") as f:
@@ -133,7 +144,7 @@ def cmd_extract(args) -> None:
 
     gcode_out = args.out.with_suffix(".gcode")
     lines = [f"; Mirobot 이 실제로 간 자세 (`?` 보고값). 원본 {args.gcode.as_posix()}, 기록 {args.run_log.as_posix()}",
-             f"; scale {scale}, orientation {orientation}", "G90", "M20"]
+             f"; scale {scale}, orientation {orientation}", point_marker(point), "G90", "M20"]
     for row in rows:
         x, y, z = row["reported_xyz_mm"]
         a, b, c = row["reported_rxryrz_deg"]
@@ -147,6 +158,7 @@ def cmd_compare(args) -> None:
     meta, rows = measured[0]["meta"], measured[1:]
     scale = args.scale if args.scale is not None else meta.get("scale", 1.0)
     orientation = args.orientation or meta.get("orientation", "absolute")
+    point = args.point or meta.get("point") or LEGACY_POINT  # 9/20 측정 파일에는 없다 — 플랜지로 만든 것
 
     origin = [json.loads(line) for line in args.rollout.open(encoding="utf-8")][1:]
     wps = {r["waypoint"]: r for r in origin if r.get("waypoint")}
@@ -158,7 +170,7 @@ def cmd_compare(args) -> None:
         return mirobot_to_libero_quat(q_mirobot) if orientation == "absolute" else quat_mul(q_mirobot, q_ref)
 
     print(f"{args.measured}  ←→  {args.rollout}")
-    print(f"기준점 {ref['waypoint']} (step {ref['step']}), scale {scale}, orientation {orientation}\n")
+    print(f"기준점 {ref['waypoint']} (step {ref['step']}), scale {scale}, orientation {orientation}, point {point}\n")
     print(f"{'waypoint':12} | {'Δx':>7} {'Δy':>7} {'Δz':>7} mm | {'거리':>7} | {'자세':>7} | {'파지점':>7}")
     worst = {"pos": 0.0, "rot": 0.0, "grip": 0.0}
     for row in rows:
@@ -166,8 +178,9 @@ def cmd_compare(args) -> None:
         if origin_row is None:
             print(f"{row['waypoint']:12} | 원본 기록에 없다")
             continue
-        q_back = back_to_libero_quat(euler_xyz_deg_to_quat(*row["reported_rxryrz_deg"]))
-        p_back = mirobot_to_libero_xyz_m(row["reported_xyz_mm"], ref_pos, scale=scale)
+        q_reported = euler_xyz_deg_to_quat(*row["reported_rxryrz_deg"])
+        q_back = back_to_libero_quat(q_reported)
+        p_back = mirobot_to_libero_flange_m(row["reported_xyz_mm"], q_reported, q_back, ref_pos, q_ref, point, scale)
         p_orig = origin_row["flange_pos"]
         q_orig = quat_xyzw_to_wxyz(tuple(origin_row["flange_quat_xyzw"]))
 
@@ -180,7 +193,10 @@ def cmd_compare(args) -> None:
               f"{e_pos:6.2f}mm | {e_rot:6.2f}° | {e_grip:6.2f}mm")
 
     print(f"\n최대 — 플랜지 {worst['pos']:.2f}mm, 자세 {worst['rot']:.2f}°, 파지점 {worst['grip']:.2f}mm")
-    print("파지점 오차가 플랜지보다 큰 만큼이 자세 오차가 9.7cm 아래에서 벌어진 몫이다 (docs/W3/CONTROL.md 2절)")
+    if point == "flange":
+        print("파지점 오차가 플랜지보다 큰 만큼이 자세 오차가 9.7cm 아래에서 벌어진 몫이다 (docs/W3/CONTROL.md 2절)")
+    else:
+        print("파지점끼리 맞췄다 — 플랜지 오차가 파지점보다 큰 만큼이 자세 오차가 9.7cm 위에서 벌어진 몫이다")
     if orientation == "relative":
         print("orientation relative — 되돌릴 때 기준 자세를 다시 곱하므로 시작 기울기(Panda 3.3°)는 여기서 상쇄된다.")
         print("  같은 파일을 `libero_follow --gcode` 에 그대로 주면 absolute 로 읽혀 그만큼 어긋난다")
@@ -201,6 +217,7 @@ def main() -> None:
     p.add_argument("--rollout", type=Path, required=True, help="원본 롤아웃 jsonl (data/compound/)")
     p.add_argument("--scale", type=float, help="측정 파일의 값을 덮어쓴다")
     p.add_argument("--orientation", choices=("absolute", "relative"), help="측정 파일의 값을 덮어쓴다")
+    p.add_argument("--point", choices=POINTS, help="측정 파일의 값을 덮어쓴다 (없으면 flange — 옛 파일)")
     p.set_defaults(func=cmd_compare)
 
     args = parser.parse_args()

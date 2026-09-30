@@ -1,6 +1,6 @@
 # 값이 어떻게 바뀌나 — Mirobot ↔ LIBERO 변환 파이프라인
 
-> **참조** · 확인 2026-09-23 · 9/17 LIBERO 측정, 9/17·9/20 Mirobot 실물
+> **참조** · 확인 2026-09-23 · **갱신 2026-09-30** (기준점을 파지점으로 — 2·3절 표시, 4절, 6절) · 9/17 LIBERO 측정, 9/17·9/20 Mirobot 실물
 > 한 자세가 두 로봇 사이를 오갈 때 거치는 단계. 회전 규약은 [ROTATION.md](ROTATION.md),
 > 축·측정값은 [LIBERO_AXES.md](LIBERO_AXES.md), 제어 방식 차이는 [CONTROL.md](CONTROL.md), 작업은 [CHECKLIST.md](CHECKLIST.md).
 
@@ -36,7 +36,10 @@
 ```
 
 - **기준점 짝** — "Panda 시작 플랜지 ↔ Mirobot 홈 `(198.67, 0, 230.72)`". 절대 좌표가 아니라 **변위**를 옮긴다
-- **왜 플랜지인가** — Mirobot 은 플랜지를 보고하고 Panda proprio 는 파지점이다 ([CONTROL.md](CONTROL.md) 2절)
+- **어느 점끼리** — 위 예(9/17 파일)는 **플랜지 ↔ 플랜지** 다. **9/30 부터 기본은 파지점 ↔ 파지점** — 양쪽을 각자의 길이
+  (Panda 97mm, Mirobot 55mm)로 파지점까지 내려 변위를 옮기고, G0 에는 Mirobot 플랜지로 올려 적는다. 짝은
+  "Panda 시작 파지점 ↔ Mirobot 홈 파지점 `(198.67, 0, 175.72)`". 파일 머리말에 `; point grip` 이 붙고, 표시가 없는
+  옛 파일은 플랜지로 읽는다 ([CONTROL.md](CONTROL.md) 2-1절)
 - **`F` = x축 180°, 오른쪽 곱** — Mirobot 은 top-down 을 `(0,0,0)`, LIBERO 는 x축 180° 로 적는다 ([LIBERO_AXES.md](LIBERO_AXES.md) 4절)
 - **absolute / relative** — 기록된 자세를 그대로 옮길지(absolute), 시작 자세를 `(0,0,0)` 으로 두고 움직임만 옮길지(relative).
   relative 는 Panda 시작의 3.3° 기울기를 지운다
@@ -52,7 +55,8 @@ Mirobot G0 / ? 보고값   X Y Z (mm), A B C (도)
         ▼
 프레임 회전 F           mirobot_to_libero_quat  = q ⊗ F
         ▼
-위치                    mirobot_to_libero_xyz_m          홈 기준 변위 → m → Panda 시작 플랜지에 더함
+위치                    mirobot_to_libero_flange_m       홈 기준 변위 → m → Panda 시작에 더함
+                                                         (9/30 부터 파지점끼리 — 더한 뒤 Panda 플랜지로 올린다)
         ▼
 플랜지 → 파지점          flange_to_grip                   컨트롤러가 움직이는 점이 파지점이라 97mm 내려 목표를 잡는다
         ▼
@@ -127,7 +131,7 @@ absolute 의 대가는 9/21 에 이 절을 정리하면서 따져 본 것이다.
 | 파일 | 맡는 것 |
 |---|---|
 | `common/rotation.py` | 표현·저장 순서·프레임 회전 — 함수는 아래 표 |
-| `common/workspace.py` | 위치. `libero_to_mirobot_xyz_mm`, `mirobot_to_libero_xyz_m`, `flange_to_grip`, `grip_to_flange`, `MIROBOT_HOME_MM` |
+| `common/workspace.py` | 위치. `libero_to_mirobot_xyz_mm`, `mirobot_to_libero_xyz_m`, `flange_to_grip`, `grip_to_flange`, `MIROBOT_HOME_MM`. 9/30 — 점까지 고르는 `libero_to_mirobot_flange_mm` / `mirobot_to_libero_flange_m` (`point`), `mirobot_flange_to_grip_mm`, `MIROBOT_HOME_GRIP_MM`, 머리말 `; point …` |
 | `common/servo.py` | 목표 → 액션. `servo_action`, `pose_gap`, `reached`, `fit_to_unit` |
 | `tools/libero_compound_rollout.py` | Panda 복합 동작을 만들고 기록 (LIBERO → Mirobot 의 입력) |
 | `tools/libero_to_mirobot_gcode.py` | waypoint → G-code, 되돌려 검산 |
@@ -168,7 +172,7 @@ rx, ry, rz = quat_to_euler_xyz_deg(q)           # G0 A B C
 
 ### 테스트
 
-`tests/test_rotation.py`(13), `tests/test_workspace.py`(4), `tests/test_servo.py`(6). 저장소 최상위에서 `-m` 으로 돌린다.
+`tests/test_rotation.py`(13), `tests/test_workspace.py`(11 — 9/30 파지점 기준 7개 추가), `tests/test_servo.py`(6). 저장소 최상위에서 `-m` 으로 돌린다.
 
 ```bash
 cd ~/UROP && python -m tests.test_rotation
@@ -219,8 +223,8 @@ cd ~/UROP && python -m tests.test_rotation
 
 | | 내용 | 어디에 |
 |---|---|---|
-| **회전 중심** | Panda 는 파지점, Mirobot(Cartesian `G0`)은 플랜지를 중심으로 돈다. 손끝이 `ΔL` 만큼 어긋난다 | [CONTROL.md](CONTROL.md) **2-1절** · 실물 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-2 |
-| **Mirobot 플랜지 → 파지점 길이** | **55mm 로 쟀다 (9/21, 자, ±5mm).** `ΔL = 42mm` — 이제 손끝끼리 맞출 수 **있다**. 어느 쪽으로 맞출지가 남았다 | [CONTROL.md](CONTROL.md) 2-1절 · [CHECKLIST.md](CHECKLIST.md) 8절·10절 |
+| **회전 중심** | Panda 는 파지점, Mirobot(Cartesian `G0`)은 플랜지를 중심으로 돈다. 플랜지끼리 맞추면 손끝이 `ΔL` 만큼 어긋난다. **9/30 부터 파지점끼리** 맞추므로 정확히 재현되는 점이 손끝으로 옮겨갔다 | [CONTROL.md](CONTROL.md) **2-1절** · 실물 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-2 |
+| **Mirobot 플랜지 → 파지점 길이** | **55mm 로 쟀다 (9/21, 자, ±5mm).** `ΔL = 42mm`. **9/30 회신으로 파지점끼리 맞추기로 해서 이 ±5mm 가 변환식에 들어간다** — 왕복으로는 안 보인다(같은 값으로 나갔다 들어온다). 캘리퍼스로 다시 잰다 | [CONTROL.md](CONTROL.md) 2-1절 · [../W5/CHECKLIST.md](../W5/CHECKLIST.md) 7절 |
 | **보고 Z 상수 오프셋** | 명령보다 ≈0.28mm 낮게 보고한다. **실제로 그만큼 낮게 간 것으로 본다** — 아래 | 숫자는 [CHECKLIST.md](CHECKLIST.md) 5-1·5-2, 발견은 [../W2/CHECKLIST.md](../W2/CHECKLIST.md) 4절 |
 | ~~**절대/상대 혼동**~~ | **해결 (9/21).** 쓴 방식대로 읽으면 된다 (`--orientation relative`). 앞으로는 판에 묶이지 않는 **absolute 를 기본**으로 한다 | 위 **3-1절** |
 
