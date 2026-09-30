@@ -55,6 +55,10 @@ W4 에서 넘어온 것은 [../W4/CHECKLIST.md](../W4/CHECKLIST.md) 9절이 목�
 > "Cartesian 7차원이라는 action 형식은 그대로 쓸 수 있지만, 같은 값이 두 로봇에서 다르게 움직이기 때문에 …
 > 그 값의 의미를 어떻게 맞출지 정해야 합니다." — 9/28 보고
 
+**왜 하나** — 계획서는 `Cosmos-Policy-LIBERO-Predict2-2B` 에서 fine-tuning 한다고 전제했다 (6절). 근거는 "데모 150개로는 처음부터 못 배운다" 와 "사전학습 헤드를 그대로 쓴다" 였다.
+그런데 이 모델이 배운 action 은 Panda 제어기 기준이라 Mirobot 과 의미가 다르다. 그래서 **pretrained model 을 쓰는 것이 우리 프로젝트에 맞는지, 쓴다면 무엇을 가져가는지**를 먼저 확인한다.
+이 답에 따라 action 표현(계획서 6절)·학습 비용(4절)·환경 구성(②③)이 바뀐다.
+
 [../W3/CHECKLIST.md](../W3/CHECKLIST.md) 10절 첫째 질문(9/17)이 이것이다. 그때 후보는 셋(스케일 조정 / 제어 주기 / 재학습)이었고,
 9/28 보고에서 둘로 좁혔다.
 
@@ -83,20 +87,32 @@ W4 에서 넘어온 것은 [../W4/CHECKLIST.md](../W4/CHECKLIST.md) 9절이 목�
 | 실물 선례 — ALOHA | proprio·action 모두 관절 14차원, chunk 50 (25Hz), 데모 185개, video model 에서 출발 | 논문 5.1절 |
 | video model 의 몫 | 처음부터 학습하면 LIBERO 평균 −3.9점, ALOHA `fold shirt` −18.7점. 동작도 튄다 | 논문 5.2절 |
 
-### 2-3. 그래서 질문이 하나 앞에 선다 — 어디서 출발하나
+### 2-3. 어떤 가중치에서 fine-tuning 을 시작하나 — 출발점이 둘이다
 
-"pretrained model" 후보가 **둘**이다. 9/28 보고는 첫째만 가정했다.
+fine-tuning 은 이미 학습된 가중치를 초기값으로 두고 우리 데이터로 이어서 학습하는 것이다. 그 초기값("pretrained model")의
+후보가 **둘**이다. 9/28 보고는 첫째만 가정했다.
+**두 가중치의 정체·비교·판단 근거는 [CHECKPOINT.md](CHECKPOINT.md)** 에 있다. 여기는 작업과 결론만 둔다.
 
-| 출발점 | action 을 | 선례 | 맞출 것 |
+| 출발점 (초기 가중치) | action 을 | 선례 | 맞출 것 |
 |---|---|---|---|
-| `Cosmos-Policy-LIBERO-Predict2-2B` | Panda OSC 변화량으로 **배웠다** | 없다 | action 의미 — (가) 또는 (나) |
-| `Cosmos-Predict2-2B-Video2World` | **배운 적 없다** | 논문의 세 checkpoint 전부 (실물 ALOHA 포함) | 없다 — Mirobot 데이터가 정한다. 대신 LIBERO 에서 배운 조작을 못 쓴다 |
+| `Cosmos-Policy-LIBERO-Predict2-2B` — 영상 + Panda 조작을 배웠다 | Panda OSC 변화량으로 **배웠다** | Cosmos 안에는 없다. VLA 전반에는 있다 (OpenVLA → ALOHA, 아래) | action 의미 — (가) 또는 (나) |
+| `Cosmos-Predict2-2B-Video2World` — 영상만 배웠다 | **배운 적 없다** | 논문의 세 checkpoint 전부 (실물 ALOHA 포함) | 없다 — Mirobot 데이터가 정한다. 대신 LIBERO 에서 배운 조작을 못 쓴다 |
 
-- [ ] **두 출발점에서 얻는 것과 잃는 것** — LIBERO policy 에서 출발하면 탁상 조작, 같은 카메라 구성(3인칭 + 손목), 7차원을 이미 안다.
+- [x] **두 출발점에서 얻는 것과 잃는 것** — LIBERO policy 에서 출발하면 탁상 조작, 같은 카메라 구성(3인칭 + 손목), 7차원을 이미 안다.
   대신 Panda 의 의미를 맞추거나 덮어써야 한다
-  → 
-- [ ] **다른 로봇의 policy 에서 fine-tuning 한 선례** — Cosmos 밖(OpenVLA·π0 계열)에서 action 공간이 다른 로봇으로 옮길 때 무엇을 했나
-  → 
+  → **LIBERO policy 에서 출발하고, video model 은 대안으로 둔다 (9/30).**
+  - **얻는 것** — latent 배열이 우리와 같다. LIBERO 설정은 proprio · wrist · primary(3인칭 1대) · action · future ×3 · value 의
+    9칸이고(`config/experiment/cosmos_policy_experiment_configs.py:116`), 우리도 고정 카메라 1 + 손목 1 이다. ALOHA·RoboCasa 는 카메라 3대라 11칸이다.
+    탁상 조작 영상과 7차원도 이미 안다
+  - **잃는 것** — action·proprio 의 의미가 Panda 기준이다. (가) 면 유지하고, (나) 면 덮어쓴다
+  - **학습 비용** — 가까운 데서 출발하니 적게 들 것으로 **예상**한다. 확인은 계획서의 W3 게이트(학습 소요 역산)가 필요한데 HF 401 에 막혀 있다 (7절)
+- [x] **다른 로봇의 policy 에서 fine-tuning 한 선례** — Cosmos 밖(OpenVLA·π0 계열)에서 action 공간이 다른 로봇으로 옮길 때 무엇을 했나
+  → **있다 — OpenVLA-OFT (Cosmos Policy 코드의 뿌리, `constants.py` 머리말).** OpenVLA 는 단일 팔 · 3인칭 카메라 1대 · proprio 없음 · 3~10Hz ·
+  상대 end-effector action 으로 사전학습됐는데, 이를 ALOHA(양팔 · 절대 관절각 14차원 · 25Hz)로 태스크당 20~300 데모로 fine-tuning 해
+  처음부터 학습한 ACT · Diffusion Policy 보다 높았다 ([arXiv 2502.19645](https://arxiv.org/abs/2502.19645)).
+  **action 의미를 덮어써도 사전학습 이득이 남을 수 있다는 근거**라 (나) 와 LIBERO 출발이 함께 갈 수 있다.
+  Cosmos Policy 공식 문서에는 새 로봇을 어느 checkpoint 에서 시작하라는 안내가 없다
+  - 그래서 ① 의 질문은 "어디서 출발하나" 가 아니라 **"LIBERO policy 에서 출발하되 (가)·(나) 중 무엇으로 가나"** 가 된다
 
 ### 2-4. (가) 실행 단계에서 환산 — Panda 의 의미를 유지한다
 
@@ -121,7 +137,8 @@ W4 에서 넘어온 것은 [../W4/CHECKLIST.md](../W4/CHECKLIST.md) 9절이 목�
 - [ ] **chunk 16개가 open-loop 로 실행된다** (2-2) — 환산 오차가 chunk 안에서 쌓이는지
   → 
 - [ ] **입력도 Panda 형식이어야 한다** — proprio(파지점·쿼터니언·손가락 2칸)를 Mirobot 값에서 만들어 넣는다.
-  W3 변환이 여기에 쓰인다. 파지점 기준이라 **손끝이냐 플랜지냐 회신**(W4 8절)에 걸린다
+  W3 변환이 여기에 쓰인다. 기준점은 **파지점으로 정해졌다** (9/30 회신 — 8절) — Mirobot 플랜지 보고값에서 55mm 내린 점을 쓴다
+  (`common/workspace.py` `mirobot_flange_to_grip_mm`). 손가락 2칸은 7절 그리퍼 항목에 남아 있다
   → 
 
 ### 2-5. (나) fine-tuning 에서 Mirobot 방식으로 새로 학습 — 의미를 새로 정한다
@@ -193,7 +210,7 @@ Mirobot 데모의 action 라벨을 **Mirobot 기준**으로 정하고, 모델이
   ① 이 (나) 라면 후자가 자연스럽다. OSC 절대 모드(`control_delta: false`)도 있지만 문제 보고가 있다 ([CONTROL.md](../W3/CONTROL.md) 3절)
   → 
 - [ ] **그리퍼와 파지점** — 그리퍼 모델이 없다. 최소한 플랜지에서 55mm 떨어진 파지점(`grip_site`)을 둔다 (W3 8절 실측).
-  손끝이냐 플랜지냐 회신과 이어진다
+  **파지점 기준으로 정해졌으므로(9/30) 이 점이 변환과 proprio 의 기준이 된다** — 55mm 는 7절에서 캘리퍼스로 다시 잰 값으로 바꾼다
   → 
 - [ ] **관절 한계는 펌웨어 값으로** — 9/28 `$$` 기록(로봇 노트북 `data/probe/`)에서 여섯 축을 옮긴다. W4 4절에는 J5 만 적었다
   → 
@@ -270,11 +287,34 @@ Mirobot 데모의 action 라벨을 **Mirobot 기준**으로 정하고, 모델이
 - [ ] **누적 판정의 대조군** — 교란을 넣어 도구가 누적을 잡아내는지 본다 (W4 9절)
   → 
 
+**9/30 회신(파지점)으로 생긴 것** — [../meetings/2026-09-28/Professor reply.md](../meetings/2026-09-28/Professor%20reply.md)
+
+- [x] **변환을 파지점 기준으로 바꾼다**
+  → **했다 (9/30).** `common/workspace.py` 의 기본이 `point="grip"` — 양쪽을 각자의 길이(Panda 97mm, Mirobot 55mm)로
+  파지점까지 내려 변위를 옮기고 G0 에는 플랜지로 올려 적는다. 짝은 "Panda 시작 파지점 ↔ Mirobot 홈 파지점 `(198.67, 0, 175.72)`".
+  - **옛 파일은 그대로 읽힌다** — 새 G-code 머리말에 `; point grip` 을 적고, 표시가 없는 파일(9/17~9/28)은 플랜지로 읽는다.
+    `libero_to_mirobot_gcode` · `libero_follow` · `roundtrip_check` · `drift_check` 에 `--point` 를 붙였다
+  - **부호 함정** — Mirobot 자세 규약은 `F` 만큼 달라 공구 축이 −z 다. Mirobot 쿼터니언을 `flange_to_grip` 에 그대로 넣으면
+    파지점이 55mm **위**로 잡힌다. `mirobot_flange_to_grip_mm` 이 규약을 바꾼 뒤 넣고, 테스트가 부호를 고정한다
+  - 확인 — `tests.test_workspace` 11개 통과(파지점 7개 추가), `test_rotation` 13 · `test_servo` 6 통과.
+    9/17 absolute 궤적을 `--point flange` 로 다시 만들면 **옛 G-code 와 G0 7줄이 모두 같다**. 같은 궤적을 grip 으로 만들면
+    Mirobot 플랜지 명령이 waypoint 마다 0.29~10.55mm 달라진다 (시작 대비 기운 각에 `ΔL` 이 곱해진 몫)
+  - **LIBERO 가 있는 서버에서는 아직 안 돌렸다** — `libero_follow --gcode` 로 grip 파일을 한 번 따라가 보는 것이 남았다
+- [ ] **Mirobot `L` 을 캘리퍼스로 다시 잰다** — 지금 55mm 는 자로 잰 값이고 ±5mm 다(W3 8절). 파지점 기준에서는 이 값이
+  변환식에 들어가는데, **왕복 검증으로는 안 보인다** — 나갈 때와 들어올 때 같은 `L` 을 써서 상쇄된다(`F` 와 같은 구조).
+  잰 값은 `common/workspace.py` `MIROBOT_FLANGE_TO_GRIP_M` 한 곳만 바꾸면 된다 (실물 필요)
+  → 
+- [ ] **그리퍼(⑤) 가 풀린다** — 플랜지 기준에서는 집게가 블록 42mm 위에서 닫혀 물 수 없었다(W4 6절). 파지점 기준이면 물 수 있다.
+  **proprio 대응(Panda 2칸 vs Mirobot 1칸)은 그대로 남는다** — 위 그리퍼 항목
+  → 
+
 ### 곁가지
 
 - [ ] **HF 접근 — 9/28 에 `Cosmos-Policy-LIBERO-Predict2-2B` 가 `GatedRepoError: 401`** (W4 9절).
   다만 [../MODELS.md](../MODELS.md) 에는 9/9 에 OASYS 캐시에 **이미 받아져 있다**고 적혀 있다 — 권한 문제인지, 캐시·토큰이 다른 환경이었는지부터 본다.
   **2-3 의 둘째 출발점 `Cosmos-Predict2-2B-Video2World` 도 받을 수 있는지** 같이 확인한다
+  - **9/30 확인 — tokenizer 가 video model 저장소(gated)에 있다.** LIBERO policy 에서 출발해도 받아야 하고, 401 이 여기서 났을 가능성이 있다 (추정).
+    서버 로그에서 어느 파일을 받다 막혔는지 본다 → [CHECKPOINT.md](CHECKPOINT.md) 6절
   → 
 - [ ] **계획서 6절 로깅 스키마의 "관절각 명령값 / 실측값 분리"** — W4 ④ 4절 이후로 `?` 는 실측이 아니라 펄스 카운터의 계산값이다.
   "필드 하나가 빠지면 재수집 외에 복구 불가" 라고 적힌 목록이라 **수집(W6) 전에** 문구와 실제로 남길 값을 고친다
@@ -286,7 +326,9 @@ Mirobot 데모의 action 라벨을 **Mirobot 기준**으로 정하고, 모델이
 
 - [ ] **궤적 축소 방법** — Panda 도달 약 855mm vs Mirobot 약 315mm. 비율 축소 / 범위 안 구간만 / 기타.
   W4 8절에서 넘어왔고 **아직 여쭙지 않았다.** ③ 의 핵심 제약이다 (5-2)
-- [ ] **손끝이냐 플랜지냐** — 9/28 에 여쭸다 ([../W4/ANSWER.md](../W4/ANSWER.md) ①). **회신 대기.** (가) 의 proprio(2-4)와 그리퍼 파지점(4-2)이 여기에 걸린다
+- [x] **손끝이냐 플랜지냐** — 9/28 에 여쭸다 ([../W4/ANSWER.md](../W4/ANSWER.md) ①). **회신 대기.** (가) 의 proprio(2-4)와 그리퍼 파지점(4-2)이 여기에 걸린다
+  → **회신 받음 — 파지점 (9/30).** [../meetings/2026-09-28/Professor reply.md](../meetings/2026-09-28/Professor%20reply.md).
+  변환 전환은 끝났고(7절), 남은 것은 `L` 재측정과 그리퍼다
 - [ ] **(3절에서 못 정하면) LIBERO 환경을 무엇에 쓰려는 것인지** — 배치 기준 / 시뮬 데이터 / 시뮬 평가
 - [ ] **① 은 제어 주기와 떼어 놓을 수 없다** — Panda 의 한 스텝은 0.05초이고 chunk 16개는 0.8초다.
   9/14 "timestep 은 아직 고려하지 않아도 된다" 의 범위를 넘는지 여쭙는다
@@ -296,7 +338,9 @@ Mirobot 데모의 action 라벨을 **Mirobot 기준**으로 정하고, 모델이
 ## 관련 문서
 
 - [../meetings/2026-09-28/Seokhwan action plan.md](../meetings/2026-09-28/Seokhwan%20action%20plan.md) — 9/28 보고와 이번 주 계획 원문
+- [../meetings/2026-09-28/Professor reply.md](../meetings/2026-09-28/Professor%20reply.md) — 손끝이냐 플랜지냐 회신 (파지점, 9/30)
 - [../meetings/2026-09-21.md](../meetings/2026-09-21.md) — 9/21 action plan 2·3번 원문
+- [CHECKPOINT.md](CHECKPOINT.md) — 출발 가중치 두 후보 비교와 판단 (2-3)
 - [../W4/CHECKLIST.md](../W4/CHECKLIST.md) 9절 — W4 에서 넘어온 목록
 - [../W3/CONTROL.md](../W3/CONTROL.md) — 두 로봇이 명령을 받아 움직이는 방식, Panda 를 목표까지 보내는 세 방식(3절)
 - [../W3/LIBERO_AXES.md](../W3/LIBERO_AXES.md) 2·3절 — action 대비 실제 이동(26%)

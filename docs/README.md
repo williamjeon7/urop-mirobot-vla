@@ -34,6 +34,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W4 | [W4/CHECKLIST.md](W4/CHECKLIST.md) | 9/21 보고에 대한 **교수님 회신 질문 5개** 에 답하는 작업 목록 |
 | W4 | [W4/ANSWER.md](W4/ANSWER.md) | **교수님께 보낼 답** — 개념과 판단 근거만. 숫자의 주인은 W3 |
 | W5 | [W5/CHECKLIST.md](W5/CHECKLIST.md) | 9/28 보고에서 정한 **작업 목록** — action 의미 맞추기(선결), LIBERO 환경 구성 두 방향 비교, W4 에서 넘어온 것 |
+| W5 | [W5/CHECKPOINT.md](W5/CHECKPOINT.md) | **출발 가중치** — LIBERO policy vs video model 비교, 우리는 LIBERO policy 에서 출발 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 
