@@ -1,0 +1,20 @@
+<mujoco model="custom_marker_box">
+  <worldbody>
+    <body>
+      <body name="object">
+        <geom name="collision" type="box" size="0.026 0.026 0.055"
+              mass="0.1" friction="1 0.005 0.0001" group="0"
+              solref="0.01 1" solimp="0.95 0.99 0.001"/>
+        <geom name="visual" type="box" size="0.026 0.026 0.055"
+              mass="0" contype="0" conaffinity="0" group="1"
+              rgba="0.08 0.35 0.85 1"/>
+        <geom name="marker" type="box" pos="0 0 0.043" size="0.0262 0.0262 0.011"
+              mass="0" contype="0" conaffinity="0" group="1"
+              rgba="1 0.45 0.05 1"/>
+      </body>
+      <site name="bottom_site" pos="0 0 -0.055" size="0.001" rgba="0 0 0 0"/>
+      <site name="top_site" pos="0 0 0.055" size="0.001" rgba="0 0 0 0"/>
+      <site name="horizontal_radius_site" pos="0.03677 0 0" size="0.001" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+</mujoco>

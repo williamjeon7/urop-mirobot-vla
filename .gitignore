@@ -42,6 +42,8 @@ checkpoints/
 *.h5
 *.hdf5
 *.mp4
+!docs/W5/images/custom_task_validation/*.mp4
+!docs/W5/images/extended_task_validation/*.mp4
 *.avi
 
 # ─────────────────────────────────────────────────────────────

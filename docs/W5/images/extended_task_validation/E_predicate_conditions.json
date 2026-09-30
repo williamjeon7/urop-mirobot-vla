@@ -1,0 +1,42 @@
+{
+  "test": "predicate_conditions",
+  "direct_state_changes": true,
+  "part_of_robot_video": false,
+  "conditions": [
+    {
+      "state": "centered",
+      "xy_distance_m": 0.0,
+      "milk_local_y_world_z": 0.999971,
+      "on": true,
+      "centered_upright_on": true
+    },
+    {
+      "state": "inside_1cm",
+      "xy_distance_m": 0.0099,
+      "milk_local_y_world_z": 0.999971,
+      "on": true,
+      "centered_upright_on": true
+    },
+    {
+      "state": "outside_1cm",
+      "xy_distance_m": 0.0101,
+      "milk_local_y_world_z": 0.999971,
+      "on": true,
+      "centered_upright_on": false
+    },
+    {
+      "state": "off_center",
+      "xy_distance_m": 0.015,
+      "milk_local_y_world_z": 0.999971,
+      "on": true,
+      "centered_upright_on": false
+    },
+    {
+      "state": "tilted_20deg",
+      "xy_distance_m": 0.0,
+      "milk_local_y_world_z": 0.937041,
+      "on": true,
+      "centered_upright_on": false
+    }
+  ]
+}

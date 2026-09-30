@@ -1,0 +1,160 @@
+{
+  "task": "E",
+  "bddl": "custom_tasks/custom_new_predicate_task.bddl",
+  "seed": 0,
+  "camera_size": 512,
+  "camera": "agentview",
+  "initial_goal": false,
+  "initial_on_checks": {
+    "(On wine_bottle_1 main_table_wine_bottle_region)": true,
+    "(On akita_black_bowl_1 main_table_akita_black_bowl_region)": true,
+    "(On plate_1 main_table_plate_region)": true,
+    "(On cream_cheese_1 main_table_cream_cheese_region)": true,
+    "(On milk_1 main_table_milk_region)": true,
+    "(On wooden_cabinet_1 main_table_cabinet_region)": true,
+    "(On flat_stove_1 main_table_stove_region)": true,
+    "(On wine_rack_1 main_table_wine_rack_region)": true
+  },
+  "initial_unwanted_contacts": [],
+  "initial_unwanted_support_contacts": [],
+  "object": "milk_1",
+  "target": "plate_1",
+  "controller_kp": [
+    150.0,
+    150.0,
+    150.0,
+    150.0,
+    150.0,
+    150.0
+  ],
+  "action": {
+    "steps": 274,
+    "phases": [
+      {
+        "phase": "settle",
+        "steps": 20,
+        "eef_error_m": 0.0009,
+        "object_position_m": [
+          -0.04042762743791398,
+          0.21598312668963074,
+          0.9697209546027004
+        ],
+        "goal": false
+      },
+      {
+        "phase": "approach",
+        "steps": 34,
+        "eef_error_m": 0.006,
+        "object_position_m": [
+          -0.04042762743791398,
+          0.21598312668963074,
+          0.9697209546027022
+        ],
+        "goal": false
+      },
+      {
+        "phase": "lower",
+        "steps": 26,
+        "eef_error_m": 0.0066,
+        "object_position_m": [
+          -0.04042762743791398,
+          0.21598312668963074,
+          0.9697209546027022
+        ],
+        "goal": false
+      },
+      {
+        "phase": "grasp",
+        "steps": 35,
+        "eef_error_m": 0.0029,
+        "object_position_m": [
+          -0.03895046157017194,
+          0.21630203232229422,
+          0.969389162157163
+        ],
+        "goal": false
+      },
+      {
+        "phase": "lift",
+        "steps": 28,
+        "eef_error_m": 0.0073,
+        "object_position_m": [
+          -0.04084441177670296,
+          0.2153324663226858,
+          1.1394639489852574
+        ],
+        "goal": false
+      },
+      {
+        "phase": "transfer",
+        "steps": 36,
+        "eef_error_m": 0.0061,
+        "object_position_m": [
+          0.05476904745284971,
+          -0.00981067653307478,
+          1.0922706136021512
+        ],
+        "goal": false
+      },
+      {
+        "phase": "place",
+        "steps": 17,
+        "eef_error_m": 0.0059,
+        "object_position_m": [
+          0.0538842808217779,
+          -0.016105198575089706,
+          0.9840686683046764
+        ],
+        "goal": false
+      },
+      {
+        "phase": "release",
+        "steps": 30,
+        "eef_error_m": 0.0004,
+        "object_position_m": [
+          0.053719624019001586,
+          -0.015656801724936442,
+          0.9781327501411979
+        ],
+        "goal": true
+      },
+      {
+        "phase": "retreat",
+        "steps": 18,
+        "eef_error_m": 0.0068,
+        "object_position_m": [
+          0.053787376501595326,
+          -0.01629979643140049,
+          0.9781259373129247
+        ],
+        "goal": true
+      },
+      {
+        "phase": "verify",
+        "steps": 30,
+        "eef_error_m": 0.0001,
+        "object_position_m": [
+          0.053787540542272055,
+          -0.016299357732823472,
+          0.9781258305996516
+        ],
+        "goal": true
+      }
+    ],
+    "goal_after_robot_action": true,
+    "verification_steps": 30,
+    "goal_true_throughout_verification": true,
+    "gripper_released": true,
+    "grasp_confirmed": true,
+    "lift_height_m": 0.1697,
+    "direct_object_state_changes_during_action": false,
+    "video": "E_robot_action.mp4"
+  },
+  "final_metrics": {
+    "target_contact": true,
+    "base_on": true,
+    "centered_upright_on": true,
+    "xy_center_distance_m": 0.000707,
+    "milk_local_y_world_z": 0.999681
+  }
+}
