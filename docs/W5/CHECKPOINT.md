@@ -14,7 +14,7 @@
 2. **탁상 조작을 이미 안다** — 150개(계획서 6절)라는 적은 데이터에서는 가까운 데서 출발하는 편이 유리할 것이다
 3. **action 의미가 달라도 사전학습 이득이 남는다는 선례가 있다** — OpenVLA-OFT (4절)
 
-**걸리는 것** — 이 모델이 배운 action·proprio 는 Panda 기준이다. 유지할지((가)) 덮어쓸지((나))는 [CHECKLIST.md](CHECKLIST.md) 2-4·2-5 에서 정한다.
+**걸리는 것** — 이 모델이 배운 action·proprio 는 Panda 기준이다. 유지할지(action 번역) 덮어쓸지(action 재학습)는 [ACTION_MEANING.md](ACTION_MEANING.md) 에서 정했다 — **action 번역** (9/30).
 **어느 쪽이든 먼저 풀 것** — HF 에서 video model 저장소 약관 동의. tokenizer 가 거기 있어서 LIBERO 에서 출발해도 필요하다 (6절).
 
 ---
@@ -84,8 +84,8 @@ Cosmos-Predict2-2B-Video2World ──── LIBERO 데모로 전체 fine-tuning 
   - 7차원 action 틀이 같다
 - **잃는 것 / 걸리는 것**
   - action 의미가 Panda 기준이다 — 같은 값이 Mirobot 에서는 약 4배 크게 움직인다 ([CHECKLIST.md](CHECKLIST.md) 2-1)
-  - proprio 도 Panda 기준(파지점 위치 + 쿼터니언 + 손가락 2칸)이다. 위치·자세는 W3 변환으로 만들 수 있다 (파지점 기준, 9/30 회신). 손가락 2칸 vs Mirobot 서보 1개는 아직 정해지지 않았다
-  - 정규화 통계는 어느 쪽이든 Mirobot 데이터로 새로 잡는다 — LIBERO 통계를 그대로 쓰는 것은 (가) 뿐이다
+  - proprio 도 Panda 기준(파지점 위치 + 쿼터니언 + 손가락 2칸)이다. 위치·자세는 좌표 변환(`common/workspace.py`·`rotation.py`)으로 만들 수 있다 (파지점 기준, 9/30 회신). 손가락 2칸 vs Mirobot 서보 1개는 아직 정해지지 않았다
+  - 정규화 통계는 어느 쪽이든 Mirobot 데이터로 새로 잡는다 — LIBERO 통계를 그대로 쓰는 것은 action 번역뿐이다
 
 ### video model 에서 출발하면
 
@@ -108,7 +108,7 @@ Cosmos-Predict2-2B-Video2World ──── LIBERO 데모로 전체 fine-tuning 
 | action | **상대 end-effector** | **절대 관절각** |
 
 이렇게 다 다른데도 태스크당 20~300 데모로 fine-tuning 해 **처음부터 학습한 ACT·Diffusion Policy 보다 높았다.**
-→ action 의미를 덮어써도(우리의 (나)) 사전학습 이득이 남을 수 있다.
+→ action 의미를 덮어써도(우리의 action 재학습) 사전학습 이득이 남을 수 있다.
 
 **Cosmos Policy 안에서는 선례가 없다** — 세 checkpoint 모두 video model 에서 따로 출발했고, 공식 문서에도 새 로봇을
 어느 checkpoint 에서 시작하라는 안내가 없다. OpenVLA-OFT 는 action 을 MLP head 로 내고 Cosmos 는 latent 에 채우므로,
@@ -143,7 +143,7 @@ Cosmos-Predict2-2B-Video2World ──── LIBERO 데모로 전체 fine-tuning 
 
 ## 관련 문서
 
-- [CHECKLIST.md](CHECKLIST.md) — 2-3 이 이 문서의 작업 목록, 2-4·2-5 가 (가)·(나), 7절 곁가지가 HF 접근
+- [CHECKLIST.md](CHECKLIST.md) — 2-3 이 이 문서의 작업 목록, 2-4·2-5 가 action 번역·재학습, 7절 곁가지가 HF 접근
 - [../MODELS.md](../MODELS.md) — 가중치 받는 법, 캐시 위치
 - [../plan/UROP_프로젝트_계획.md](../plan/UROP_프로젝트_계획.md) — 2절 자원, 4절 정책 선택·자원 제약, 6절 액션 표현·데이터 예산
 - [../PAPERS.md](../PAPERS.md) — Cosmos Policy 논문
