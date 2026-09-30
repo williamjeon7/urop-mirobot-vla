@@ -1,6 +1,6 @@
 # Custom Task 실행 파일
 
-5.2의 Panda 초기 자세와 6~9장의 검증을 재현하는 코드와 BDDL이다. 실행 원본은 `../LIBERO/`에 있다. [8장 결과](../images/custom_task_validation/)와 [9장 결과](../images/extended_task_validation/)의 GIF는 실제 MP4 프레임으로 만든 미리보기다.
+5.2의 Panda 초기 자세와 6~9장의 검증을 재현하는 코드와 BDDL이다. 실행 원본은 `../LIBERO/`에 있다. [8장 결과](../images/custom_task_validation/)와 [9장 결과](../images/extended_task_validation/)의 GIF는 실제 MP4 프레임으로 만든 미리보기다. `test_tabletop_configuration.py`는 9.5.6의 작업대 크기 설정과 초기화를 확인한다.
 
 `libero` conda 환경은 [본문의 설치 절차](../NewTaskBDDL.md)에 따라 준비한다. 새로 받은 상위 저장소에 LIBERO 코드가 없으면 아래 조건부 명령으로 받는다. 이미 설치된 LIBERO가 있으면 같은 경로에 검증 파일을 복원한다. 9장 실행 코드는 새 물체·Fixture·Predicate·환경 모듈을 가져와 등록한다.
 
@@ -23,6 +23,7 @@ python test_panda_initial_pose.py
 python test_custom_task_variants.py --task both --size 512
 python test_extended_custom_tasks.py --case all --size 512
 python test_custom_predicate_conditions.py
+python test_tabletop_configuration.py
 python export_custom_task_media.py --chapter both --ffmpeg 'FFmpeg 실행 파일 경로'
 ```
 

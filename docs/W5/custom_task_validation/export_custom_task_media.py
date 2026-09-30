@@ -153,6 +153,7 @@ def source_paths():
         "test_custom_task_variants.py", "export_custom_task_media.py",
         "test_panda_initial_pose.py", "test_extended_custom_tasks.py",
         "test_custom_predicate_conditions.py",
+        "test_tabletop_configuration.py",
         "test_custom_bddl.py", "test_panda_drawer_action.py", "test_panda_drawer_info.py",
         "custom_tasks/custom_test.bddl",
         "custom_tasks/custom_goal_change.bddl", "custom_tasks/custom_milk_task.bddl",
@@ -162,6 +163,7 @@ def source_paths():
         "libero/libero/envs/objects/custom_validation_fixtures.py",
         "libero/libero/envs/problems/libero_custom_support.py",
         "libero/libero/envs/problems/libero_custom_camera_control.py",
+        "libero/libero/envs/problems/libero_tabletop_manipulation.py",
         "libero/libero/envs/predicates/custom_validation_predicates.py",
         "libero/libero/assets/custom_validation_objects/marker_box.xml",
         "libero/libero/assets/custom_validation_objects/raised_support.xml",
@@ -173,6 +175,9 @@ def reference_paths():
     filenames = (
         "LICENSE",
         "libero/libero/envs/predicates/base_predicates.py",
+        "libero/libero/envs/robots/mounted_panda.py",
+        "libero/libero/envs/robots/__init__.py",
+        "libero/libero/envs/arenas/table_arena.py",
         "libero/libero/envs/objects/hope_objects.py",
         "libero/libero/envs/bddl_base_domain.py",
         "libero/libero/envs/env_wrapper.py",
@@ -195,7 +200,7 @@ def export_sources(snapshots, reference_snapshots):
         destination.write_bytes(contents)
     readme = """# Custom Task 실행 파일
 
-5.2의 Panda 초기 자세와 6~9장의 검증을 재현하는 코드와 BDDL이다. 실행 원본은 `../LIBERO/`에 있다. [8장 결과](../images/custom_task_validation/)와 [9장 결과](../images/extended_task_validation/)의 GIF는 실제 MP4 프레임으로 만든 미리보기다.
+5.2의 Panda 초기 자세와 6~9장의 검증을 재현하는 코드와 BDDL이다. 실행 원본은 `../LIBERO/`에 있다. [8장 결과](../images/custom_task_validation/)와 [9장 결과](../images/extended_task_validation/)의 GIF는 실제 MP4 프레임으로 만든 미리보기다. `test_tabletop_configuration.py`는 9.5.6의 작업대 크기 설정과 초기화를 확인한다.
 
 `libero` conda 환경은 [본문의 설치 절차](../NewTaskBDDL.md)에 따라 준비한다. 새로 받은 상위 저장소에 LIBERO 코드가 없으면 아래 조건부 명령으로 받는다. 이미 설치된 LIBERO가 있으면 같은 경로에 검증 파일을 복원한다. 9장 실행 코드는 새 물체·Fixture·Predicate·환경 모듈을 가져와 등록한다.
 
@@ -218,6 +223,7 @@ python test_panda_initial_pose.py
 python test_custom_task_variants.py --task both --size 512
 python test_extended_custom_tasks.py --case all --size 512
 python test_custom_predicate_conditions.py
+python test_tabletop_configuration.py
 python export_custom_task_media.py --chapter both --ffmpeg 'FFmpeg 실행 파일 경로'
 ```
 
