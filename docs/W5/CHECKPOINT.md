@@ -1,6 +1,6 @@
 # 출발 가중치 — LIBERO policy 냐 video model 이냐
 
-> **설계** · 확인 2026-09-30 · 기준 `cosmos-policy@18a2acc`, 논문 arXiv 2601.16163v1, HuggingFace 모델 카드(9/30)
+> **설계** · 확인 2026-09-30 · **갱신 2026-10-01** · 기준 `cosmos-policy@18a2acc`, 논문 arXiv 2601.16163v1, HuggingFace 모델 카드(9/30)
 > fine-tuning 을 시작할 가중치 두 후보(`Cosmos-Policy-LIBERO-Predict2-2B`, `Cosmos-Predict2-2B-Video2World`)가 무엇이고 어떻게 다른지, 우리는 어느 쪽에서 출발하는지.
 
 작업 목록은 [CHECKLIST.md](CHECKLIST.md) 2-3절이다. 여기는 **비교와 판단의 근거**를 둔다.
@@ -138,6 +138,17 @@ Cosmos-Predict2-2B-Video2World ──── LIBERO 데모로 전체 fine-tuning 
 - **9/28 의 `GatedRepoError: 401` 은 이 tokenizer 에서 났을 가능성이 있다** — 추정이다. LIBERO policy 모델 카드에는 gated 표시가 없다.
   [../W4/CHECKLIST.md](../W4/CHECKLIST.md) 9절 곁가지는 "LIBERO policy 가 gated" 로 적었는데, 서버 로그(`codex_robot_icl_20260928/summary.json`)에서 **어느 파일을 받다 막혔는지** 확인한다
 - **할 일** — HF 계정으로 video model 저장소 약관에 동의하고, 서버에 토큰을 둔다. 어느 출발점이든 이게 먼저다
+
+**→ 확인하고 풀었다 (10/1).**
+
+- **추정이 맞았다** — 9/28 로그(`codex_robot_icl_20260928/summary.json`)의 막힌 주소는
+  `…/Cosmos-Predict2-2B-Video2World/resolve/main/tokenizer/tokenizer.pth` 다
+- **원인은 승인이 아니라 로그인이었다** — 서버에 토큰이 아예 없었다(`~/.cache/huggingface/token` 없음, `HF_TOKEN` 없음).
+  저장소는 `gated="auto"` 라 약관 동의 즉시 열린다. LIBERO policy 는 `gated=False`
+- 약관 동의 + `huggingface-cli login` 뒤 tokenizer(507.6MB)를 받았다
+- **policy 를 실제로 돌리면 받는 것은 셋**이다 — 출발 가중치 3.7GB, tokenizer 0.5GB, 베이스 `model-480p-16fps.pt` 3.9GB.
+  `…libero__inference_only` config 가 베이스 video model 을 먼저 세우고 그 위에 policy 가중치를 얹는다
+- 그 뒤 LIBERO-Spatial 10태스크 × 1회 **10/10** — [PIPELINE.md](PIPELINE.md) 3-2
 
 ---
 
