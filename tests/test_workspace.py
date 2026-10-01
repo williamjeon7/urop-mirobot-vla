@@ -28,8 +28,13 @@ from common.workspace import (
     mirobot_grip_to_flange_mm,
     mirobot_to_libero_flange_m,
     mirobot_to_libero_xyz_m,
+    MAPPINGS,
+    mirobot_home_mm,
+    pair_marker,
     point_marker,
+    read_pair_marker,
     read_point_marker,
+    resolve_mapping,
 )
 
 # 9/17 libero_90[7] 안정 후 플랜지 위치 (m, 월드) — 값 자체보다 "기준점" 역할이다
@@ -156,6 +161,55 @@ def test_point_marker():
         assert read_point_marker(f"; LIBERO → Mirobot\n{point_marker(point)}\nG90\n") == point
     old = "; F = x축 180°, 플랜지 ↔ 플랜지, scale 1.0, orientation absolute\nG90\nM20\n"
     assert read_point_marker(old) is None and LEGACY_POINT == "flange"
+
+
+def test_pair_maps_start_to_pair():
+    """짝을 옮기면 Panda 시작 자세가 그 짝(파지점)으로 간다 — 홈이 아니다 (10/1)."""
+    pair = (120.0, 0.0, MIROBOT_HOME_GRIP_MM[2])
+    q_mirobot = libero_to_mirobot_quat(PANDA_START_QUAT)
+    mm = libero_to_mirobot_flange_mm(PANDA_START_FLANGE_M, PANDA_START_QUAT, q_mirobot,
+                                     PANDA_START_FLANGE_M, PANDA_START_QUAT, ref_mirobot_mm=pair)
+    assert close(mirobot_flange_to_grip_mm(mm, q_mirobot), pair)
+    # 짝을 안 주면 예전 그대로 홈
+    mm_home = libero_to_mirobot_flange_mm(PANDA_START_FLANGE_M, PANDA_START_QUAT, q_mirobot,
+                                          PANDA_START_FLANGE_M, PANDA_START_QUAT)
+    assert close(mirobot_flange_to_grip_mm(mm_home, q_mirobot), MIROBOT_HOME_GRIP_MM)
+
+
+def test_pair_and_scale_round_trip():
+    """후보 짝·배율로 나갔다 들어와도 제자리 — 짝을 옮겨도 변위는 짝을 중심으로 늘고 준다."""
+    ref, scale = resolve_mapping("candidate", "grip")
+    p = (-0.05, 0.22, 1.05)
+    q_libero = quat_mul(euler_xyz_deg_to_quat(10.0, -5.0, 30.0), PANDA_START_QUAT)
+    q_mirobot = libero_to_mirobot_quat(q_libero)
+    mm = libero_to_mirobot_flange_mm(p, q_libero, q_mirobot, PANDA_START_FLANGE_M, PANDA_START_QUAT,
+                                     scale=scale, ref_mirobot_mm=ref)
+    got = mirobot_to_libero_flange_m(mm, q_mirobot, q_libero, PANDA_START_FLANGE_M, PANDA_START_QUAT,
+                                     scale=scale, ref_mirobot_mm=ref)
+    assert close(got, p, 1e-12)
+    # 파지점 변위는 정확히 배율만큼 줄어 짝에 더해진다
+    d_panda = [(a - b) * 1000 for a, b in zip(flange_to_grip(p, q_libero),
+                                               flange_to_grip(PANDA_START_FLANGE_M, PANDA_START_QUAT))]
+    grip = mirobot_flange_to_grip_mm(mm, q_mirobot)
+    assert close(grip, [r + scale * d for r, d in zip(ref, d_panda)], 1e-9)
+
+
+def test_pair_marker():
+    """새 파일은 짝·배율을 머리말에 적고, 표시 없는 옛 파일은 홈과 옛 설명 줄의 scale(없으면 1)로 읽는다."""
+    ref, scale = resolve_mapping("candidate", "grip")
+    got = read_pair_marker(f"; point grip\n{pair_marker(ref, scale)}\nG90\n", "grip")
+    assert close(got[0], ref, 1e-6) and abs(got[1] - scale) < 1e-12
+    assert read_pair_marker("; F = x축 180°, scale 0.8, orientation absolute\n; point grip\n", "grip") == \
+        (MIROBOT_HOME_GRIP_MM, 0.8)
+    assert read_pair_marker("; point flange\nG90\n", "flange") == (MIROBOT_HOME_MM, 1.0)
+    assert resolve_mapping("home", "flange") == (mirobot_home_mm("flange"), 1.0)
+    try:
+        resolve_mapping("candidate", "flange")  # 후보는 파지점 기준으로 정한 값이다
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("flange 에 candidate 를 허용하면 안 된다")
+    assert MAPPINGS["home"] == (None, 1.0)
 
 
 if __name__ == "__main__":

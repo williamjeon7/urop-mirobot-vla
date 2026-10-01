@@ -48,6 +48,7 @@ from common.workspace import (
     flange_to_grip,
     grip_to_flange,
     mirobot_to_libero_flange_m,
+    read_pair_marker,
     read_point_marker,
 )
 
@@ -76,13 +77,17 @@ def point_of_gcode(path: Path, override: str | None = None) -> tuple[str, bool]:
 
 
 def targets_from_gcode(path: Path, ref_flange_m, ref_quat, orientation: str = "absolute", point: str = LEGACY_POINT):
-    """Mirobot G-code → LIBERO 목표. 기준점은 "Mirobot 홈 ↔ 지금 Panda 시작 자세" (LIBERO_AXES.md 4절).
+    """Mirobot G-code → LIBERO 목표. 기준점은 "Mirobot 쪽 짝 ↔ 지금 Panda 시작 자세" (LIBERO_AXES.md 4절).
+
+    Mirobot 쪽 짝과 배율은 머리말 `; pair …` 에서 읽는다 — 없으면 홈·배율 1 (10/1 전 파일).
+    만든 쪽과 다른 짝·배율로 읽으면 궤적 전체가 옮겨지거나 늘고 준다.
 
     `ref_quat` 는 지금 Panda 시작 자세다. **relative** 면 G-code 의 자세를 "시작 자세로부터의 회전" 으로 보고
     거기에 얹고, absolute 면 `q ⊗ F`. `tools/libero_to_mirobot_gcode.py --orientation` 과 같은 뜻이고,
     파일을 만든 쪽과 읽는 쪽이 어긋나면 시작 기울기만큼(3.3°) 전체가 어긋난다.
     `point` 도 같다 — 파지점끼리 만든 파일을 플랜지로 읽으면 자세에 따라 최대 42mm 어긋난다.
     """
+    ref_mirobot, scale = read_pair_marker(path.read_text(encoding="utf-8"), point)
     out = []
     for label, command in parse_file(path):
         pose = pose_of(command)
@@ -90,7 +95,8 @@ def targets_from_gcode(path: Path, ref_flange_m, ref_quat, orientation: str = "a
             continue
         q_mirobot = euler_xyz_deg_to_quat(*pose[3:6])
         q_libero = quat_mul(q_mirobot, ref_quat) if orientation == "relative" else mirobot_to_libero_quat(q_mirobot)
-        p_flange = mirobot_to_libero_flange_m(pose[:3], q_mirobot, q_libero, ref_flange_m, ref_quat, point)
+        p_flange = mirobot_to_libero_flange_m(pose[:3], q_mirobot, q_libero, ref_flange_m, ref_quat, point,
+                                              scale, ref_mirobot)
         out.append((label or f"wp{len(out) + 1}", p_flange, q_libero))
     return out
 

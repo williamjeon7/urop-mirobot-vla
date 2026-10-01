@@ -34,13 +34,15 @@ from common.rotation import (
     quat_xyzw_to_wxyz,
 )
 from common.workspace import (
+    DEFAULT_MAPPING,
     DEFAULT_POINT,
-    MIROBOT_HOME_GRIP_MM,
-    MIROBOT_HOME_MM,
+    MAPPINGS,
     POINTS,
     libero_to_mirobot_flange_mm,
     mirobot_to_libero_flange_m,
+    pair_marker,
     point_marker,
+    resolve_mapping,
 )
 
 REACH_WARN_MM = 280.0  # 수평 거리. Mirobot 도달 약 315mm (9/14 미팅 메모) — 여유를 둔다
@@ -55,11 +57,20 @@ def angle_deg(q1, q2) -> float:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--log", type=Path, help="롤아웃 jsonl. 없으면 data/compound/ 의 최신")
-    parser.add_argument("--scale", type=float, default=1.0, help="위치 변위에만 곱한다")
+    parser.add_argument("--mapping", choices=sorted(MAPPINGS), default=DEFAULT_MAPPING,
+                        help="Mirobot 쪽 짝과 배율 (common/workspace.py MAPPINGS). candidate 는 10/1 후보 — 실물 확인 전")
+    parser.add_argument("--scale", type=float, help="배율만 덮어쓴다 — 위치 변위에만 곱한다 (짝은 --mapping 그대로)")
     parser.add_argument("--orientation", choices=("absolute", "relative"), default="absolute")
     parser.add_argument("--point", choices=POINTS, default=DEFAULT_POINT,
                         help="어느 점끼리 맞추나. flange 는 9/28 까지의 궤적과 같은 방식")
     args = parser.parse_args()
+    try:
+        ref_mirobot, scale = resolve_mapping(args.mapping, args.point)
+    except ValueError as e:
+        raise SystemExit(str(e))
+    if args.scale is not None:
+        scale = args.scale
+    args.scale = scale  # 아래 검산·출력이 이 값을 쓴다
 
     log = args.log or Path(sorted(glob.glob("data/compound/*.jsonl"))[-1])
     rows = [json.loads(line) for line in log.open()]
@@ -78,12 +89,13 @@ def main() -> None:
             return mirobot_to_libero_quat(q_mirobot)
         return quat_mul(q_mirobot, q_ref_libero)
 
-    pair = (f"파지점 ↔ 파지점, Panda 시작 ↔ Mirobot 홈 파지점 {MIROBOT_HOME_GRIP_MM}" if args.point == "grip"
-            else f"플랜지 ↔ 플랜지, Panda 시작 ↔ Mirobot 홈 {MIROBOT_HOME_MM}")
+    which = "파지점 ↔ 파지점" if args.point == "grip" else "플랜지 ↔ 플랜지"
+    pair = f"{which}, Panda 시작 ↔ Mirobot {tuple(round(v, 2) for v in ref_mirobot)} (짝 {args.mapping})"
     lines = [f"; LIBERO → Mirobot  {log}",
              f"; task {meta['task']}  segments {[s[0] for s in meta['segments']]}",
              f"; F = x축 180°, {pair}, scale {args.scale}, orientation {args.orientation}",
              point_marker(args.point),  # 읽는 쪽(libero_follow · roundtrip_check · drift_check)이 이 줄로 점을 안다
+             pair_marker(ref_mirobot, scale),  # 짝과 배율도 — 10/1 전 파일에는 없고, 없으면 홈·배율 1
              "G90", "M20"]
     print(f"{log}  —  waypoint {len(wps)}개, scale {args.scale}, orientation {args.orientation}, "
           f"point {args.point}\n")
@@ -94,7 +106,7 @@ def main() -> None:
         q_libero = quat_xyzw_to_wxyz(tuple(w["flange_quat_xyzw"]))
         q_mirobot = to_mirobot_quat(q_libero)
         xyz = libero_to_mirobot_flange_mm(w["flange_pos"], q_libero, q_mirobot, ref_pos, q_ref_libero,
-                                          args.point, args.scale)
+                                          args.point, args.scale, ref_mirobot)
         abc = quat_to_euler_xyz_deg(q_mirobot)
         xyz_r, abc_r = tuple(round(v, 2) for v in xyz), tuple(round(v, 2) for v in abc)  # 파일에 쓰는 값
 
@@ -102,7 +114,7 @@ def main() -> None:
         q_mirobot_r = euler_xyz_deg_to_quat(*abc_r)
         q_back = back_to_libero_quat(q_mirobot_r)
         p_back = mirobot_to_libero_flange_m(xyz_r, q_mirobot_r, q_back, ref_pos, q_ref_libero,
-                                            args.point, args.scale)
+                                            args.point, args.scale, ref_mirobot)
         e_pos = math.dist(p_back, w["flange_pos"]) * 1000 * args.scale
         e_rot = angle_deg(q_back, q_libero)
         worst_pos, worst_rot = max(worst_pos, e_pos), max(worst_rot, e_rot)

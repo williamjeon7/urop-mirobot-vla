@@ -41,6 +41,7 @@ from common.workspace import (
     flange_to_grip,
     grip_to_flange,
     mirobot_to_libero_flange_m,
+    read_pair_marker,
     read_point_marker,
 )
 from tools.roundtrip_check import angle_deg
@@ -97,6 +98,7 @@ def read_targets(gcode: Path, start_flange_m, start_quat, orientation: str = "ab
     맞게 옮겼는지는 아래 `check_self` 가 기록의 `gap_mm`·`gap_deg` 와 대 봐서 확인한다.
     `start_quat`(Panda 시작 자세)는 relative 이거나 파지점 기준일 때만 쓴다 — 옛 플랜지·absolute 기록은 None 이어도 된다.
     """
+    ref_mirobot, scale = read_pair_marker(gcode.read_text(encoding="utf-8"), point)  # 없으면 홈·배율 1
     out = []
     for label, command in parse_file(gcode):
         pose = pose_of(command)
@@ -104,7 +106,7 @@ def read_targets(gcode: Path, start_flange_m, start_quat, orientation: str = "ab
             continue
         q_mirobot = euler_xyz_deg_to_quat(*pose[3:6])
         q = quat_mul(q_mirobot, start_quat) if orientation == "relative" else mirobot_to_libero_quat(q_mirobot)
-        p = mirobot_to_libero_flange_m(pose[:3], q_mirobot, q, start_flange_m, start_quat, point)
+        p = mirobot_to_libero_flange_m(pose[:3], q_mirobot, q, start_flange_m, start_quat, point, scale, ref_mirobot)
         out.append((label or f"wp{len(out) + 1}", p, q))
     return out
 
