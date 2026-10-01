@@ -1,6 +1,6 @@
 # W5 — 작업 목록
 
-> **절차** · 확인 2026-09-29 · **갱신 2026-09-30** · 기준 `cosmos-policy@18a2acc`, `RosForMirobot-master@8a60a4c`, 9/28 보고
+> **절차** · 확인 2026-09-29 · **갱신 2026-10-01** · 기준 `cosmos-policy@18a2acc`, `RosForMirobot-master@8a60a4c`, 9/28 보고
 > 9/28 보고에서 정한 이번 주 계획 — pretrained model 의 action 의미를 Mirobot 에 어떻게 맞출지 먼저 정하고, 그 결과로 LIBERO 환경 구성 두 방향(9/21 action plan 2·3번)을 조사·비교한다. `→` 뒤 빈칸은 **미리 채우지 않는다**.
 
 계획 원문은 [../meetings/2026-09-28/Seokhwan action plan.md](../meetings/2026-09-28/Seokhwan%20action%20plan.md), 2·3번 원문은 [../meetings/2026-09-21.md](../meetings/2026-09-21.md) 에 있다.
@@ -22,20 +22,20 @@ W4 에서 넘어온 것은 [../W4/CHECKLIST.md](../W4/CHECKLIST.md) 9절이 목�
 **①~④ 에는 실물이 필요 없다.** 로봇 쪽 일은 7절에 모여 있다 — 기록 옮기기, `L` 재측정, 실물 Hz 재기(7-2).
 계획서 로드맵의 W5(파일럿 10 에피소드)와는 다르다 — 방향은 미팅이 정한다 ([../README.md](../README.md)).
 
-### 지금 상태 (9/30)
+### 지금 상태 (10/1)
 
 | | 어디까지 | 다음 |
 |---|---|---|
-| ① | **action 번역으로 정했다 (9/30)** — LIBERO policy 에서 출발하고(2-3), Panda 의 action 뜻을 유지한 채 실행 때 번역한다. 비교와 근거는 [ACTION_MEANING.md](ACTION_MEANING.md) 3·4절 | 번역기(서버의 시뮬 Panda) 연결 코드와 끝까지 도는지 확인 (서버 7-1), 계획서 6절 문구 |
-| ②③④ | ① 의 답으로 **시뮬에 세울 로봇은 Panda** — ② 의 로봇 모델 작업이 빠지고 **장면 만들기만** 남았다 (3절) | 장면을 새로 만드나, 기존 장면을 고쳐 쓰나 |
-| 교수님 회신 | **파지점 기준으로 전환 끝** (코드·테스트·문서, 7절) | 서버에서 한 번 돌려 보기, `L` 재측정 |
-| 서버 작업 | **모아서 한 번에** 한다 — 7-1 | ① 을 정한 뒤 |
+| ① | **action 번역으로 정했다 (9/30).** **서버에서 policy 와 번역기가 각각 돈다 (10/1)** — policy LIBERO-Spatial 10/10, 번역기 action 1157개 → G0 1157줄 경고 0. 진행은 [PIPELINE.md](PIPELINE.md) | **정책이 낸 action 을 번역기에** (같은 장면·초기 상태로 — PIPELINE 4-1), 계획서 6절 문구 |
+| ②③④ | ① 의 답으로 **시뮬에 세울 로봇은 Panda** — ② 의 로봇 모델 작업이 빠지고 **장면 만들기만** 남았다 (3절). **동료 조사 자료를 받아서 진행한다 (10/1)** | 자료 받기 |
+| 교수님 회신 | **파지점 기준으로 전환 끝 — 서버에서도 확인 (10/1, 7절)** | `L` 재측정 (실물) |
+| 서버 작업 | **7-1 의 서버 항목 대부분 끝 (10/1)** — 남은 것은 ②③ 조사와 기록이 와야 하는 것 | 7-1 |
 
 ### 한 줄 요약 — 끝나면 채운다
 
 | | 한 줄 |
 |---|---|
-| ① | **LIBERO policy 에서 출발해 action 번역 — Panda 의 action 뜻을 유지하고 실행 때 번역기로 Mirobot 에 옮긴다.** Mirobot 시뮬 모델은 만들지 않는다. 번역기는 서버의 시뮬 Panda(robosuite) — 연결 코드와 확인이 남았다 |
+| ① | **LIBERO policy 에서 출발해 action 번역 — Panda 의 action 뜻을 유지하고 실행 때 번역기로 Mirobot 에 옮긴다.** Mirobot 시뮬 모델은 만들지 않는다. 번역기는 서버의 시뮬 Panda(robosuite) — **연결 코드 `tools/action_to_gcode.py` 가 돈다 (10/1).** 정책 action 으로 돌리는 것이 남았다 |
 | ② | |
 | ③ | |
 | ④ | |
@@ -143,14 +143,21 @@ fine-tuning 은 이미 학습된 가중치를 초기값으로 두고 우리 데�
   [ACTION_MEANING.md](ACTION_MEANING.md) 1-9
   - 번역기는 16개를 **순서대로** 돌리며 속도를 다음 action 과 다음 chunk 로 넘긴다 — 시뮬 Panda 가 스스로 들고 있다.
     Mirobot 에서 속도를 잴 필요는 없다 (Mirobot 은 속도를 재지 못한다 — `?` 는 펄스 카운터의 계산값)
-- [ ] **연결 코드** — action 을 시뮬 Panda 에 넣고 손 자세를 읽어 좌표 변환으로 넘긴다. `tools/libero_follow.py` 와 비슷한 틀이다 (서버)
+- [x] **연결 코드** — action 을 시뮬 Panda 에 넣고 손 자세를 읽어 좌표 변환으로 넘긴다. `tools/libero_follow.py` 와 비슷한 틀이다 (서버)
   - 시뮬 Panda 와 실물 Mirobot 이 어긋나면(클램핑·도달 실패) 다음 chunk 전에 시뮬 Panda 를 Mirobot 의 실제 자세로 다시 데려다 놓는다
-  → 
-- [ ] **끝까지 도는지 확인 (서버, 7-1)** — `data/follow/*.jsonl` 에 기록된 action 열을 시뮬 Panda 에 넣고, 읽은 자세를 좌표 변환해
+  → **`tools/action_to_gcode.py` (10/1).** 환경은 `libero_follow` 와 같고, 변환은 `libero_to_mirobot_gcode` 와 같은 함수(`libero_to_mirobot_flange_mm`)를 쓴다.
+  입력은 세 형식 — jsonl · eval HDF5(`--data_collection True`) · eval 화면 출력. G-code 머리말에 `; point grip`, 줄마다 `; c<chunk>s<step>`.
+  `--every N` 으로 솎는다. **같은 action 을 다시 넣으면 기록된 자세와 차이 0.000mm** — 시뮬이 결정론적이다.
+  - [ ] **chunk 사이 다시 맞추기는 아직 없다 — 지금은 열린 고리다.** 무엇으로 맞출지부터 정해야 한다(`?` 는 측정이 아니다) → [PIPELINE.md](PIPELINE.md) 4-2
+- [x] **끝까지 도는지 확인 (서버, 7-1)** — `data/follow/*.jsonl` 에 기록된 action 열을 시뮬 Panda 에 넣고, 읽은 자세를 좌표 변환해
   Mirobot 명령이 범위 안에 나오는지 `--dry-run` 으로 본다
+  → **돈다 (10/1).** 9/28 A 궤적 추종 기록의 action **1157개 → G0 1157줄** (`trajectories/2026_10_01-translated-mirobot-origin-x4.gcode`).
+  수평 최대 **250.9mm**(경고선 280), 각도 최대 **25.1°**(30), Z 최저 173.0mm. **`--dry-run` 경고 없음**
+  - **다만 이 action 은 정책 출력이 아니다** — 추종 루프가 만든 얌전한 action 이라 **배관 확인**이다. 정책 action 은 위치 성분이
+    ±0.95 까지 간다(PIPELINE 3-4). **정책 action 으로 다시 — 같은 장면·초기 상태로 돌려야 한다** → [PIPELINE.md](PIPELINE.md) 4-1
   - (대안을 쓸 때만) 가상 spring-damper 가 같은 action 에서 시뮬 Panda 와 얼마나 맞는지 — 단순한 경우(두 스텝 6.7mm, 20스텝 115mm,
     한 번 주면 5.9mm 에서 선다)는 로컬에서, 실제 궤적은 서버에서. 판단은 16스텝(chunk 하나) 끝의 차이
-  → 
+  → **하지 않았다 (10/1)** — 시뮬 Panda 번역기가 서버에서 돌므로 대안이 필요 없다. 로봇 노트북 단독으로 돌려야 할 일이 생기면 그때
 - [x] **fine-tuning 도 한다면 학습 라벨도 Panda 식이어야 한다** — Mirobot 데모를 "Panda 가 이 궤적을 따라가려면 받았을 action" 으로 바꾼다.
   그 도구도 있다 — `tools/libero_follow.py` 가 Mirobot 궤적을 Panda 로 따라가며 스텝마다 action 을 남긴다.
   **단 시간축이 안 맞는다** — 도착을 확인하고 넘어가는 방식이라 스텝 수가 Mirobot 기록과 다르다
@@ -344,7 +351,13 @@ action 재학습이어도 실물 배치의 기준과 시뮬 평가에 쓴다. �
   - 확인 — `tests.test_workspace` 11개 통과(파지점 7개 추가), `test_rotation` 13 · `test_servo` 6 통과.
     9/17 absolute 궤적을 `--point flange` 로 다시 만들면 **옛 G-code 와 G0 7줄이 모두 같다**. 같은 궤적을 grip 으로 만들면
     Mirobot 플랜지 명령이 waypoint 마다 0.29~10.55mm 달라진다 (시작 대비 기운 각에 `ΔL` 이 곱해진 몫)
-  - **LIBERO 가 있는 서버에서는 아직 안 돌렸다** — `libero_follow --gcode` 로 grip 파일을 한 번 따라가 보는 것이 남았다
+  - ~~**LIBERO 가 있는 서버에서는 아직 안 돌렸다**~~ → **서버에서 확인했다 (10/1)** — [PIPELINE.md](PIPELINE.md) 3-1
+    - 테스트 30개 통과 (`test_workspace` 11 · `test_rotation` 13 · `test_servo` 6), **서버 scipy 로 T12 도 돈다**
+    - 옛 기록 `drift_check` — 머리말 없는 파일이 **`point flange`** 로 읽혀 끝에서 끝 **2.092mm · 2.496mm · 0.346°**, 전환 전과 같다
+    - grip G-code(9/17 absolute) — 머리말 `; point grip`, 자세는 그대로이고 위치만 기운 각에 따라 0.3~10.3mm 달라진다.
+      `libero_follow` 로 **7/7 도착**(137스텝, 최대 1.90mm · 0.34°), 끝에서 끝 **1.898mm** = 추종 잔차 → 변환 왕복 손실은 반올림 수준
+    - `roundtrip_check compare`(9/20 실물) — **최대 0.30mm · 0.05°**, 기존 값 그대로
+    - [ ] `roundtrip_check` 끝의 설명 문구가 *"자세 오차가 **9.7cm** 아래에서 벌어진 몫"* 이라 Panda 길이만 말한다. 파지점 기준에서는 Mirobot 55mm 도 걸린다 — 문구만
 - [ ] **Mirobot `L` 을 캘리퍼스로 다시 잰다** — 지금 55mm 는 자로 잰 값이고 ±5mm 다(W3 8절). 파지점 기준에서는 이 값이
   변환식에 들어가는데, **왕복 검증으로는 안 보인다** — 나갈 때와 들어올 때 같은 `L` 을 써서 상쇄된다(`F` 와 같은 구조).
   잰 값은 `common/workspace.py` `MIROBOT_FLANGE_TO_GRIP_M` 한 곳만 바꾸면 된다 (실물 필요)
@@ -360,7 +373,15 @@ action 재학습이어도 실물 배치의 기준과 시뮬 평가에 쓴다. �
   **2-3 의 둘째 출발점 `Cosmos-Predict2-2B-Video2World` 도 받을 수 있는지** 같이 확인한다
   - **9/30 확인 — tokenizer 가 video model 저장소(gated)에 있다.** LIBERO policy 에서 출발해도 받아야 하고, 401 이 여기서 났을 가능성이 있다 (추정).
     서버 로그에서 어느 파일을 받다 막혔는지 본다 → [CHECKPOINT.md](CHECKPOINT.md) 6절
-  → 
+  → **풀었다 (10/1).** 막힌 파일은 **`Cosmos-Predict2-2B-Video2World/tokenizer/tokenizer.pth`** — 추정이 맞았다.
+  원인은 권한이 아니라 **서버에 토큰이 아예 없던 것**(익명 요청). 그 저장소는 `gated="auto"` 라 약관 동의 즉시 열리고, LIBERO policy 는 `gated=False`.
+  약관 동의 + `huggingface-cli login`(계정 `Williamjeon7`, read) 뒤 받았다.
+  - [MODELS.md](../MODELS.md) 의 "9/9 에 캐시에 있다" 도 맞았다 — 출발 가중치 3.7GB 는 그대로 있었고, 없던 것은 tokenizer 다
+  - **policy 를 돌리면 받는 것은 셋**이다 — 출발 가중치 3.7GB · tokenizer 0.5GB · **베이스 video model `model-480p-16fps.pt` 3.9GB**
+    (`…libero__inference_only` config 가 베이스를 먼저 세운다). 같은 실행이 쓰지 않는 **ALOHA 체크포인트도** 받았다 (config 레지스트리, 추정)
+  - **그 결과 policy 가 서버에서 처음 돌았다** — LIBERO-Spatial 10태스크 × 1회 **10/10 성공**, action 1019개 → [PIPELINE.md](PIPELINE.md) 3-2
+  - **둘째 출발점 `Cosmos-Predict2-2B-Video2World` 도 받을 수 있다** — 같은 저장소다
+  - [ ] [../W4/CHECKLIST.md](../W4/CHECKLIST.md) 9절 곁가지의 "LIBERO policy 가 gated" 는 **틀린 진단**이었다 — 거기 한 줄 정정
 - [ ] **계획서 6절 로깅 스키마의 "관절각 명령값 / 실측값 분리"** — W4 ④ 4절 이후로 `?` 는 실측이 아니라 펄스 카운터의 계산값이다.
   "필드 하나가 빠지면 재수집 외에 복구 불가" 라고 적힌 목록이라 **수집(W6) 전에** 문구와 실제로 남길 값을 고친다
   → 
@@ -369,10 +390,14 @@ action 재학습이어도 실물 배치의 기준과 시뮬 평가에 쓴다. �
 
 **9/30 정함** — 서버 작업은 따로따로 가지 않고 모아서 한다. action 번역·재학습이 정해져야 할지 말지가 갈리는 것이 있어서다.
 
-- [ ] **번역기 연결 코드와 끝까지 도는지 확인** (2-4) — action → 시뮬 Panda → 좌표 변환 → G-code `--dry-run`. **action 번역으로 정했으니 반드시** (9/30)
-- [ ] **HF 401 — 어느 파일을 받다 막혔나** (위 곁가지, [CHECKPOINT.md](CHECKPOINT.md) 6절)
-- [ ] **파지점 전환을 서버에서 한 번** — `libero_follow --gcode` 로 grip 파일 따라가기, 옛 로그로 `drift_check`, `roundtrip_check compare`
+- [x] **번역기 연결 코드와 끝까지 도는지 확인** (2-4) — action → 시뮬 Panda → 좌표 변환 → G-code `--dry-run`. **action 번역으로 정했으니 반드시** (9/30)
+  → **돈다 (10/1)** — 2-4. 남은 것은 **정책 action 으로**(같은 장면·초기 상태) → [PIPELINE.md](PIPELINE.md) 4-1
+- [x] **HF 401 — 어느 파일을 받다 막혔나** (위 곁가지, [CHECKPOINT.md](CHECKPOINT.md) 6절)
+  → **tokenizer, 토큰 없음. 풀었고 policy 가 10/10 으로 돈다 (10/1)** — 위 곁가지
+- [x] **파지점 전환을 서버에서 한 번** — `libero_follow --gcode` 로 grip 파일 따라가기, 옛 로그로 `drift_check`, `roundtrip_check compare`
+  → **셋 다 맞는다 (10/1)** — 7절 파지점 항목
 - [ ] **②③ 조사** — robosuite·LIBERO 의 로봇 정의 파일 (4-2), LIBERO-Object 장면 치수 (5-1)
+  → **동료 조사 자료를 받아서 진행한다 (10/1).** LIBERO-Object 장면 치수(작업대 크기, 물체 범위, 로봇 베이스 위치, 탁상/바닥)도 거기서
 - [ ] (기록을 옮겨 왔으면) `F` 수치화, `Z` 98 waypoint — 위 첫 항목
 
 ### 7-2. 수집(W6) 전에 — 시간 맞추기
@@ -407,6 +432,7 @@ action 재학습이어도 실물 배치의 기준과 시뮬 평가에 쓴다. �
 - [../meetings/2026-09-28/Seokhwan action plan.md](../meetings/2026-09-28/Seokhwan%20action%20plan.md) — 9/28 보고와 이번 주 계획 원문
 - [../meetings/2026-09-28/Professor reply.md](../meetings/2026-09-28/Professor%20reply.md) — 손끝이냐 플랜지냐 회신 (파지점, 9/30)
 - [../meetings/2026-09-21.md](../meetings/2026-09-21.md) — 9/21 action plan 2·3번 원문
+- [PIPELINE.md](PIPELINE.md) — **policy 에서 Mirobot 까지 — 번역기를 만들고 돌린 기록** (10/1~)
 - [CHECKPOINT.md](CHECKPOINT.md) — 출발 가중치 두 후보 비교와 판단 (2-3)
 - [../W4/CHECKLIST.md](../W4/CHECKLIST.md) 9절 — W4 에서 넘어온 목록
 - [../W3/CONTROL.md](../W3/CONTROL.md) — 두 로봇이 명령을 받아 움직이는 방식, Panda 를 목표까지 보내는 세 방식(3절)
