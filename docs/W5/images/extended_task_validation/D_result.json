@@ -6,20 +6,20 @@
   "camera": "agentview",
   "initial_goal": false,
   "initial_on_checks": {
-    "(On wine_bottle_1 main_table_wine_bottle_region)": true,
-    "(On akita_black_bowl_1 main_table_akita_black_bowl_region)": true,
-    "(On plate_1 main_table_plate_region)": true,
-    "(On cream_cheese_1 main_table_cream_cheese_region)": true,
     "(On milk_1 main_table_milk_region)": true,
-    "(On wooden_cabinet_1 main_table_cabinet_region)": true,
-    "(On flat_stove_1 main_table_stove_region)": true,
-    "(On wine_rack_1 main_table_wine_rack_region)": true,
     "(On raised_support_1 main_table_support_region)": true
   },
   "initial_unwanted_contacts": [],
   "initial_unwanted_support_contacts": [],
   "object": "milk_1",
   "target": "raised_support_1_top_region",
+  "objects": [
+    "milk_1"
+  ],
+  "fixtures": [
+    "raised_support_1"
+  ],
+  "workspace": "main_table",
   "controller_kp": [
     150.0,
     150.0,
@@ -29,26 +29,26 @@
     150.0
   ],
   "action": {
-    "steps": 290,
+    "steps": 294,
     "phases": [
       {
         "phase": "settle",
         "steps": 20,
         "eef_error_m": 0.0009,
         "object_position_m": [
-          -0.040427627437913984,
-          0.21598312668963074,
+          -0.04072673907254867,
+          0.20766878578181183,
           0.9697209546027004
         ],
         "goal": false
       },
       {
         "phase": "approach",
-        "steps": 34,
-        "eef_error_m": 0.006,
+        "steps": 32,
+        "eef_error_m": 0.007,
         "object_position_m": [
-          -0.040427627437913984,
-          0.21598312668963074,
+          -0.04072673907254867,
+          0.20766878578181183,
           0.9697209546027022
         ],
         "goal": false
@@ -56,10 +56,10 @@
       {
         "phase": "lower",
         "steps": 26,
-        "eef_error_m": 0.0066,
+        "eef_error_m": 0.0072,
         "object_position_m": [
-          -0.040427627437913984,
-          0.21598312668963074,
+          -0.04072673907254867,
+          0.20766878578181183,
           0.9697209546027022
         ],
         "goal": false
@@ -67,65 +67,65 @@
       {
         "phase": "grasp",
         "steps": 35,
-        "eef_error_m": 0.0029,
+        "eef_error_m": 0.003,
         "object_position_m": [
-          -0.038950461583644125,
-          0.2163020323127282,
-          0.9693891621491294
+          -0.039060280550139576,
+          0.20802186841518716,
+          0.9694337916115688
         ],
         "goal": false
       },
       {
         "phase": "lift",
         "steps": 28,
-        "eef_error_m": 0.0073,
+        "eef_error_m": 0.0072,
         "object_position_m": [
-          -0.040844985042920764,
-          0.21537467037275584,
-          1.1394639931325738
+          -0.041016278281226864,
+          0.2070917098334939,
+          1.1395037889446307
         ],
         "goal": false
       },
       {
         "phase": "transfer",
         "steps": 26,
-        "eef_error_m": 0.0072,
+        "eef_error_m": 0.0075,
         "object_position_m": [
-          0.09548486946818599,
-          0.12969363514292803,
-          1.1372665804778743
+          0.09521773979985114,
+          0.14784225556362512,
+          1.1373822776031892
         ],
         "goal": false
       },
       {
         "phase": "place",
-        "steps": 31,
-        "eef_error_m": 0.0072,
+        "steps": 37,
+        "eef_error_m": 0.008,
         "object_position_m": [
-          0.10642579419120367,
-          0.1309436907389889,
-          1.0168706341712759
+          0.1072986688249414,
+          0.14919141253828283,
+          1.0169451300722057
         ],
         "goal": false
       },
       {
         "phase": "release",
         "steps": 30,
-        "eef_error_m": 0.0014,
+        "eef_error_m": 0.0011,
         "object_position_m": [
-          0.10019473755347452,
-          0.12961800410083504,
-          1.0097420289401928
+          0.10027868452594908,
+          0.1477067670903622,
+          1.0097420289401942
         ],
         "goal": true
       },
       {
         "phase": "retreat",
         "steps": 20,
-        "eef_error_m": 0.0071,
+        "eef_error_m": 0.0063,
         "object_position_m": [
-          0.1001947375534645,
-          0.12961800410083565,
+          0.10027868452593565,
+          0.14770676709036862,
           1.0097420289401982
         ],
         "goal": true
@@ -133,10 +133,10 @@
       {
         "phase": "verify",
         "steps": 40,
-        "eef_error_m": 0.0004,
+        "eef_error_m": 0.0007,
         "object_position_m": [
-          0.10019473755345062,
-          0.12961800410083565,
+          0.10027868452592177,
+          0.14770676709036862,
           1.0097420289401982
         ],
         "goal": true
@@ -147,7 +147,7 @@
     "goal_true_throughout_verification": true,
     "gripper_released": true,
     "grasp_confirmed": true,
-    "lift_height_m": 0.1697,
+    "lift_height_m": 0.1698,
     "direct_object_state_changes_during_action": false,
     "video": "D_robot_action.mp4"
   },

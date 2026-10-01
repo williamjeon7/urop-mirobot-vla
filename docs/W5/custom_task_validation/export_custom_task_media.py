@@ -1,4 +1,5 @@
-"""Export verified section-8/9 recordings and source files to the parent Git repository."""
+# -*- coding: utf-8 -*-
+"""Export verified recordings and source files to the parent document folders."""
 
 import argparse
 import json
@@ -12,9 +13,17 @@ import tempfile
 ROOT = Path(__file__).resolve().parent
 BUNDLE = ROOT.parent / "custom_task_validation"
 CHAPTERS = {
-    "8": {"folder": "custom_task_validation", "cases": {"A": (40, 7), "B": (30, 8)}},
+    "8": {"folder": "custom_task_validation", "cases": {"A": (40, 2), "B": (30, 2)}},
     "9": {"folder": "extended_task_validation", "cases": {
-        "C": (30, 8), "D": (40, 9), "E": (30, 8), "F": (30, 8)}},
+        "C": (30, 2), "D": (40, 2), "E": (30, 2), "F": (30, 2)}},
+}
+SCENES = {
+    "A": ({"plate_1"}, {"flat_stove_1"}),
+    "B": ({"milk_1", "plate_1"}, set()),
+    "C": ({"custom_marker_box_1", "plate_1"}, set()),
+    "D": ({"milk_1"}, {"raised_support_1"}),
+    "E": ({"milk_1", "plate_1"}, set()),
+    "F": ({"milk_1", "plate_1"}, set()),
 }
 
 
@@ -35,7 +44,11 @@ def validate_results(chapter="both"):
             result = json.loads(snapshot.decode("utf-8"))
             action = result.get("action", {})
             checks = result.get("initial_on_checks", {})
+            expected_objects, expected_fixtures = SCENES[task]
             valid = (result.get("task") == task and result.get("initial_goal") is False
+                     and set(result.get("objects", [])) == expected_objects
+                     and set(result.get("fixtures", [])) == expected_fixtures
+                     and result.get("workspace") == "main_table"
                      and len(checks) == expected_on_count
                      and all(value is True for value in checks.values())
                      and result.get("initial_unwanted_contacts") == []
@@ -151,7 +164,8 @@ def make_gif(ffmpeg, video, destination):
 def source_paths():
     filenames = (
         "test_custom_task_variants.py", "export_custom_task_media.py",
-        "test_panda_initial_pose.py", "test_extended_custom_tasks.py",
+        "test_panda_initial_pose.py", "test_libero_tabletop.py", "test_milk_source_scene.py",
+        "test_extended_custom_tasks.py",
         "test_custom_predicate_conditions.py",
         "test_tabletop_configuration.py",
         "test_custom_bddl.py", "test_panda_drawer_action.py", "test_panda_drawer_info.py",
@@ -182,6 +196,10 @@ def reference_paths():
         "libero/libero/envs/bddl_base_domain.py",
         "libero/libero/envs/env_wrapper.py",
         "libero/libero/bddl_files/libero_object/pick_up_the_milk_and_place_it_in_the_basket.bddl",
+        "libero/libero/bddl_files/libero_90/LIVING_ROOM_SCENE2_pick_up_the_milk_and_put_it_in_the_basket.bddl",
+        "libero/libero/assets/stable_hope_objects/milk/milk.xml",
+        "libero/libero/bddl_files/libero_goal/open_the_middle_drawer_of_the_cabinet.bddl",
+        "libero/libero/bddl_files/libero_goal/push_the_plate_to_the_front_of_the_stove.bddl",
     )
     return [ROOT / filename for filename in filenames]
 
@@ -200,7 +218,10 @@ def export_sources(snapshots, reference_snapshots):
         destination.write_bytes(contents)
     readme = """# Custom Task 실행 파일
 
-5.2의 Panda 초기 자세와 6~9장의 검증을 재현하는 코드와 BDDL이다. 실행 원본은 `../LIBERO/`에 있다. [8장 결과](../images/custom_task_validation/)와 [9장 결과](../images/extended_task_validation/)의 GIF는 실제 MP4 프레임으로 만든 미리보기다. `test_tabletop_configuration.py`는 9.5.6의 작업대 크기 설정과 초기화를 확인한다.
+5장의 책상·Panda 초기 장면과 6~9장의 검증을 재현하는 코드와 BDDL이다. 실행 원본은 `../LIBERO/`에 있다. 각 Task에는 필요한 물체·Fixture만 남겼다.
+[8장 결과](../images/custom_task_validation/)와 [9장 결과](../images/extended_task_validation/)의 GIF는 실제 MP4 프레임으로 만든 미리보기다.
+`test_milk_source_scene.py`는 우유 출처를 설명하는 공식 Tabletop 장면을 원래 구성대로 렌더링한다.
+`test_tabletop_configuration.py`는 9.5.6의 작업대 크기 설정과 초기화를 확인한다. 전체 과정의 요약은 문서의 10장에 있다.
 
 `libero` conda 환경은 [본문의 설치 절차](../NewTaskBDDL.md)에 따라 준비한다. 새로 받은 상위 저장소에 LIBERO 코드가 없으면 아래 조건부 명령으로 받는다. 이미 설치된 LIBERO가 있으면 같은 경로에 검증 파일을 복원한다. 9장 실행 코드는 새 물체·Fixture·Predicate·환경 모듈을 가져와 등록한다.
 
@@ -220,6 +241,10 @@ Copy-Item "$taskBundle\\libero\\libero\\*" "$liberoRoot\\libero\\libero\\" -Recu
 conda activate libero
 cd $liberoRoot
 python test_panda_initial_pose.py
+python test_libero_tabletop.py
+python test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record --predicate-test
+python test_panda_drawer_action.py --headless --size 512 --seed 0
+python test_milk_source_scene.py
 python test_custom_task_variants.py --task both --size 512
 python test_extended_custom_tasks.py --case all --size 512
 python test_custom_predicate_conditions.py
@@ -230,6 +255,44 @@ python export_custom_task_media.py --chapter both --ffmpeg 'FFmpeg 실행 파일
 FFmpeg가 PATH에 있거나 `imageio-ffmpeg`가 설치돼 있으면 `--ffmpeg`를 생략한다. `--chapter 8` 또는 `--chapter 9`로 해당 장의 결과만 내보낼 수 있다. 내보내기는 초기 상태와 실제 Panda 동작 후의 Goal·파지·해제·유지 조건이 모두 통과한 결과에만 실행된다.
 """
     (BUNDLE / "README.md").write_text(readme, encoding="utf-8")
+
+
+def export_initial_and_drawer_media(ffmpeg):
+    """Export chapters 5-7 and the unmodified source scene used to explain milk."""
+    media = ROOT / "images"
+    monitoring = json.loads((media / "custom_bddl_result.json").read_text(encoding="utf-8"))
+    drawer = json.loads((media / "panda_drawer_action_result.json").read_text(encoding="utf-8"))
+    for result in (monitoring, drawer):
+        scene = result["scene"]
+        if (scene["objects"] or scene["fixtures"] != ["wooden_cabinet_1"]
+                or result["initial_goal"] or not all(result["initial_checks"].values())):
+            raise RuntimeError("The minimal drawer scene has not been verified.")
+    action = drawer["action"]
+    if (not action["goal_after_robot_action"]
+            or not action["goal_true_throughout_verification"]
+            or not action["grasp_confirmed"] or not action["gripper_released"]
+            or action["direct_object_state_changes_during_action"]):
+        raise RuntimeError("The drawer robot action did not pass verification.")
+    for name in ("custom_bddl_monitoring", "custom_bddl_predicate_test", "panda_drawer_action"):
+        video = media / (name + ".mp4")
+        encode_h264(ffmpeg, video)
+        make_gif(ffmpeg, video, media / (name + ".gif"))
+    names = (
+        "panda_initial_pose.png", "custom_bddl_test.png", "libero_live_agentview.png",
+        "bddl_zero_action_test.png", "custom_bddl_goal_test.png", "custom_bddl_result.json",
+        "custom_bddl_monitoring.mp4", "custom_bddl_monitoring.gif",
+        "custom_bddl_predicate_test.mp4", "custom_bddl_predicate_test.gif",
+        "panda_drawer_action_initial.png", "panda_drawer_action_result.png",
+        "panda_drawer_action.mp4", "panda_drawer_action.gif",
+        "panda_drawer_action_result.json", "panda_drawer_info.json",
+        "milk_source_scene.png", "milk_source_scene.json",
+    )
+    shared = ROOT.parent / "images"
+    shared.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        shutil.copy2(str(media / name), str(shared / name))
+    shutil.copy2(str(ROOT / "libero_tabletop_test.png"), str(shared / "libero_tabletop_test.png"))
+    print("Exported initial, drawer, and milk source recordings to {}".format(shared), flush=True)
 
 
 def main():
@@ -265,6 +328,7 @@ def main():
             if source.is_file() and source.suffix.lower() in (".png", ".json", ".mp4", ".gif"):
                 shutil.copy2(str(source), str(shared_media / source.name))
         print("Exported recordings to {}".format(shared_media), flush=True)
+    export_initial_and_drawer_media(ffmpeg)
     export_sources(sources, references)
     print("Exported source files to {}".format(BUNDLE), flush=True)
 

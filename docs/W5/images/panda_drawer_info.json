@@ -1,0 +1,45 @@
+{
+  "scene": {
+    "objects": [],
+    "fixtures": [
+      "wooden_cabinet_1"
+    ],
+    "regions": [
+      "main_table_cabinet_region",
+      "wooden_cabinet_1_middle_region"
+    ],
+    "objects_section_empty": true
+  },
+  "eef_position_m": [
+    -0.2084646605658236,
+    0.0,
+    1.1732794757296403
+  ],
+  "initial_goal": false,
+  "initial_checks": {
+    "(on wooden_cabinet_1 main_table_cabinet_region)": true,
+    "(close wooden_cabinet_1_middle_region)": true
+  },
+  "drawer_joint": "wooden_cabinet_1_middle_level",
+  "drawer_joint_range_m": [
+    -0.16,
+    0.01
+  ],
+  "drawer_joint_qpos_m": 0.0019172075941288886,
+  "drawer_joint_local_axis": [
+    0.0,
+    1.0,
+    0.0
+  ],
+  "drawer_joint_world_axis": [
+    -1.2246467991473532e-16,
+    -1.0,
+    0.0
+  ],
+  "handle_geom": "wooden_cabinet_1_g29",
+  "handle_position_m": [
+    0.0386145007616533,
+    -0.1397293091990708,
+    1.01541
+  ]
+}

@@ -221,6 +221,13 @@ def run_one(task, seed, size):
     try:
         env.seed(seed)
         obs = env.reset()
+        expected_objects = {"plate_1"} if task == "A" else {"plate_1", "milk_1"}
+        # LIBERO implements main_table as the arena and omits it from fixtures_dict.
+        expected_fixtures = {"flat_stove_1"} if task == "A" else set()
+        if (set(env.env.objects_dict) != expected_objects
+                or set(env.env.fixtures_dict) != expected_fixtures
+                or env.env.workspace_name != "main_table"):
+            raise RuntimeError("Task {} must contain only its required scene elements.".format(task))
         initial = bool(env.check_success())
         if TASKS[task][1] not in env.env.objects_dict:
             raise RuntimeError("Missing object: {}".format(TASKS[task][1]))
@@ -264,6 +271,8 @@ def run_one(task, seed, size):
                 "initial_on_checks": initial_on_checks,
                 "initial_unwanted_contacts": unwanted_contacts,
                 "objects": list(env.env.objects_dict),
+                "fixtures": list(env.env.fixtures_dict),
+                "workspace": env.env.workspace_name,
                 "action": action_result, "predicate_probe": predicate_result}
     finally:
         env.close()
@@ -286,10 +295,14 @@ def main():
         path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(result, ensure_ascii=False, indent=2), flush=True)
         action = result["action"]
-        if (result["initial_goal"] or not all(result["initial_on_checks"].values())
+        if (result["initial_goal"] or not result["initial_region_valid"]
+                or len(result["initial_on_checks"]) != 2
+                or not all(result["initial_on_checks"].values())
+                or result["initial_unwanted_contacts"]
                 or not action["goal_after_robot_action"]
                 or not action["goal_true_throughout_verification"]
-                or not action["gripper_released"]):
+                or not action["gripper_released"]
+                or not result["predicate_probe"]["goal_after_direct_state_change"]):
             raise RuntimeError("Task {} did not reach its goal through robot actions.".format(task))
         if task == "B" and (not action["grasp_confirmed"] or action["lift_height_m"] < 0.1):
             raise RuntimeError("Milk was not grasped and lifted before placement.")

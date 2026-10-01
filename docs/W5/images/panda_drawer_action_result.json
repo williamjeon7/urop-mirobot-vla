@@ -1,0 +1,85 @@
+{
+  "bddl": "custom_tasks/custom_test.bddl",
+  "seed": 0,
+  "camera_size": 512,
+  "scene": {
+    "objects": [],
+    "fixtures": [
+      "wooden_cabinet_1"
+    ],
+    "regions": [
+      "main_table_cabinet_region",
+      "wooden_cabinet_1_middle_region"
+    ],
+    "objects_section_empty": true
+  },
+  "initial_goal": false,
+  "initial_checks": {
+    "(on wooden_cabinet_1 main_table_cabinet_region)": true,
+    "(close wooden_cabinet_1_middle_region)": true
+  },
+  "initial_drawer_joint_m": 0.0019172075941288886,
+  "action": {
+    "steps": 369,
+    "phases": [
+      {
+        "phase": "Above handle",
+        "steps": 75,
+        "joint_qpos_m": -1.8463300070222053e-05,
+        "goal": false
+      },
+      {
+        "phase": "Before handle",
+        "steps": 29,
+        "joint_qpos_m": -1.8463300070222053e-05,
+        "goal": false
+      },
+      {
+        "phase": "Approach handle",
+        "steps": 20,
+        "joint_qpos_m": -1.8463300070222053e-05,
+        "goal": false
+      },
+      {
+        "phase": "Close gripper",
+        "steps": 30,
+        "joint_qpos_m": -0.0009505785756152102,
+        "goal": false
+      },
+      {
+        "phase": "Pull drawer",
+        "steps": 144,
+        "joint_qpos_m": -0.1408326946879206,
+        "goal": true
+      },
+      {
+        "phase": "Release",
+        "steps": 20,
+        "joint_qpos_m": -0.14153782093044004,
+        "goal": true
+      },
+      {
+        "phase": "Retreat",
+        "steps": 21,
+        "joint_qpos_m": -0.14153782094472414,
+        "goal": true
+      },
+      {
+        "phase": "Verify",
+        "steps": 30,
+        "joint_qpos_m": -0.14153782094472414,
+        "goal": true
+      }
+    ],
+    "goal_after_robot_action": true,
+    "final_drawer_joint_m": -0.14153782094472414,
+    "grasp_confirmed": true,
+    "gripper_released": true,
+    "verification_steps": 30,
+    "goal_true_throughout_verification": true,
+    "direct_object_state_changes_during_action": false,
+    "control_frequency_hz": 20,
+    "video_frequency_hz": 10,
+    "video": "images\\panda_drawer_action.mp4"
+  }
+}

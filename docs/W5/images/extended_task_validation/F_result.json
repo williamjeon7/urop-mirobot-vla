@@ -6,19 +6,19 @@
   "camera": "custom_overview",
   "initial_goal": false,
   "initial_on_checks": {
-    "(On wine_bottle_1 main_table_wine_bottle_region)": true,
-    "(On akita_black_bowl_1 main_table_akita_black_bowl_region)": true,
     "(On plate_1 main_table_plate_region)": true,
-    "(On cream_cheese_1 main_table_cream_cheese_region)": true,
-    "(On milk_1 main_table_milk_region)": true,
-    "(On wooden_cabinet_1 main_table_cabinet_region)": true,
-    "(On flat_stove_1 main_table_stove_region)": true,
-    "(On wine_rack_1 main_table_wine_rack_region)": true
+    "(On milk_1 main_table_milk_region)": true
   },
   "initial_unwanted_contacts": [],
   "initial_unwanted_support_contacts": [],
   "object": "milk_1",
   "target": "plate_1",
+  "objects": [
+    "plate_1",
+    "milk_1"
+  ],
+  "fixtures": [],
+  "workspace": "main_table",
   "controller_kp": [
     180.0,
     180.0,
@@ -28,26 +28,26 @@
     180.0
   ],
   "action": {
-    "steps": 262,
+    "steps": 261,
     "phases": [
       {
         "phase": "settle",
         "steps": 20,
         "eef_error_m": 0.0005,
         "object_position_m": [
-          -0.040427627437913144,
-          0.21598312668963074,
+          -0.049422095887510335,
+          0.21136084662717491,
           0.9697209546027004
         ],
         "goal": false
       },
       {
         "phase": "approach",
-        "steps": 31,
-        "eef_error_m": 0.0066,
+        "steps": 30,
+        "eef_error_m": 0.0074,
         "object_position_m": [
-          -0.040427627437907766,
-          0.21598312668963074,
+          -0.04942209588750513,
+          0.21136084662717491,
           0.9697209546027022
         ],
         "goal": false
@@ -55,10 +55,10 @@
       {
         "phase": "lower",
         "steps": 24,
-        "eef_error_m": 0.0063,
+        "eef_error_m": 0.006,
         "object_position_m": [
-          -0.0404276274379036,
-          0.21598312668963074,
+          -0.04942209588750097,
+          0.21136084662717491,
           0.9697209546027022
         ],
         "goal": false
@@ -66,11 +66,11 @@
       {
         "phase": "grasp",
         "steps": 35,
-        "eef_error_m": 0.0029,
+        "eef_error_m": 0.0028,
         "object_position_m": [
-          -0.038936716550805,
-          0.21629844957825992,
-          0.9693277090362815
+          -0.04805703725147667,
+          0.21163656360739055,
+          0.9693058761062388
         ],
         "goal": false
       },
@@ -79,42 +79,42 @@
         "steps": 26,
         "eef_error_m": 0.0065,
         "object_position_m": [
-          -0.04074527359526681,
-          0.2153171971331297,
-          1.140300061887671
+          -0.04979058308837289,
+          0.21068406832326647,
+          1.1403245725580646
         ],
         "goal": false
       },
       {
         "phase": "transfer",
         "steps": 33,
-        "eef_error_m": 0.0067,
+        "eef_error_m": 0.0059,
         "object_position_m": [
-          0.05463829578410658,
-          -0.009295195494091786,
-          1.0922335927149285
+          0.04526356837605864,
+          -0.01326159505026476,
+          1.0918910635886305
         ],
         "goal": false
       },
       {
         "phase": "place",
         "steps": 16,
-        "eef_error_m": 0.0048,
+        "eef_error_m": 0.0052,
         "object_position_m": [
-          0.05398748727714072,
-          -0.01610473427187545,
-          0.9830357432151373
+          0.04515290848517526,
+          -0.019214859923508153,
+          0.9834360629170549
         ],
         "goal": false
       },
       {
         "phase": "release",
         "steps": 30,
-        "eef_error_m": 0.0004,
+        "eef_error_m": 0.0003,
         "object_position_m": [
-          0.05367793624891498,
-          -0.015593125355341983,
-          0.9781222231977436
+          0.04506798799035813,
+          -0.01893068140055455,
+          0.9781535679208848
         ],
         "goal": true
       },
@@ -123,20 +123,20 @@
         "steps": 17,
         "eef_error_m": 0.0056,
         "object_position_m": [
-          0.05376774824451538,
-          -0.0162281321595228,
-          0.9781133770978214
+          0.04499153843373959,
+          -0.019478774008878715,
+          0.9781471504571977
         ],
         "goal": true
       },
       {
         "phase": "verify",
         "steps": 30,
-        "eef_error_m": 0.0002,
+        "eef_error_m": 0.0003,
         "object_position_m": [
-          0.05376791145516365,
-          -0.016227691625930414,
-          0.9781132701025338
+          0.04499172108328484,
+          -0.01947831173648467,
+          0.9781470362312021
         ],
         "goal": true
       }

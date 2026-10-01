@@ -1,0 +1,51 @@
+{
+  "bddl": "custom_tasks/custom_test.bddl",
+  "seed": 0,
+  "camera_size": 512,
+  "initial_goal": false,
+  "initial_checks": {
+    "(on wooden_cabinet_1 main_table_cabinet_region)": true,
+    "(close wooden_cabinet_1_middle_region)": true
+  },
+  "scene": {
+    "objects": [],
+    "fixtures": [
+      "wooden_cabinet_1"
+    ],
+    "regions": [
+      "main_table_cabinet_region",
+      "wooden_cabinet_1_middle_region"
+    ],
+    "objects_section_empty": true
+  },
+  "monitoring": {
+    "action_steps": 60,
+    "zero_actions_only": true,
+    "goal_after_monitoring": false,
+    "direct_state_changes_during_video": false,
+    "control_frequency_hz": 20,
+    "video": "images\\custom_bddl_monitoring.mp4"
+  },
+  "predicate_test": {
+    "direct_state_changes": true,
+    "part_of_robot_video": false,
+    "conditions": [
+      {
+        "state": "closed",
+        "joint_qpos_m": -1.8463300070222053e-05,
+        "goal": false
+      },
+      {
+        "state": "high_direction",
+        "joint_qpos_m": -0.0069999999999999785,
+        "goal": false
+      },
+      {
+        "state": "open_direction",
+        "joint_qpos_m": -0.14300000000000002,
+        "goal": true
+      }
+    ],
+    "video": "images\\custom_bddl_predicate_test.mp4"
+  }
+}

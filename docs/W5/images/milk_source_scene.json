@@ -1,0 +1,27 @@
+{
+  "source_bddl": "libero/libero/bddl_files/libero_90/LIVING_ROOM_SCENE2_pick_up_the_milk_and_put_it_in_the_basket.bddl",
+  "problem": "libero_living_room_tabletop_manipulation",
+  "language": "pick up the milk and put it in the basket",
+  "seed": 0,
+  "image": "milk_source_scene.png",
+  "milk_instance": "milk_1",
+  "milk_type": "milk",
+  "model_class": "Milk",
+  "objects": [
+    "alphabet_soup_1",
+    "basket_1",
+    "butter_1",
+    "cream_cheese_1",
+    "ketchup_1",
+    "milk_1",
+    "orange_juice_1",
+    "tomato_sauce_1"
+  ],
+  "milk_position_m": [
+    0.06495792821083618,
+    -0.10192603188735341,
+    0.48
+  ],
+  "initial_goal": false,
+  "scope": "Unmodified official source scene; reset and rendering only, no robot action."
+}

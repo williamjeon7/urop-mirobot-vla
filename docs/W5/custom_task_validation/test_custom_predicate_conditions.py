@@ -20,6 +20,10 @@ def main():
     try:
         env.seed(0)
         env.reset()
+        if (set(env.env.objects_dict) != {"milk_1", "plate_1"}
+                or set(env.env.fixtures_dict) != set()
+                or env.env.workspace_name != "main_table"):
+            raise RuntimeError("Predicate checks require only milk, plate and table.")
         # This is a predicate test, not the recorded Panda manipulation.
         base.probe_goal(env, "B")
         milk = env.env.object_states_dict["milk_1"]

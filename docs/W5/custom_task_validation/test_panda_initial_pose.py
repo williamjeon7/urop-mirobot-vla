@@ -106,7 +106,7 @@ def main():
         print("Tabletop height (m):", round(float(table_height), 3), flush=True)
         print("Task objects:", len(env.model.mujoco_objects), flush=True)
         print("Saved:", image, flush=True)
-        print("GitHub copy:", shared_image, flush=True)
+        print("Document copy:", shared_image, flush=True)
     finally:
         env.close()
 

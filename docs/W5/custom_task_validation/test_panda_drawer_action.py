@@ -1,144 +1,150 @@
+"""Open the minimal scene's middle drawer using Panda actions only."""
+
 import argparse
-import os
+import json
 
-os.environ["MUJOCO_GL"] = "wgl"
-
+import test_custom_bddl as validation
 import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from libero.libero.envs.env_wrapper import OffScreenRenderEnv
-
-
-JOINT_NAME = "wooden_cabinet_1_middle_level"
+JOINT_NAME = validation.JOINT_NAME
 HANDLE_GEOM = "wooden_cabinet_1_g29"
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--headless", action="store_true", help="OpenCV 창 없이 실행")
+    parser.add_argument("--headless", action="store_true", help="Run without an OpenCV window.")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--size", type=int, default=512)
     args = parser.parse_args()
-
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    env = OffScreenRenderEnv(
-        bddl_file_name=os.path.join(base_dir, "custom_tasks", "custom_test.bddl"),
-        camera_heights=128 if args.headless else 512,
-        camera_widths=128 if args.headless else 512,
-    )
-
+    env = validation.make_env(args.seed, args.size)
+    writer = None
     try:
-        env.seed(args.seed)
         obs = env.reset()
-        print("Initial goal success:", env.check_success())
-        if env.check_success():
-            raise RuntimeError("서랍이 닫힌 초기 상태에서 시작해야 합니다.")
-
+        initial_goal = bool(env.check_success())
+        scene = validation.scene_info(env)
+        initial_checks = validation.init_checks(env)
+        if initial_goal or not all(initial_checks.values()):
+            raise RuntimeError("Start with a correctly placed, closed middle drawer.")
+        validation.save_frame(validation.IMAGES / "panda_drawer_action_initial.png", obs,
+                              "Panda drawer action: initial | goal=False")
+        video_path = validation.IMAGES / "panda_drawer_action.mp4"
+        writer = validation.open_writer(video_path, args.size, fps=10)
+        writer.write(validation.frame_from(obs, "Panda drawer action: initial | goal=False"))
+        initial_joint = float(env.sim.data.get_joint_qpos(JOINT_NAME))
+        print("Initial goal success:", initial_goal, flush=True)
         joint_id = env.sim.model.joint_name2id(JOINT_NAME)
         body_id = env.sim.model.jnt_bodyid[joint_id]
         rotation = env.sim.data.body_xmat[body_id].reshape(3, 3)
         axis_world = rotation @ env.sim.model.jnt_axis[joint_id]
-        # 이 task는 joint qpos의 음수 방향으로 서랍이 열린다.
         opening_direction = -axis_world / np.linalg.norm(axis_world)
-
         handle_id = env.sim.model.geom_name2id(HANDLE_GEOM)
         handle_pos = env.sim.data.geom_xpos[handle_id].copy()
-        print("Handle position:", handle_pos)
-        print("Opening direction:", opening_direction)
-
-        # 손가락은 손잡이 위아래로 닫히고, 손끝은 서랍을 향한다.
+        print("Handle position:", handle_pos, flush=True)
+        print("Opening direction:", opening_direction, flush=True)
         tool_z = -opening_direction
         tool_x = np.array([0.0, 0.0, 1.0])
         tool_y = np.cross(tool_z, tool_x)
         target_rotation = np.column_stack((tool_x, tool_y, tool_z))
-
         step_count = 0
         eef_site_id = env.env.robots[0].eef_site_id
+        phases = []
+        verification_goals = []
+        grasp_confirmed = False
 
         def eef_rotation():
-            # obs의 eef_quat은 hand body 기준이며 grip_site와 회전 offset이 있다.
             return env.sim.data.site_xmat[eef_site_id].reshape(3, 3).copy()
 
         def step_toward(target, gripper, phase):
             nonlocal obs, step_count
-            # OSC_POSE는 정규화된 delta action을 받는다.
-            # 기본 output_max: 위치 0.05 m, 회전 0.5 rad.
-            current_rotation = eef_rotation()
-            rotation_error = Rotation.from_matrix(
-                target_rotation @ current_rotation.T
-            ).as_rotvec()
+            rotation_error = Rotation.from_matrix(target_rotation @ eef_rotation().T).as_rotvec()
             action = np.zeros(7, dtype=np.float32)
-            action[:3] = np.clip((target - obs["robot0_eef_pos"]) / 0.05, -0.4, 0.4)
-            action[3:6] = np.clip(rotation_error / 0.5, -0.4, 0.4)
+            action[:3] = np.clip((target - obs["robot0_eef_pos"]) / .05, -.4, .4)
+            action[3:6] = np.clip(rotation_error / .5, -.4, .4)
             action[6] = gripper
-            obs, reward, done, info = env.step(action)
+            obs, _, _, _ = env.step(action)
             step_count += 1
+            if phase == "Verify":
+                verification_goals.append(bool(env.check_success()))
+            if step_count % 2 == 0:
+                writer.write(validation.frame_from(obs, "{} | goal={}".format(phase, env.check_success())))
             if step_count % 25 == 0:
-                print(
-                    f"{phase} | Step: {step_count} | "
-                    f"Joint: {env.sim.data.get_joint_qpos(JOINT_NAME):.4f} | "
-                    f"Success: {env.check_success()}"
-                )
+                print("{} | Step: {} | Joint: {:.4f} | Success: {}".format(
+                    phase, step_count, env.sim.data.get_joint_qpos(JOINT_NAME), env.check_success()), flush=True)
             if not args.headless:
-                frame = cv2.cvtColor(obs["agentview_image"][::-1], cv2.COLOR_RGB2BGR)
-                cv2.putText(
-                    frame, f"{phase} | Success: {env.check_success()}", (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2,
-                )
-                cv2.imshow("Panda Drawer Action", frame)
+                cv2.imshow("Panda Drawer Action", validation.frame_from(obs, "{} | goal={}".format(
+                    phase, env.check_success())))
                 if cv2.waitKey(1) & 0xFF in (ord("q"), ord("Q"), 27):
                     raise KeyboardInterrupt
 
-        def move_to(target, gripper, phase, max_steps=200):
+        def move_to(target, gripper, phase, max_steps=200, hold=False):
+            target = np.asarray(target, dtype=float)
+            start_step = step_count
             for _ in range(max_steps):
                 step_toward(target, gripper, phase)
                 error = np.linalg.norm(target - obs["robot0_eef_pos"])
-                rotation_error = Rotation.from_matrix(
-                    target_rotation @ eef_rotation().T
-                ).magnitude()
-                if error < 0.015 and rotation_error < 0.12:
-                    return
-            raise RuntimeError(
-                f"{phase}: 목표 위치에 도달하지 못했습니다. "
-                f"EEF error={error:.4f} m, rotation error={rotation_error:.4f} rad"
-            )
+                rotation_error = Rotation.from_matrix(target_rotation @ eef_rotation().T).magnitude()
+                if not hold and error < .015 and rotation_error < .12:
+                    break
+            if not hold and (error >= .015 or rotation_error >= .12):
+                raise RuntimeError("{}: EEF error={:.4f} m, rotation error={:.4f} rad".format(
+                    phase, error, rotation_error))
+            phases.append({"phase": phase, "steps": step_count - start_step,
+                           "joint_qpos_m": float(env.sim.data.get_joint_qpos(JOINT_NAME)),
+                           "goal": bool(env.check_success())})
 
-        # 1. 손잡이 앞쪽 위에서 자세를 맞춘 뒤 서랍에 접근한다.
-        pregrasp = handle_pos + 0.10 * opening_direction
-        above = pregrasp + np.array([0.0, 0.0, 0.15])
-        move_to(above, -1.0, "Above handle")
-        move_to(pregrasp, -1.0, "Before handle")
-
-        # 2. 손잡이 중앙에 접근한 뒤 gripper를 닫는다.
-        grasp = handle_pos.copy()
-        move_to(grasp, -1.0, "Approach handle")
-        for _ in range(30):
-            step_toward(grasp, 1.0, "Close gripper")
-
-        # 3. 손잡이를 잡은 상태로 서랍의 opening 방향으로 당긴다.
+        pregrasp = handle_pos + .10 * opening_direction
+        above = pregrasp + np.array([0., 0., .15])
+        move_to(above, -1., "Above handle")
+        move_to(pregrasp, -1., "Before handle")
+        move_to(handle_pos, -1., "Approach handle")
+        move_to(handle_pos, 1., "Close gripper", max_steps=30, hold=True)
+        cabinet = env.env.fixtures_dict["wooden_cabinet_1"]
+        gripper = env.env.robots[0].gripper
+        # Check both finger pads against the middle drawer's handle geometry.
+        grasp_confirmed = bool(env.env._check_grasp(gripper, HANDLE_GEOM))
         start = obs["robot0_eef_pos"].copy()
-        for distance in np.linspace(0.0, 0.18, 180):
-            step_toward(start + distance * opening_direction, 1.0, "Pull drawer")
+        start_step = step_count
+        for distance in np.linspace(0., .18, 180):
+            step_toward(start + distance * opening_direction, 1., "Pull drawer")
             if env.check_success():
                 break
-
-        success = env.check_success()
-        print("Final drawer joint:", env.sim.data.get_joint_qpos(JOINT_NAME))
-        print("Final goal success:", success)
-        output_path = os.path.join(base_dir, "images", "panda_drawer_action_result.png")
-        frame = cv2.cvtColor(obs["agentview_image"][::-1], cv2.COLOR_RGB2BGR)
-        cv2.putText(
-            frame, f"Success: {success}", (10, 30),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2,
-        )
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        if not cv2.imwrite(output_path, frame):
-            raise RuntimeError("결과 이미지 저장 실패")
-        print("Saved:", output_path)
-        if not success:
-            raise RuntimeError("서랍 열기에 실패했습니다. 접근 위치와 grasp 상태를 확인하세요.")
-
+        phases.append({"phase": "Pull drawer", "steps": step_count - start_step,
+                       "joint_qpos_m": float(env.sim.data.get_joint_qpos(JOINT_NAME)),
+                       "goal": bool(env.check_success())})
+        if not env.check_success():
+            raise RuntimeError("The Panda action did not open the drawer.")
+        # Release and retreat, then verify the drawer stays open without hand support.
+        released_position = obs["robot0_eef_pos"].copy()
+        move_to(released_position, -1., "Release", max_steps=20, hold=True)
+        move_to(released_position + .10 * opening_direction + [0., 0., .12], -1., "Retreat")
+        move_to(obs["robot0_eef_pos"].copy(), -1., "Verify", max_steps=30, hold=True)
+        success = bool(env.check_success())
+        gripper_released = not bool(env.env.check_contact(gripper, cabinet))
+        if not success or not all(verification_goals) or not gripper_released or not grasp_confirmed:
+            raise RuntimeError("Final goal, grasp, release or stability check failed.")
+        validation.save_frame(validation.IMAGES / "panda_drawer_action_result.png", obs,
+                              "Panda drawer action complete | goal=True")
+        result = {"bddl": "custom_tasks/custom_test.bddl", "seed": args.seed,
+                  "camera_size": args.size, "scene": scene, "initial_goal": initial_goal,
+                  "initial_checks": initial_checks, "initial_drawer_joint_m": initial_joint,
+                  "action": {"steps": step_count, "phases": phases,
+                    "goal_after_robot_action": success,
+                    "final_drawer_joint_m": float(env.sim.data.get_joint_qpos(JOINT_NAME)),
+                    "grasp_confirmed": grasp_confirmed, "gripper_released": gripper_released,
+                    "verification_steps": len(verification_goals),
+                    "goal_true_throughout_verification": all(verification_goals),
+                    "direct_object_state_changes_during_action": False,
+                    "control_frequency_hz": 20, "video_frequency_hz": 10,
+                    "video": str(video_path.relative_to(validation.ROOT))}}
+        output = validation.IMAGES / "panda_drawer_action_result.json"
+        output.write_text(json.dumps(result, indent=2), encoding="utf-8")
+        print(json.dumps(result, indent=2), flush=True)
+        print("Saved:", output, flush=True)
     finally:
+        if writer is not None:
+            writer.release()
         env.close()
         cv2.destroyAllWindows()
 
@@ -147,4 +153,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("사용자가 실행을 종료했습니다.")
+        print("Stopped by user.", flush=True)

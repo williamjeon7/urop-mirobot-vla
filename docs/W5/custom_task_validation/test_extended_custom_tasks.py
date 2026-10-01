@@ -66,6 +66,12 @@ def run_case(case, seed, size, out):
     try:
         env.seed(seed)
         obs = env.reset()
+        expected_objects = {moving} if case == "D" else {moving, "plate_1"}
+        expected_fixtures = {"raised_support_1"} if case == "D" else set()
+        if (set(env.env.objects_dict) != expected_objects
+                or set(env.env.fixtures_dict) != expected_fixtures
+                or env.env.workspace_name != "main_table"):
+            raise RuntimeError("Case {} must contain only its required scene elements.".format(case))
         initial_goal = bool(env.check_success())
         initial_on = {}
         for condition in env.env.parsed_problem["initial_state"]:
@@ -73,7 +79,7 @@ def run_case(case, seed, size, out):
                 initial_on["(On {} {})".format(*condition[1:])] = bool(
                     env.env.object_states_dict[condition[2]].check_ontop(
                         env.env.object_states_dict[condition[1]]))
-        if initial_goal or not all(initial_on.values()):
+        if initial_goal or len(initial_on) != 2 or not all(initial_on.values()):
             raise RuntimeError("{} has an invalid initial state.".format(case))
         save_image(out / (case + "_initial.png"), obs, camera,
                    "{} initial | goal=False".format(case))
@@ -181,6 +187,8 @@ def run_case(case, seed, size, out):
             "initial_on_checks": initial_on, "initial_unwanted_contacts": unwanted_contacts,
             "initial_unwanted_support_contacts": support_contacts,
             "object": moving, "target": target_name,
+            "objects": list(env.env.objects_dict), "fixtures": list(env.env.fixtures_dict),
+            "workspace": env.env.workspace_name,
             "controller_kp": env.env.robots[0].controller.kp.tolist(),
             "action": {"steps": steps, "phases": phases,
                        "goal_after_robot_action": goal,

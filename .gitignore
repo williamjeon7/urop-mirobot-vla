@@ -44,6 +44,9 @@ checkpoints/
 *.mp4
 !docs/W5/images/custom_task_validation/*.mp4
 !docs/W5/images/extended_task_validation/*.mp4
+!docs/W5/images/custom_bddl_monitoring.mp4
+!docs/W5/images/custom_bddl_predicate_test.mp4
+!docs/W5/images/panda_drawer_action.mp4
 *.avi
 
 # ─────────────────────────────────────────────────────────────
