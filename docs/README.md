@@ -1,7 +1,7 @@
 # 문서 규칙과 목록
 UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행동 rollout trajectories를 모은 후 기존 VLA를 fine-tuning 하여 real-world task에서 deploy 및 실제상황에서도 vision input만으로 Task라도 달성하는것을 목표
 
-> **기준** · 확인 2026-09-20
+> **기준** · 확인 2026-10-01
 > 문서를 어디에 두고 어떻게 쓸지. 아래 목록이 이 저장소 문서의 색인이다.
 
 문서가 늘어나면 "이게 무슨 문서였지", "아직 맞는 내용인가"를 매번 열어서 판단하게 된다.
@@ -36,6 +36,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W5 | [W5/CHECKLIST.md](W5/CHECKLIST.md) | 9/28 보고에서 정한 **작업 목록** — action 의미 맞추기(선결), LIBERO 환경 구성 두 방향 비교, W4 에서 넘어온 것 |
 | W5 | [W5/CHECKPOINT.md](W5/CHECKPOINT.md) | **출발 가중치** — LIBERO policy vs video model 비교, 우리는 LIBERO policy 에서 출발 |
 | W5 | [W5/ACTION_MEANING.md](W5/ACTION_MEANING.md) | **action 의미** — (가) 실행 단계에서 환산 vs (나) fine-tuning 에서 재학습 |
+| W5 | [W5/D405_LIBERO_CAMERA.md](W5/D405_LIBERO_CAMERA.md) | **RGB 카메라 비교** — D405 공개 파라미터와 LIBERO 설정, 동일 상태 렌더링 비교, 기하·색·시간 보정과 검증 계획 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 

@@ -10,12 +10,12 @@
 
 작업명세서를 BDDL로 작성한 뒤, LIBERO가 내용을 해석해 환경을 구성한다. `env.reset()`으로 초기 상태를 만들고, `env.step(action)`으로 로봇을 움직이며, `env.check_success()`로 goal condition을 확인한다.
 
-1–4장은 설치, 5장은 책상과 Panda만 있는 초기 장면을 구성하는 준비 과정이다. 6–7번은 기존 서랍 Task로 로딩부터 실제 Panda 동작까지 확인하고, 8번은 같은 파이프라인에 변경한 BDDL 두 개를 넣어 새 Task를 검증한다. 9장은 새 물체·Fixture·Predicate·카메라와 제어 설정을 코드에 추가한 뒤 같은 검증 절차를 적용한다. 10장은 5장의 초기 상태부터 9장의 결과까지 정리한다.
+1–4장은 설치, 5장은 책상과 Panda만 있는 초기 장면을 구성하는 준비 과정이다. 6–7장은 서랍 Task로 로딩부터 실제 Panda 동작까지 확인하고, 8장은 같은 파이프라인에 두 BDDL을 넣어 새 Task를 검증한다. 9장은 새 물체·Fixture·Predicate·카메라와 제어 설정을 코드에 추가한 뒤 같은 검증 절차를 적용한다. 10장은 5장의 초기 상태부터 9장의 결과까지 정리한다.
 
 ```text
 작업명세서
     ↓
-사람이 수행할 task 정의
+로봇이 수행할 task 정의
 예: "가운데 서랍을 연다."
     ↓
 [실행과정 6번: BDDL 준비 / 환경 생성 / 초기 상태 확인]
@@ -72,11 +72,11 @@ BDDL의 :goal 조건 만족 여부 확인
     └─ True  → goal 충족 → task 성공
 ```
 
-아래 표는 실행 파이프라인의 각 단계와 세부 목차의 대응이다. 7.3과 8.5, 9.4.6의 **시뮬레이터 상태 직접 변경**은 Goal 판정만 따로 확인하는 시험이며, Panda가 그 동작을 수행했다는 증거는 아니다.
+아래 표는 실행 파이프라인의 각 단계와 세부 목차의 대응이다. 7.3과 8.5, 9.4.6에서는 **시뮬레이터 상태를 직접 변경**해 Goal 판정을 시험한다.
 
 | 파이프라인 단계 | 기존 서랍 Task | 변경한 Custom Task |
 | --- | --- | --- |
-| BDDL 준비·환경 선택 | 6.1 기존 BDDL 복사, 6.2 `custom_tasks` 구성 | 8.1 검증 기준, 8.2 Task 설계, 8.3 두 BDDL 작성 |
+| BDDL 준비·환경 선택 | 6.1 공식 BDDL 확인, 6.2 `custom_tasks` 구성 | 8.1 검증 기준, 8.2 Task 설계, 8.3 두 BDDL 작성 |
 | BDDL 로딩·`env.reset()`·초기 이미지 | 6.3 직접 실행, 6.4 실시간·PNG·영상, 6.5 Windows 렌더링 설정 | 8.4 환경 로딩·초기 상태·사진 확인 |
 | 초기 Goal·`env.step(action)` | 7.1 초기 `False`, 7.2 zero action과 관측값 확인 | 8.4 초기 `False`, 8.5 실제 OSC_POSE action과 영상 확인 |
 | Goal 판정과 실제 수행 구분 | 7.3 서랍 joint 직접 변경, 7.4 Panda로 서랍 열기 | 8.5 물체 상태 직접 변경과 Panda action 결과를 따로 기록 |
@@ -115,6 +115,16 @@ BDDL은 사람이 작성한 작업명세서를 LIBERO 시뮬레이터가 읽고 
 
 BDDL 파일의 전체 구조와 각 항목은 실행과정 6.2의 예시에서 확인할 수 있다. BDDL에 목표를 적으면 환경과 성공 조건이 정의되며, 그 목표를 달성할 action은 별도로 만들어 입력해야 한다.
 
+**Fixture와 Object of interest**
+
+| 항목 | 의미 | 이번 Task의 예시 |
+| --- | --- | --- |
+| Fixture (`:fixtures`) | 작업 장면의 구조나 기준이 되는 요소다. 주로 배치 후 위치가 고정되는 작업대·캐비닛·스토브를 선언한다. | `wooden_cabinet_1 - wooden_cabinet`: 캐비닛을 장면에 추가한다. 캐비닛의 위치는 고정돼도 내부 서랍 joint는 움직일 수 있다. |
+| Object of interest (`:obj_of_interest`) | Task에서 관심 대상으로 지정한 물체나 영역의 이름 목록이다. | 우유 놓기에서는 `milk_1 plate_1`, 서랍 열기에서는 `wooden_cabinet_1_middle_region`을 지정한다. |
+
+Fixture의 BDDL 표기는 복수형 `:fixtures`다. `main_table - table`도 이 항목에 선언하지만, 실제 작업대는 환경의 TableArena로 구성된다. `:obj_of_interest`는 이미 선언되거나 생성된 대상을 참조하며, 여기에 이름을 적는 것만으로 물체가 생성되거나 성공 조건이 정해지지는 않는다. 성공 여부는 `:goal`이 결정한다.
+
+
 ### BDDL Parser란?
 
 BDDL Parser는 `.bddl` 파일에 작성된 내용을 읽고 해석하는 프로그램이다. `custom_test.bddl`은 텍스트 형태의 작업 정의 파일이기 때문에 MuJoCo가 그 내용을 바로 이해하는 것은 아니다.
@@ -130,6 +140,18 @@ BDDL Parser는 `.bddl` 파일에 작성된 내용을 읽고 해석하는 프로�
 ```
 
 "milk 타입의 milk_1이라는 물체가 필요하다."라고 해석한다. 여기서 인스턴스(instance)는 장면에 생성할 개별 물체를 뜻한다. `milk_1 - milk`의 오른쪽 `milk`는 LIBERO에 등록된 Object 종류(type), 왼쪽 `milk_1`은 그 종류로 만들 인스턴스의 이름이다. 또한 `:goal`을 해석해서 어떤 상태가 되어야 task가 성공한 것인지 LIBERO가 판단할 수 있도록 정보를 전달한다.
+
+### Predicate란?
+
+**Predicate(프레디케이트)는 현재 상태가 어떤 조건을 만족하는지 `True` 또는 `False`로 판정하는 함수**다. BDDL에서 `On`이나 `Open`처럼 조건의 맨 앞에 적는 이름이 Predicate다.
+
+| BDDL 조건 | 검사하는 내용 |
+| --- | --- |
+| `(On milk_1 plate_1)` | 우유가 접시 위에 놓였는가? |
+| `(Open wooden_cabinet_1_middle_region)` | 캐비닛의 가운데 서랍이 열렸는가? |
+| `(Close wooden_cabinet_1_middle_region)` | 가운데 서랍이 닫혔는가? |
+
+예를 들어 우유가 접시와 떨어져 있으면 첫 조건은 `False`, 접시 위에 놓이면 `True`다. 이 조건을 `:goal`에 적으면 `env.check_success()`가 현재 상태를 검사해 작업 성공 여부를 반환한다. `And`로 여러 조건을 묶으면 모두 만족해야 성공한다. **조건을 검사하는 함수이므로 우유를 옮기거나 서랍을 여는 동작은 하지 않는다.** 실제 동작은 `env.step(action)`으로 입력한다. Python 구현은 8.1에서 `On`과 `Open`의 짧은 코드로 확인한다.
 
 ### LIBERO_Tabletop_Manipulation이란?
 
@@ -147,11 +169,24 @@ MuJoCo는 로봇과 물체의 움직임, 접촉 등 실제 물리 simulation을 
 
 ### env.reset()이란?
 
-LIBERO 환경을 생성한 뒤 `obs = env.reset()`을 실행하면 BDDL에 정의된 scene과 `:init` 조건을 기준으로 시뮬레이션의 초기 상태를 만든다. Drawer task라면 Panda 로봇 초기 자세, Tabletop과 Cabinet, 서랍의 초기 상태, 주변 object 배치 등을 준비한다.
+LIBERO 환경을 생성한 뒤 `obs = env.reset()`을 실행하면 BDDL에 정의된 scene과 `:init` 조건을 기준으로 시뮬레이션의 초기 상태를 만든다. 현재 서랍 Task에서는 Panda 로봇 초기 자세, Tabletop과 Cabinet, 서랍의 초기 상태를 준비한다.
 
 5장은 BDDL 없이 책상과 Panda의 기본 초기 자세를 구성한다. 6장부터 `env.reset()`이 BDDL의 배치 영역과 초기 조건으로 장면을 만든다. Region 안에서 좌표를 샘플링하므로 물체의 위치는 seed에 따라 달라질 수 있다.
 
+**Sampler(샘플러)**는 정해진 범위와 조건에서 초기 상태의 값을 뽑는 코드다. 예를 들어 BDDL의 `milk_region`이 우유를 놓을 수 있는 범위를 지정하면, 배치 sampler가 그 안에서 실제 시작 위치를 선택한다. Region은 **허용 영역**, sampler는 **그 영역에서 좌표를 정하는 구현**이다. `seed`는 이 무작위 선택의 기준이며, 같은 환경에서 같은 seed를 사용하면 초기 배치를 재현할 수 있다. 배치 sampler는 위치·회전을, 속성 sampler는 지원되는 서랍 관절 상태 등을 초기화한다. 로봇을 움직일 Action은 별도로 입력한다.
+
+
 이때 얻는 `obs`에는 카메라 이미지, 로봇 상태 등의 observation이 들어 있다.
+
+**Offset(오프셋)**은 기준 위치에서 더하거나 빼는 보정값이다. 위치 계산에서는 보통 `최종 위치 = 기준 위치 + offset`으로 생각할 수 있다. 값의 기준 좌표와 단위는 사용하는 코드에서 확인한다.
+
+| 코드의 예 | 의미 |
+| --- | --- |
+| `table_offset=(0, 0, 0.90)` | 원점에서 X·Y 이동은 없고 Z 방향으로 0.90 m 떨어진 곳을 작업대 상판의 기준 위치로 사용한다. |
+| 배치 sampler의 `z_offset=-0.04` | 계산한 배치 높이에 −0.04 m를 더해 4 cm 낮춘다. D의 새 받침대에서는 이 보정이 필요 없어 0으로 바꿨다. |
+| 로봇 모델의 `base_xpos_offset` | 작업대 크기에 맞춰 로봇 바닥의 설치 위치를 정하는 값 또는 함수다. |
+
+
 
 ### agentview_image란?
 
@@ -188,165 +223,150 @@ BDDL의 `:goal`에는 task 성공 조건이 정의되어 있다. Drawer task라�
 
 ### 1\. LIBERO 공식 코드 받기
 
-VSCode PowerShell 터미널에서 다음 명령 실행
+VSCode에서 `mirobot-vla` 폴더를 열고 **터미널 → 새 터미널 → PowerShell**을 선택한다. 이 PC의 작업 경로를 먼저 정한다. 아래 조건부 명령은 LIBERO가 없을 때만 공식 코드를 받는다.
 
-`git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git`
+```powershell
+$projectRoot = Join-Path $env:USERPROFILE 'Desktop\PML\urop\mirobot-vla'
+$liberoRoot = Join-Path $projectRoot 'docs\W5\LIBERO'
+$taskBundle = Join-Path $projectRoot 'docs\W5\custom_task_validation'
+Set-Location -LiteralPath $projectRoot
+if (-not (Test-Path -LiteralPath "$liberoRoot\setup.py")) {
+    git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git $liberoRoot
+    if ($LASTEXITCODE -ne 0) { throw 'LIBERO clone failed' }
+    git -C $liberoRoot checkout 8f1084e3132a39270c3a13ebe37270a43ece2a01
+    if ($LASTEXITCODE -ne 0) { throw 'LIBERO checkout failed' }
+}
+```
 
-### 2\. Tabletop 코드 확인
+현재 PC에는 `docs/W5/LIBERO`가 준비돼 있다. 이후 모든 실행 파일은 이 폴더를 기준으로 사용한다.
 
-`cd LIBERO`로 이동한 뒤 다음 명령으로 Tabletop 환경 코드를 확인한다. 이후 상대 경로가 포함된 명령과 Python 실행은 이 LIBERO 루트에서 진행한다. 새 터미널을 열었다면 해당 폴더로 다시 이동하고 `conda activate libero`를 실행한다.
+### 2\. Tabletop 코드와 검증 파일 준비
 
-`ls libero/libero/envs/problems` -> libero_tabletop_manipulation.py 확인
+공식 코드에는 이 문서의 테스트 파일과 C–F 확장 모듈이 들어 있지 않다. 새로 코드를 받은 경우에는 함께 제공한 `custom_task_validation`의 파일을 복원한다. 기존 검증 파일이 준비된 현재 PC에서는 복사 구간을 건너뛴다.
+
+```powershell
+if (-not (Test-Path -LiteralPath "$liberoRoot\check_libero_setup.py")) {
+    New-Item -ItemType Directory -Path "$liberoRoot\custom_tasks" -Force | Out-Null
+    Copy-Item "$taskBundle\*.py" "$liberoRoot\" -Force
+    Copy-Item "$taskBundle\requirements-windows-validation.txt" "$liberoRoot\" -Force
+    Copy-Item "$taskBundle\custom_tasks\*.bddl" "$liberoRoot\custom_tasks\" -Force
+    Copy-Item "$taskBundle\libero\libero\*" "$liberoRoot\libero\libero\" -Recurse -Force
+}
+Set-Location -LiteralPath $liberoRoot
+Get-Location
+Get-ChildItem .\libero\libero\envs\problems
+Test-Path .\test_panda_initial_pose.py
+```
+
+목록에서 `libero_tabletop_manipulation.py`를 확인하고, 마지막 출력이 `True`인지 확인한다. **PowerShell 블록은 터미널에 입력하고, Python 블록은 `.py` 파일의 코드로 사용한다.** 환경 클래스의 메서드만 발췌한 부분은 해당 파일에서 확인하는 구현 설명이며, 독립 실행 명령은 바로 옆 PowerShell 블록에 적었다.
 
 ### 3\. LIBERO 전용 conda 환경 생성
 
+이미 `libero` 환경이 있다면 새로 설치하지 않고 5.1의 공통 실행 준비부터 시작할 수 있다.
+
 #### 3.1) Anaconda 설치: winget으로 설치 진행
 
-`winget --version` -> 설치 가능한 지 확인, 정상적으로 버전 나오면 됨
-
-`winget install -e --id Anaconda.Anaconda3` -> Anaconda 설치
-
-설치가 끝나면 VSCode를 완전히 종료한 후 다시 실행한다.
-
-#### 3.2) PowerShell에서 conda activate 바로 사용하기
-
-먼저 설치를 확인한다.
+Anaconda가 없는 PC에서 실행한다.
 
 ```powershell
-& "$env:USERPROFILE\anaconda3\Scripts\conda.exe" --version
+winget --version
+winget install -e --id Anaconda.Anaconda3
 ```
 
-새 PowerShell 터미널에서도 `conda`를 바로 쓰려면 아래 명령을 한 번 실행한다.
+설치가 끝나면 VSCode를 다시 열고, 1장의 경로 설정을 실행한다. 아래 명령은 이 PC에서 확인한 사용자 폴더의 `anaconda3` 경로를 사용한다.
+
+#### 3.2) 사용할 conda와 Python 실행 파일 지정
+
+`python`과 `pip`만 입력하면 MSYS2나 다른 Python이 선택될 수 있다. 설치와 실행 모두 **LIBERO 환경의 실행 파일을 직접 지정**한다. DLL을 찾을 수 있도록 이 환경의 `Library\bin`도 현재 터미널의 PATH에 넣는다. 이 설정이 빠지면 `pip`에서 SSL 모듈 오류가 발생할 수 있다.
 
 ```powershell
-$liberoCondaProfile = $PROFILE.CurrentUserAllHosts
-New-Item -ItemType Directory -Path (Split-Path -Parent $liberoCondaProfile) -Force | Out-Null
-if (-not (Test-Path -LiteralPath $liberoCondaProfile)) {
-    New-Item -ItemType File -Path $liberoCondaProfile | Out-Null
-}
-if ((Get-Content -LiteralPath $liberoCondaProfile -Raw) -notlike '*anaconda3\shell\condabin\conda-hook.ps1*') {
-    Add-Content -LiteralPath $liberoCondaProfile -Value @'
-$condaHook = Join-Path $env:USERPROFILE 'anaconda3\shell\condabin\conda-hook.ps1'
-if (Test-Path -LiteralPath $condaHook) { . $condaHook }
-'@
-}
+$liberoConda = Join-Path $env:USERPROFILE 'anaconda3\Scripts\conda.exe'
+$liberoPython = Join-Path $env:USERPROFILE 'anaconda3\envs\libero\python.exe'
+$liberoEnvironment = Split-Path -Parent $liberoPython
+$env:PATH = "$liberoEnvironment;$liberoEnvironment\Library\bin;$liberoEnvironment\Scripts;$env:PATH"
+if (-not (Test-Path -LiteralPath $liberoConda)) { throw 'Anaconda path not found' }
+& $liberoConda --version
 ```
 
-VSCode 터미널을 닫고 새 PowerShell 터미널을 열어 `conda --version`으로 확인한다. 이후에는 hook 명령을 따로 입력할 필요가 없다.
-
-프로필 실행이 차단된다는 오류가 날 때만 현재 사용자 실행 정책을 확인하고 `RemoteSigned`로 설정한다.
+3.3에서 환경을 만든 뒤, 활성화된 터미널을 사용하려면 현재 창에서 다음을 실행한다. 뒤의 검증 명령은 활성화 여부와 관계없이 `$liberoPython`을 사용한다.
 
 ```powershell
-Get-ExecutionPolicy -List
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+. "$env:USERPROFILE\anaconda3\shell\condabin\conda-hook.ps1"
+conda activate libero
+& $liberoPython -c "import sys; print(sys.executable)"
 ```
+
+출력 경로가 `anaconda3\envs\libero\python.exe`인지 확인한다. hook 실행이 정책으로 차단되는 창에서도 위의 직접 실행 파일 방식으로 진행할 수 있다.
 
 #### 3.3) LIBERO 환경 생성
 
-1. `conda create -n libero python=3.8.13 -y`
-
-**CondaToSNonInteractiveError가 발생하면:** Anaconda 채널 이용약관 동의 후 다시 진행한다.
+환경이 없을 때만 Python 3.8.13 환경을 만든다.
 
 ```powershell
-conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
-conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/msys2
+if (-not (Test-Path -LiteralPath $liberoPython)) {
+    & $liberoConda create -n libero python=3.8.13 -y
+    if ($LASTEXITCODE -ne 0) { throw 'Conda environment creation failed' }
+}
+& $liberoPython --version
 ```
 
-명령어를 순서대로 입력해 동의한 후, conda 환경 생성 명령을 다시 실행한다.
+`Python 3.8.13`이 나와야 한다. `CondaToSNonInteractiveError`가 발생한 경우에는 아래 채널의 약관을 확인하고 동의한 뒤 환경 생성 명령을 다시 실행한다.
 
-2. `conda activate libero`
-
-3. `python --version`
-
-`python --version`을 실행하면 `Python 3.8.13`이라고 나와야 한다. 이번 LIBERO 환경은 이 버전을 기준으로 한다. 그리고 터미널 앞에 `(libero)`가 뜨는지 확인한다. 이후 설치와 실행은 이 환경에서 진행한다.
+```powershell
+& $liberoConda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+& $liberoConda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+& $liberoConda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/msys2
+```
 
 ### 4\. LIBERO 설치
 
-앞에서 만든 `libero` 환경을 활성화한 상태에서 설치를 진행한다.
-
-1. `python -m pip install "pip<25" setuptools wheel`
-
-VSCode에서 `Ctrl+Shift+P` → `Python: Select Interpreter`를 열어 `libero` conda 환경을 선택한다.
-
-2. `pip install -r requirements.txt`
-
-LIBERO 의존성 설치
-
-**Windows에서 egl_probe 빌드 오류가 나면:** 먼저 CMake를 설치한다.
-
-`pip install cmake`
-
-`cmake --version` -> 확인
-
-그 후 Windows 패치된 `egl_probe`를 설치한다.
+설치는 `docs/W5/LIBERO`에서 실행한다. [requirements-windows-validation.txt](./custom_task_validation/requirements-windows-validation.txt)는 실제 검증 환경의 버전을 지정한 목록이다. **Python 3.8.13, robosuite 1.4.0, MuJoCo 2.3.7**을 사용했다.
 
 ```powershell
-pip install https://github.com/mhandb/egl_probe/archive/fix_windows_build.zip
+Set-Location -LiteralPath $liberoRoot
+& $liberoPython -m pip install pip==24.2 setuptools==75.1.0 wheel==0.44.0
+& $liberoPython -m pip install -r .\requirements-windows-validation.txt
+& $liberoPython -m pip install robomimic==0.2.0 --no-deps
+& $liberoPython -m pip install -e . --no-deps
 ```
 
-Windows 패치된 `egl_probe` 설치가 성공하면 `pip install -r requirements.txt`를 다시 실행한다.
+`robomimic`은 `--no-deps`로 설치해 Windows WGL 검증에 사용하지 않는 `egl_probe` 빌드를 건너뛴다. 나머지 시뮬레이션 의존성은 위 목록에서 설치한다. 이 환경은 본문의 로딩·렌더링·로봇 동작 검증에 사용한다.
 
-패치 설치도 실패하면 당시 진행한 것처럼 Windows WGL 테스트에 필요한 나머지 패키지를 설치하고 `egl_probe`는 건너뛴다. 전체 requirements 설치가 실패한 상태에서 바로 다음 단계로 넘어가면 다른 패키지도 누락될 수 있으므로 아래 명령을 실행한다.
+**Windows 렌더링과 DLL 설정**
+
+robosuite 1.4.0의 원본 GPU 설정은 Windows에서도 `egl`을 선택할 수 있다. 또한 `binding_utils.py`가 찾는 위치에 MuJoCo DLL이 없으면 import가 실패한다. [configure_libero_windows.py](./custom_task_validation/configure_libero_windows.py)는 해당 분기와 DLL을 검사하고, 필요한 경우에만 Windows용 `wgl` 분기를 추가하고 설치된 MuJoCo의 DLL을 복사한다.
 
 ```powershell
-pip install robomimic==0.2.0 --no-deps
-pip install hydra-core==1.2.0 numpy==1.22.4 wandb==0.13.1 easydict==1.9 transformers==4.21.1 opencv-python==4.6.0.66 einops==0.4.1 thop==0.1.1-2209072238 robosuite==1.4.0 bddl==1.0.1 future==0.18.2 matplotlib==3.5.3 cloudpickle==2.1.0 gym==0.25.2
+$env:MUJOCO_GL = 'wgl'
+$env:NUMBA_DISABLE_JIT = '1'
+& $liberoPython .\configure_libero_windows.py --apply
+if ($LASTEXITCODE -ne 0) { throw 'Windows renderer configuration failed' }
 ```
 
-이 우회 경로를 사용한 뒤 `pip install robomimic`을 다시 실행하면 `egl_probe` 설치가 반복될 수 있다. 여기서는 버전을 지정한 `--no-deps` 명령을 사용한다.
+`Windows compatibility OK`를 확인한다. 실행 파일은 robosuite의 `/tmp/robosuite.log` 경로도 LIBERO 폴더의 `robosuite.log`로 보정하므로 별도로 `C:\tmp`를 만들 필요가 없다.
 
-**Windows 렌더링 설정**
-
-렌더링은 Windows용 `wgl`로 설정한다. 먼저 현재 터미널에서 아래 명령을 실행한다.
-
-```powershell
-$env:MUJOCO_GL="wgl"
-```
-
-그래도 `invalid value for environment variable MUJOCO_GL: egl` 오류가 나면 `binding_utils.py`가 `egl`을 강제로 설정하는지 확인한다. 이번 실행에서는 해당 설정을 `wgl`로 바꿔 진행했다. 수정할 파일은 현재 활성화한 conda 환경 안에 있다.
-
-`code "$env:CONDA_PREFIX\Lib\site-packages\robosuite\utils\binding_utils.py"`
-
-파일에서 `os.environ["MUJOCO_GL"] = "egl"`을 찾아 Windows에서 실행되는 분기에 대해 `"wgl"`로 바꾸고 저장한다. 기존 운영체제 분기를 유지하려면 다음처럼 작성한다.
-
-```python
-if _SYSTEM == "Darwin":
-    os.environ["MUJOCO_GL"] = "cgl"
-elif _SYSTEM == "Windows":
-    os.environ["MUJOCO_GL"] = "wgl"
-else:
-    os.environ["MUJOCO_GL"] = "egl"
-```
-
-**로그 경로 오류가 발생하면**
-
-`C:\tmp\robosuite.log` 관련 `FileNotFoundError`가 발생하면 로그 폴더를 만든 뒤 import를 다시 확인한다.
-
-```powershell
-New-Item -ItemType Directory -Force C:\tmp
-Test-Path C:\tmp
-```
-
-`Test-Path` 결과가 `True`이면 폴더가 준비된 것이다.
-
-3. `pip install mujoco` -> mujoco 설치
-
-당시 사용한 MuJoCo 버전은 `2.3.2`다. 같은 조합으로 재현하려면 `pip install mujoco==2.3.2`로 설치하고 `python -c "import mujoco; print(mujoco.__version__)"`으로 확인한다.
-
-LIBERO 루트에서 `pip install -e .`도 실행해 로컬 LIBERO 패키지를 현재 환경에 등록한다.
-
-4. `python -c "import robosuite; print('ROBOSUITE OK')"` 실행 후 `ROBOSUITE OK`가 나오면 다음 단계로 넘어간다. 오류가 남아 있으면 위의 설치·렌더링·로그 경로 처리를 확인한다.
+VSCode에서 `Ctrl+Shift+P` → **Python: Select Interpreter → Enter interpreter path**를 선택하고 `C:\Users\<USER>\anaconda3\envs\libero\python.exe`를 지정한다. 편집기의 실행 버튼과 아래 터미널 명령에서 같은 환경을 사용하게 된다.
 
 ### 5\. 책상과 Panda만으로 초기 상태 구성
 
-#### 5.1) 설치된 패키지 확인
+#### 5.1) 설치된 패키지 확인과 공통 실행 준비
+
+**새 PowerShell 터미널을 열 때마다 아래 블록부터 실행한다.** 현재 터미널의 위치와 기본 Python 설정에 관계없이 작업 폴더와 실행 환경을 맞춘다. 5–9장의 명령은 이 준비가 끝난 같은 터미널에서 실행한다.
 
 ```powershell
-python -c "import libero; import robosuite; import robomimic; import bddl; print('LIBERO OK')"
+$liberoRoot = Join-Path $env:USERPROFILE 'Desktop\PML\urop\mirobot-vla\docs\W5\LIBERO'
+$liberoPython = Join-Path $env:USERPROFILE 'anaconda3\envs\libero\python.exe'
+$liberoEnvironment = Split-Path -Parent $liberoPython
+$env:PATH = "$liberoEnvironment;$liberoEnvironment\Library\bin;$liberoEnvironment\Scripts;$env:PATH"
+if (-not (Test-Path -LiteralPath $liberoPython)) { throw 'LIBERO Python not found; complete chapter 3' }
+Set-Location -LiteralPath $liberoRoot
+$env:MUJOCO_GL = 'wgl'
+$env:NUMBA_DISABLE_JIT = '1'
+& $liberoPython .\check_libero_setup.py
+if ($LASTEXITCODE -ne 0) { throw 'Resolve the setup error before running a task' }
 ```
 
-`LIBERO OK`가 나오면 시뮬레이터를 실행할 패키지가 준비된 것이다.
+검사기는 Python·패키지 버전, import 경로, 테스트 파일·BDDL·확장 모듈·XML의 존재를 확인한다. 마지막에 `LIBERO setup OK`가 나와야 한다. LIBERO 첫 import에서 데이터셋 경로를 묻는 경우, 이번 시뮬레이션 검증에서는 `N`을 입력해 기본 경로를 사용한다.
 
 #### 5.2) Task를 불러오기 전 Panda 초기 자세만 렌더링
 
@@ -355,8 +375,7 @@ python -c "import libero; import robosuite; import robomimic; import bddl; print
 파일은 기존 테스트 코드와 같은 `docs/W5/LIBERO` 루트에 두고, 해당 폴더의 PowerShell에서 실행한다.
 
 ```powershell
-conda activate libero
-python .\test_panda_initial_pose.py
+& $liberoPython .\test_panda_initial_pose.py
 ```
 
 `initialization_noise=None`으로 자세에 무작위 잡음을 넣지 않고 `MountedPanda.init_qpos`를 적용한다. 작업 물체가 0개인지, Panda의 7개 관절값이 설정과 일치하는지 코드로 검사한다. 책상 크기는 `(1.0, 1.2, 0.05) m`, 상판 높이는 `0.90 m`다. 사진은 로봇 전체가 보이는 카메라에서 512×512로 저장한다.
@@ -368,7 +387,7 @@ python .\test_panda_initial_pose.py
 [test_libero_tabletop.py](./custom_task_validation/test_libero_tabletop.py)는 위 초기 자세 코드를 실행하고 같은 빈 장면을 `libero_tabletop_test.png`로 저장한다. 기존 benchmark의 BDDL이나 `init_states`를 불러오지 않으므로, 다른 물체가 장면에 추가되지 않는다.
 
 ```powershell
-python .\test_libero_tabletop.py
+& $liberoPython .\test_libero_tabletop.py
 ```
 
 VSCode 탐색기에서 PNG를 열거나 PowerShell에서 다음 명령으로 확인한다.
@@ -397,31 +416,32 @@ libero/libero/bddl_files/libero_goal/open_the_middle_drawer_of_the_cabinet.bddl
 
 #### 6.2) custom_tasks 폴더 생성
 
-LIBERO 루트에서 `custom_tasks` 폴더와 `custom_test.bddl` 파일을 만든다. 이미 존재하면 생성 명령은 생략한다.
+LIBERO 루트에서 `custom_tasks` 폴더를 준비한다. 이미 있어도 아래 명령은 그대로 실행할 수 있다.
 
 ```powershell
-mkdir custom_tasks
-New-Item .\custom_tasks\custom_test.bddl -ItemType File
+New-Item -ItemType Directory -Path .\custom_tasks -Force | Out-Null
 ```
 
-그 후 기존 Tabletop BDDL 하나를 복사해서 실행 가능한지 먼저 확인한다.
+Custom BDDL이 없는 경우에만 공식 Tabletop BDDL을 복사해 작성한다. 이미 준비된 파일은 바로 내용을 확인한다.
 
 **현재 task: 나무 캐비닛의 가운데 서랍 열기**
 
 영어 작업 명령은 `Open the middle layer of the drawer`다. Panda 로봇이 가운데 서랍 손잡이를 잡고 당겨 서랍을 여는 작업이다. BDDL의 성공 조건은 가운데 서랍 영역인 `wooden_cabinet_1_middle_region`이 열린 상태가 되는 것이다.
 
 ```powershell
-Copy-Item `
-".\libero\libero\bddl_files\libero_goal\open_the_middle_drawer_of_the_cabinet.bddl" `
-".\custom_tasks\custom_test.bddl" `
--Force
+if (-not (Test-Path -LiteralPath ".\custom_tasks\custom_test.bddl")) {
+    Copy-Item `
+    ".\libero\libero\bddl_files\libero_goal\open_the_middle_drawer_of_the_cabinet.bddl" `
+    ".\custom_tasks\custom_test.bddl" `
+    -Force
+}
 ```
 
 복사 확인
 
 `Get-Content .\custom_tasks\custom_test.bddl | Select-Object -First 10`
 
-복사한 파일에서 불필요한 물체·Fixture와 그 Region·Init을 제거한다. 최종 `custom_test.bddl`은 다음과 같다.
+복사한 파일을 VSCode 탐색기에서 열고, 아래 BDDL 전체로 교체해 저장한다. 불필요한 물체·Fixture와 그 Region·Init을 제거한 실행용 `custom_test.bddl`이다.
 
 ```lisp
 (define (problem LIBERO_Tabletop_Manipulation)
@@ -461,7 +481,7 @@ Copy-Item `
 
 첫 custom task에서는 `(define (problem LIBERO_Tabletop_Manipulation)` 부분을 유지한다. 이 이름은 LIBERO가 Tabletop manipulation 환경 클래스를 선택할 때 사용한다.
 
-처음부터 새로운 object를 추가하기보다는 LIBERO가 이미 지원하는 object를 사용하고 goal을 바꾸는 것이 목표다. 수정할 때는 다음 항목을 함께 확인한다.
+첫 Task에서는 LIBERO가 지원하는 캐비닛과 서랍 Goal로 로딩·초기화·Action·성공 판정을 확인한다. 수정할 때는 다음 항목을 함께 확인한다.
 
 - Objects → 어떤 물체를 사용할 것인가
 - Regions → 테이블 위 어디에 배치하거나 어떤 물체의 영역을 사용할 것인가
@@ -525,24 +545,28 @@ LIBERO/
 └─ libero/
 ```
 
-[test_custom_bddl.py](./custom_task_validation/test_custom_bddl.py)를 LIBERO 루트에 저장한다. 환경 생성과 초기 이미지 처리의 핵심은 다음과 같다. 전체 실행 파일은 위 링크에서 확인할 수 있다.
+[test_custom_bddl.py](./custom_task_validation/test_custom_bddl.py)를 LIBERO 루트에 저장한다. 아래 코드는 같은 폴더의 `test_custom_bddl.py`에서 Windows 설정과 환경 생성 함수를 가져와 초기 장면을 저장한다. import부터 종료까지 포함한 최소 실행 예제다. 60 step 검증은 아래 PowerShell 명령으로 실행한다.
 
 ```python
-env = OffScreenRenderEnv(
-    bddl_file_name=str(ROOT / "custom_tasks" / "custom_test.bddl"),
-    robots=["Panda"], initialization_noise=None,
-    camera_heights=512, camera_widths=512,
-)
-obs = env.reset()
-initial_goal = bool(env.check_success())
-image = cv2.cvtColor(obs["agentview_image"][::-1], cv2.COLOR_RGB2BGR)
+import test_custom_bddl as validation
+
+env = validation.make_env(seed=0, size=512)
+try:
+    obs = env.reset()
+    print("Initial goal success:", bool(env.check_success()))
+    print("Initial checks:", validation.init_checks(env))
+    validation.save_frame(
+        validation.IMAGES / "custom_bddl_test.png", obs,
+        "Drawer task: initial | goal=False",
+    )
+finally:
+    env.close()
 ```
 
 `reset()`은 BDDL의 Region과 Init으로 새 장면을 만든다. Benchmark의 저장 상태를 가져오는 과정은 아니다. `agentview_image`는 상하 방향과 RGB/BGR 순서를 보정한 뒤 PNG로 저장한다.
 
 ```powershell
-conda activate libero
-python .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0
+& $liberoPython .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0
 ```
 
 실행 결과 초기 Goal은 `False`였고, 캐비닛의 `On`과 중간 서랍의 `Close` Init은 모두 `True`였다. 코드에서도 조작 물체 목록이 비어 있고 Fixture가 `wooden_cabinet_1` 하나뿐인지 검사했다. 초기 PNG에는 책상·Panda·서랍 캐비닛만 보인다.
@@ -553,23 +577,30 @@ python .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0
 
 `custom_test.bddl`이 초기화된 뒤 화면을 확인하는 방법은 세 가지다. [실행 코드](./custom_task_validation/test_custom_bddl.py)는 `agentview_image`를 OpenCV 창에 표시하고, 초기·종료 화면을 PNG로 저장하며, `--record`를 지정하면 zero action 구간을 MP4로 기록한다. 이미지의 상하 방향과 RGB/BGR 색 순서는 저장·표시 전에 보정한다.
 
-**실시간 화면.** LIBERO 루트에서 다음 명령을 실행한다. OpenCV 창에서 Panda와 서랍이 보이고, 각 step의 `Success` 값이 갱신되는지 확인한다. 창을 클릭한 뒤 `q`, `Q`, `Esc`로 닫을 수 있다.
+**실시간 화면.** LIBERO 루트에서 다음 명령을 실행한다. OpenCV 창에서 Panda와 서랍이 보이고, 각 step의 `goal=` 값이 갱신되는지 확인한다. 창을 클릭한 뒤 `q`, `Q`, `Esc`로 닫을 수 있다.
 
 ```powershell
-conda activate libero
-python .\test_custom_bddl.py --steps 60 --size 512 --seed 0
+& $liberoPython .\test_custom_bddl.py --steps 60 --size 512 --seed 0
 ```
 
 **PNG로 초기·종료 상태 비교.** 같은 실행에서 `reset()` 직후 [초기 장면](./images/custom_bddl_test.png)과 zero action 실행 후 [종료 장면](./images/libero_live_agentview.png)을 저장한다. 두 사진을 열어 서랍과 Panda가 보이는지, 의도하지 않은 장면 변화가 없는지 확인한다. 화면 창 없이 파일만 만들려면 `--headless`를 붙인다.
 
 ```powershell
-python .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0
+& $liberoPython .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0
+```
+
+VSCode 탐색기에서 `images` 폴더의 PNG를 클릭하거나 다음 명령으로 연다.
+
+```powershell
+Invoke-Item .\images\custom_bddl_test.png
+Invoke-Item .\images\libero_live_agentview.png
 ```
 
 **MP4로 step 사이의 움직임 확인.** `--record`를 붙이면 기본 경로 `images/custom_bddl_monitoring.mp4`에 저장한다. 원하는 경로를 지정하려면 `--record images/파일명.mp4`처럼 입력한다. [zero action 모니터링 영상](./images/custom_bddl_monitoring.mp4)에서 초기화 이후 관측 화면이 이어지는지 확인할 수 있다.
 
 ```powershell
-python .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record
+& $liberoPython .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record
+Invoke-Item .\images\custom_bddl_monitoring.mp4
 ```
 
 [![zero action 관측 미리보기](./images/custom_bddl_monitoring.gif)](./images/custom_bddl_monitoring.mp4)
@@ -578,33 +609,16 @@ python .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record
 
 #### 6.5) Windows 렌더링 설정 유지하기
 
-`conda activate libero`로 해당 환경에 들어간 상태에서 설정한다. 이 설정은 `libero` 환경을 활성화할 때 적용된다.
-
-`$env:MUJOCO_GL="wgl"`을 실행할 때마다 입력하는 대신 `MUJOCO_GL=wgl`을 영구 설정하면 편하다.
+5.1에서 현재 PowerShell에 `MUJOCO_GL=wgl`을 설정하며, 테스트 파일도 robosuite를 import하기 전에 같은 설정을 적용한다. `NUMBA_DISABLE_JIT=1`은 이 Windows 환경에서 오래 걸리는 Numba 초기화를 피하기 위한 설정이다.
 
 ```powershell
-conda env config vars set MUJOCO_GL=wgl
+$env:MUJOCO_GL = 'wgl'
+$env:NUMBA_DISABLE_JIT = '1'
+& $liberoPython .\configure_libero_windows.py
+& $liberoPython .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0
 ```
 
-설정한 후 conda 환경을 껐다 다시 켜야 적용된다.
-
-```powershell
-conda deactivate
-conda activate libero
-```
-
-```powershell
-$env:MUJOCO_GL
-```
-
-확인 후 결과가 `wgl`이면 설정 완료
-
-앞으로는 두 명령어만 입력하면 실행이 가능하다.
-
-```powershell
-conda activate libero
-python .\test_custom_bddl.py
-```
+첫 명령은 현재 설치의 WGL 분기와 DLL을 확인하고, 두 번째 명령은 실제 환경 생성·렌더링을 확인한다. 새 터미널에서는 5.1을 다시 실행한다. 실시간 OpenCV 창을 열려면 `--headless`를 빼고 실행한 뒤 `q`, `Q`, `Esc`로 종료한다.
 
 ### 7. LIBERO Custom Task Action 실행 및 Goal Condition 검증
 
@@ -615,7 +629,6 @@ python .\test_custom_bddl.py
 먼저 6.2에서 준비한 `custom_tasks/custom_test.bddl`이 있는지 확인한다. 터미널의 현재 위치는 `custom_tasks`나 `libero` 하위 폴더가 아닌, `requirements.txt`와 `custom_tasks`가 있는 LIBERO 루트여야 한다. 이 저장소에서는 `docs/W5/LIBERO`에 해당한다.
 
 ```powershell
-conda activate libero
 Test-Path .\custom_tasks\custom_test.bddl
 ```
 
@@ -625,11 +638,17 @@ Test-Path .\custom_tasks\custom_test.bddl
 
 현재 서랍 task는 시작할 때 가운데 서랍이 닫혀 있고 goal은 열린 상태이므로 `False`가 예상된다. `True`가 나오면 초기 상태가 이미 goal을 만족하는지 BDDL과 장면을 확인한다.
 
-`obs = env.reset()`과 초기화 성공 출력 다음에 아래 두 줄을 실행하면 초기 상태의 goal 충족 여부를 확인할 수 있다. 이 처리는 실행 파일에 포함되어 있으므로 별도로 추가하지 않는다. 실행 후 `Initial goal success: False`를 확인한다.
+아래 최소 예제는 환경을 생성한 뒤 초기 Goal을 출력하고 종료한다. 같은 검사는 `test_custom_bddl.py`에도 포함돼 있다. 실행 후 `Initial goal success: False`를 확인한다.
 
 ```python
-success = env.check_success()
-print("Initial goal success:", success)
+import test_custom_bddl as validation
+
+env = validation.make_env(seed=0, size=512)
+try:
+    env.reset()
+    print("Initial goal success:", bool(env.check_success()))
+finally:
+    env.close()
 ```
 
 #### 7.2) env.step(action)이 정상적으로 동작하는지 확인
@@ -649,13 +668,22 @@ print("Initial goal success:", success)
 이번 검사는 다음 코드를 반복한다. 값이 0이어도 중력·접촉과 물리 시뮬레이션은 계속 진행된다.
 
 ```python
-action = np.zeros(7, dtype=np.float32)
-obs, reward, done, info = env.step(action)
-success = env.check_success()
+import test_custom_bddl as validation
+import numpy as np
+
+env = validation.make_env(seed=0, size=512)
+try:
+    obs = env.reset()
+    action = np.zeros(7, dtype=np.float32)
+    obs, reward, done, info = env.step(action)
+    print("Goal after one step:", bool(env.check_success()))
+    print("Image shape:", obs["agentview_image"].shape)
+finally:
+    env.close()
 ```
 
 ```powershell
-python .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record
+& $liberoPython .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record
 ```
 
 새 최소 장면에서 60 step을 실행했고 Goal은 계속 `False`였다. 초기 상태는 `reset()`으로 한 번 생성하며, 반복 중에는 `step()`과 관측·Goal 갱신만 수행한다. 결과는 [JSON](./images/custom_bddl_result.json)의 `monitoring`에 기록했다.
@@ -679,20 +707,26 @@ Panda의 실제 서랍 열기와 별도로, 서랍이 열린 상태에서 `Open`
 다음 명령의 `--predicate-test`는 zero action 녹화가 끝난 뒤 joint 값을 직접 바꾼다. 따라서 모니터링 MP4와 직접 상태 변경 시험의 MP4는 별도 파일이다.
 
 ```powershell
-python .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record --predicate-test
+& $liberoPython .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record --predicate-test
 ```
 
 실행 코드의 핵심은 joint의 범위 안에서 값을 설정하고, 시뮬레이터·관측을 갱신한 뒤 Goal을 읽는 것이다.
 
 ```python
-joint_id = env.sim.model.joint_name2id(JOINT_NAME)
-low, high = env.sim.model.jnt_range[joint_id]
-target = float(low + fraction * (high - low))
-env.sim.data.set_joint_qpos(JOINT_NAME, target)
-env.sim.forward()
-env.env._update_observables(force=True)
-obs = env.env._get_observations(force_update=True)
-success = bool(env.check_success())
+import test_custom_bddl as validation
+
+env = validation.make_env(seed=0, size=512)
+try:
+    env.reset()
+    joint_id = env.sim.model.joint_name2id(validation.JOINT_NAME)
+    low, high = env.sim.model.jnt_range[joint_id]
+    for fraction in (0.9, 0.1):
+        target = float(low + fraction * (high - low))
+        env.sim.data.set_joint_qpos(validation.JOINT_NAME, target)
+        obs = validation.refresh_obs(env)
+        print("Joint:", target, "Goal:", bool(env.check_success()))
+finally:
+    env.close()
 ```
 
 joint `wooden_cabinet_1_middle_level`의 범위는 `[-0.16, 0.01] m`다. 같은 범위에서 두 방향을 검사한 결과는 다음과 같다.
@@ -751,7 +785,7 @@ Joint·site·geom의 기본 정의는 [MuJoCo 공식 XML 문서](https://mujoco.
 
 | 실행 파일 | 역할 |
 | --- | --- |
-| [`test_panda_drawer_info.py`](./custom_task_validation/test_panda_drawer_info.py) | Panda EEF 위치, Drawer joint world axis, 손잡이 관련 site·geom 정보 확인 |
+| [`test_panda_drawer_info.py`](./custom_task_validation/test_panda_drawer_info.py) | Panda EEF 위치, Drawer joint world axis, 손잡이 geom 위치 확인 |
 | [`test_panda_drawer_action.py`](./custom_task_validation/test_panda_drawer_action.py) | 손잡이에 접근 → 잡기 → 당기기 → Task Success 확인 |
 
 두 파일은 각각 `env.reset()`으로 닫힌 초기 상태에서 시작한다. 7.3의 joint 직접 변경 코드를 실행하지 않으므로, 이미 열린 서랍에서 `True`가 나오는 경우와 구분할 수 있다.
@@ -807,11 +841,10 @@ if __name__ == "__main__":
 LIBERO 루트의 PowerShell 터미널에서 실행한다.
 
 ```powershell
-conda activate libero
-python .\test_panda_drawer_info.py
+& $liberoPython .\test_panda_drawer_info.py
 ```
 
-출력에서 `Initial goal success: False`, joint range, world axis, Cabinet / Handle 관련 site 또는 geom 이름과 위치를 확인한다. 현재 asset의 가운데 손잡이 충돌 geom은 `wooden_cabinet_1_g29`다. World axis는 대략 `[0, -1, 0]`이므로 이 배치에서 서랍이 열리는 방향은 반대쪽인 world `+Y`다. 물체 위치는 초기화할 때 달라질 수 있으므로 코드에서 현재 모델의 좌표를 읽어 사용한다.
+출력 JSON에서 `initial_goal: false`, joint range, world axis, 손잡이 geom의 이름과 위치를 확인한다. 현재 asset의 가운데 손잡이 충돌 geom은 `wooden_cabinet_1_g29`다. World axis는 대략 `[0, -1, 0]`이므로 이 배치에서 서랍이 열리는 방향은 반대쪽인 world `+Y`다. 위치는 초기화할 때 달라질 수 있으므로 코드에서 현재 모델의 좌표를 읽어 사용한다.
 
 **Panda OSC_POSE Action으로 실제 서랍 열기**
 
@@ -999,14 +1032,13 @@ if __name__ == "__main__":
 저장한 뒤 실행한다. 창에는 각 단계와 현재 성공 여부가 표시된다. 실행 중 영상 창에서 `q`, `Q`, `ESC`를 누르거나 터미널에서 `Ctrl+C`를 누르면 종료한다.
 
 ```powershell
-conda activate libero
-python .\test_panda_drawer_action.py
+& $liberoPython .\test_panda_drawer_action.py
 ```
 
 창 없이 실행해도 같은 해상도로 기록할 수 있다. 다음 명령은 512×512 사진과 영상을 저장한다.
 
 ```powershell
-python .\test_panda_drawer_action.py --headless --size 512 --seed 0
+& $liberoPython .\test_panda_drawer_action.py --headless --size 512 --seed 0
 ```
 
 책상·Panda·캐비닛만 있는 장면에서 `seed=0`으로 다시 실행했다. 초기 `On`·`Close`는 모두 `True`, Goal은 `False`였다. 실제 Action은 **369 step**이었고, 그리퍼가 손잡이에서 떨어진 뒤 마지막 30 step 내내 Goal `True`가 유지됐다. 최종 서랍 joint는 **−0.141538 m**였다. 이 검증 구간도 총 step에 포함된다.
@@ -1032,9 +1064,12 @@ python .\test_panda_drawer_action.py --headless --size 512 --seed 0
 | `Init` | 시작 시 각 물체가 어느 Region에 놓이고 Fixture가 어떤 상태여야 하는지 정한다. `:init`에서 참조하는 물체와 Region의 이름이 실제 정의와 일치하는지, 초기 배치가 Goal을 이미 만족하지 않는지 확인한다. |
 | `Goal` | 성공으로 인정할 물체와 상태 또는 영역을 정한다. `:goal`에 사용한 Predicate가 LIBERO에서 지원되는지 확인하고, 초기 상태에서는 `False`, 목표 상태에서는 `True`가 되는지 검사한다. |
 
-`Predicate`는 시뮬레이션의 현재 상태가 조건을 만족하는지 `True` 또는 `False`로 판단하는 함수다. 아래 코드는 `docs/W5/LIBERO/libero/libero/envs/predicates/base_predicates.py`의 [`On`과 `Open` 구현](./custom_task_validation/reference_code/libero/libero/envs/predicates/base_predicates.py)에서 가져왔다.
+기존 조건이 어떻게 판정되는지 코드를 확인했다. 아래 코드는 `docs/W5/LIBERO/libero/libero/envs/predicates/base_predicates.py`의 [`On`과 `Open` 구현](./custom_task_validation/reference_code/libero/libero/envs/predicates/base_predicates.py)에서 가져왔다.
 
 ```python
+import test_custom_bddl
+from libero.libero.envs.predicates.base_predicates import BinaryAtomic, UnaryAtomic
+
 class On(BinaryAtomic):
     def __call__(self, arg1, arg2):
         return arg2.check_ontop(arg1)
@@ -1086,7 +1121,7 @@ LIBERO에 이미 등록된 물체와 지원되는 Predicate는 BDDL에 추가해
 원본 Task와 새 B Task는 모두 `milk_1 - milk`를 선언하고 같은 `Milk` 모델을 생성한다. 원본에서는 우유를 바구니에 넣고, B에서는 접시 위에 놓는다. B의 실행 장면에는 우유와 접시만 남긴다. 원본 장면의 [렌더링 결과 JSON](./images/milk_source_scene.json)에는 BDDL 경로·Problem 이름·물체 목록을 기록했다.
 
 ```powershell
-python .\test_milk_source_scene.py
+& $liberoPython .\test_milk_source_scene.py
 ```
 
 A·B는 모두 `reset()` 후 초기 Goal이 `False`인지 확인하고, Panda Action으로 목표를 달성한 뒤 `check_success()`가 `True`인지 확인한다. 별도로 상태를 직접 바꾸는 Predicate 검사도 수행하되 실제 동작 영상과 구분한다.
@@ -1151,7 +1186,7 @@ custom_tasks/
 │
 ├── custom_goal_change.bddl
 │   └── 검증안 A
-│       기존 Object와 Region을 사용하고 서랍 Task의 Goal 변경
+│       공식 접시·스토브 사용, 접시 시작 Region 범위 조정
 │
 └── custom_milk_task.bddl
     └── 검증안 B
@@ -1179,19 +1214,21 @@ push_the_plate_to_the_front_of_the_stove.bddl
 
 공식 BDDL을 복사한 뒤 접시·스토브와 그 Region·Init·Goal만 남긴다. 캐비닛·와인 랙·그릇·와인병·크림치즈와 그 참조는 삭제한다. 접시 시작 Region은 초기 `On` 판정과 사진의 배치가 일치하도록 범위를 조정한다.
 
-LIBERO 루트의 PowerShell에서 실행한다.
+LIBERO 루트의 PowerShell에서 실행한다. 작성된 BDDL이 있으면 복사를 건너뛴다.
 
 ```powershell
-Copy-Item `
-".\libero\libero\bddl_files\libero_goal\push_the_plate_to_the_front_of_the_stove.bddl" `
-".\custom_tasks\custom_goal_change.bddl" `
--Force
+if (-not (Test-Path -LiteralPath ".\custom_tasks\custom_goal_change.bddl")) {
+    Copy-Item `
+    ".\libero\libero\bddl_files\libero_goal\push_the_plate_to_the_front_of_the_stove.bddl" `
+    ".\custom_tasks\custom_goal_change.bddl" `
+    -Force
+}
 ```
 
-복사 후 파일을 열어 아래 Region 범위를 적용한다.
+복사한 파일의 내용을 확인한 뒤, VSCode 탐색기에서 열어 아래 Region 범위를 적용한다.
 
 ```powershell
-code .\custom_tasks\custom_goal_change.bddl
+Get-Content .\custom_tasks\custom_goal_change.bddl
 ```
 
 | 시작 Region | 적용할 `:ranges` | 유지하는 것 |
@@ -1295,10 +1332,10 @@ False → True
 검증안 A에서는 새로운 Object나 Region을 추가하지 않는다.
 
 ```text
-Object  → 기존 것 사용
-Region  → 기존 것 사용
-Init    → 기존 것 사용
-Goal    → 변경
+Object  → 공식 접시 밀기 Task의 접시 사용
+Region  → 접시 시작 범위 조정, 스토브 앞 목표 영역 유지
+Init    → 접시·스토브 배치 조건 유지
+Goal    → 공식 접시 밀기 Task의 Goal 유지
 ```
 
 서랍 작업에서 접시 이동으로 Task를 바꾸어도 같은 실행 파이프라인이 연결되는지 확인한다. 접시·스토브와 Goal은 공식 접시 밀기 Task의 정의를 재사용한다. 최종 [전체 BDDL](./custom_task_validation/custom_tasks/custom_goal_change.bddl)에는 이 두 대상과 책상만 있다.
@@ -1321,13 +1358,15 @@ Put the milk on the plate
 libero/libero/envs/objects/hope_objects.py
 ```
 
-파일에는 다음과 같이 `Milk`가 실제 Object로 등록되어 있다.
+파일에는 `Milk`가 실제 Object로 등록되어 있다. 다음 코드로 이 클래스를 가져와 `milk_1` 모델을 생성할 수 있다.
 
 ```python
-@register_object
-class Milk(HopeBaseObject):
-    def __init__(self, name="milk", obj_name="milk"):
-        ...
+import test_custom_bddl  # Windows renderer and log setup
+from libero.libero.envs.objects.hope_objects import Milk
+
+milk = Milk(name="milk_1")
+print("Object class:", type(milk).__name__)
+print("Instance name:", milk.name)
 ```
 
 또한 LIBERO 공식 BDDL인
@@ -1349,16 +1388,18 @@ LIBERO가 이미 지원하는 `milk` Object의 instance인
 A의 BDDL을 복사해 접시 정의를 재사용하고, B에서 불필요한 스토브·스토브 Region·Init을 삭제한다.
 
 ```powershell
-Copy-Item `
-".\custom_tasks\custom_goal_change.bddl" `
-".\custom_tasks\custom_milk_task.bddl" `
--Force
+if (-not (Test-Path -LiteralPath ".\custom_tasks\custom_milk_task.bddl")) {
+    Copy-Item `
+    ".\custom_tasks\custom_goal_change.bddl" `
+    ".\custom_tasks\custom_milk_task.bddl" `
+    -Force
+}
 ```
 
-파일을 연다.
+파일 내용을 확인하고, VSCode 탐색기에서 열어 수정한다.
 
 ```powershell
-code .\custom_tasks\custom_milk_task.bddl
+Get-Content .\custom_tasks\custom_milk_task.bddl
 ```
 
 접시의 시작 Region·Init은 A와 같게 두고, 아래 절차로 우유의 선언과 조건을 추가한다.
@@ -1423,11 +1464,7 @@ Init에서 사용하는 전체 Region 이름은 다음과 같다.
 main_table_milk_region
 ```
 
-주의할 점은 이 좌표가 기존 LIBERO 장면에서 사용된다는 것은 확인했지만,
-`milk_1`을 이 위치에 놓았을 때 물체 크기까지 포함하여
-충돌 없이 초기화되는지는 아직 실행으로 확인하지 않은 상태다.
-
-이 부분은 8.4의 `env.reset()`에서 직접 검증한다.
+공식 파일에 있는 좌표라도 우유의 크기와 접근 경로에 맞는지는 확인해야 한다. `milk_1`의 초기 배치와 충돌 여부는 8.4의 `env.reset()` 결과로 검증했다.
 
 ---
 
@@ -1649,7 +1686,7 @@ plate_1
 
 이 단계까지는 BDDL 파일을 작성한 것이다.
 
-검증안 A는 LIBERO 공식 BDDL을 바탕으로 하며, 시작 Region 세 곳의 범위를 위 표처럼 조정하고 미사용 Region을 정리했다. 사용한 Object와 Goal은 공식 정의를 따른다.
+검증안 A는 LIBERO 공식 BDDL을 바탕으로 하며, 접시 시작 Region의 범위를 조정하고 미사용 Region을 정리했다. 사용한 Object와 Goal은 공식 정의를 따른다.
 
 검증안 B는 각 구성 요소 자체는 LIBERO에서 실제 지원되는 것을 확인했지만,
 `milk + main_table + plate` 조합은 새로 작성한 Custom Task이므로
@@ -1677,9 +1714,7 @@ Initial Goal == False 확인
 8.3에서 작성한 두 파일을 각각 `OffScreenRenderEnv`에 전달했다. 실행 코드는 [`test_custom_task_variants.py`](./custom_task_validation/test_custom_task_variants.py)이며, 파일은 앞 절과 같은 `docs/W5/LIBERO` 루트에 둔다. Windows의 `libero` conda 환경(Python 3.8.13), `MUJOCO_GL=wgl`, `seed=0`, `agentview` 512×512을 사용했다. 스크립트는 이 환경에서 오래 걸리는 Numba 초기화를 피하기 위해 `NUMBA_DISABLE_JIT=1`을 설정한다.
 
 ```powershell
-cd .\docs\W5\LIBERO
-conda activate libero
-python .\test_custom_task_variants.py --task both --seed 0 --size 512
+& $liberoPython .\test_custom_task_variants.py --task both --seed 0 --size 512
 ```
 
 각 환경에서 BDDL 로딩, `env.reset()`, 화면 저장, 초기 `env.check_success()`를 확인했다. 성공 판정이 처음부터 `True`라면 Task가 시작 전에 끝난 것이므로 초기 조건과 Goal을 다시 검토해야 한다.
@@ -1700,7 +1735,7 @@ python .\test_custom_task_variants.py --task both --seed 0 --size 512
 
 ![검증안 B의 초기 장면](./images/custom_task_validation/B_initial.png)
 
-초기 프레임에서 Panda가 움직이는 과정까지 확인하려면 [A 시뮬레이션 영상](./images/custom_task_validation/A_robot_action.mp4)과 [B 시뮬레이션 영상](./images/custom_task_validation/B_robot_action.mp4)을 연다. 각 영상의 첫 프레임이 위 초기 장면이며, 이후 프레임은 8.5의 실제 `env.step(action)` 실행이다. 초기화만으로 작업 성공이 증명되는 것은 아니다.
+초기 프레임에서 Panda가 움직이는 과정까지 확인하려면 [A 시뮬레이션 영상](./images/custom_task_validation/A_robot_action.mp4)과 [B 시뮬레이션 영상](./images/custom_task_validation/B_robot_action.mp4)을 연다. 각 영상의 첫 프레임이 위 초기 장면이며, 이후 프레임은 8.5의 실제 `env.step(action)` 실행이다.
 
 #### 8.5) Action 실행과 Goal Condition 검증
 
@@ -1723,8 +1758,6 @@ Panda의 7차원 `OSC_POSE` action을 `env.step(action)`에 전달해 두 작업
 | --- | --- |
 | [![A 성공 영상 미리보기](./images/custom_task_validation/A_robot_action.gif)](./images/custom_task_validation/A_robot_action.mp4) | [![B 성공 영상 미리보기](./images/custom_task_validation/B_robot_action.gif)](./images/custom_task_validation/B_robot_action.mp4) |
 
-VS Code Markdown Preview와 GitHub 본문에서는 실제 영상 프레임으로 만든 GIF가 재생된다. 미리보기를 누르면 H.264 MP4를 열거나 내려받을 수 있다. 결과 파일과 [실행 코드·BDDL](./custom_task_validation/README.md)은 GitHub에서 접근할 수 있도록 상위 저장소에도 저장했다.
-
 Goal 정의가 작동하는지는 별도 시험으로 확인했다. 같은 seed로 다시 `reset()`하고 20 step 동안 초기 물체를 안정시킨 뒤, A는 접시의 자유 관절 위치를 목표 Region 중심으로, B는 우유의 위치를 접시 위로 **직접** 옮겼다. `sim.forward()`로 상태를 반영하고 30 step 동안 물리 시뮬레이션을 진행한 뒤 사진과 `env.check_success()`를 확인했다. 두 경우 모두 `False → True`가 나왔다.
 
 | 구분 | 초기 Goal | 물체 상태 직접 변경 후 Goal | 해석 |
@@ -1736,11 +1769,11 @@ Goal 정의가 작동하는지는 별도 시험으로 확인했다. 같은 seed�
 
 ![검증안 B의 Goal 판정 시험](./images/custom_task_validation/B_predicate_probe.png)
 
-이 두 사진은 **직접 상태 변경 시험**의 결과다. B의 `On`은 두 물체의 접촉과 높이·수평 위치 관계를 검사한다. 이 시험은 판정식 확인용이며, Panda가 작업을 수행한 근거는 위 성공 영상과 action 종료 사진이다. 수치 기록은 [A 결과 JSON](./images/custom_task_validation/A_result.json)과 [B 결과 JSON](./images/custom_task_validation/B_result.json)에 남겼다. 이번 성공은 `seed=0`의 배치와 작성한 제어 규칙에서 확인한 결과이며, 학습된 정책의 성능을 평가한 것은 아니다.
+이 두 사진은 **직접 상태 변경 시험**의 결과다. B의 `On`은 두 물체의 접촉과 높이·수평 위치 관계를 검사한다. 수치 기록은 [A 결과 JSON](./images/custom_task_validation/A_result.json)과 [B 결과 JSON](./images/custom_task_validation/B_result.json)에 남겼다. 두 작업은 `seed=0`의 초기 배치에서 작성한 제어 규칙으로 수행했다.
 
 #### 8.6) BDDL로 설정 가능한 범위와 LIBERO에 없는 새로운 요소를 추가할 때 필요한 확장 구조 정리
 
-이번 검증안 B는 **LIBERO에 이미 등록된** `milk` 물체를 새 BDDL에서 사용한 사례다. `milk_1`이 화면에 생성되고 초기화된 것은 확인했지만, 이 결과를 LIBERO에 없는 물체까지 BDDL만으로 만들 수 있다는 뜻으로 확대하면 안 된다.
+이번 검증안 B는 **LIBERO에 이미 등록된** `milk` 물체를 새 BDDL에서 사용한 사례다.
 
 | 바꾸려는 것 | BDDL만으로 가능한 범위 | 추가 구현이 필요한 경우 |
 | --- | --- | --- |
@@ -1760,17 +1793,13 @@ Goal 정의가 작동하는지는 별도 시험으로 확인했다. 같은 seed�
 
 #### 9.1) 검증 목적과 공통 기준
 
-8장에서는 기존 LIBERO에 등록된 물체와 Predicate를 BDDL에서 다시 조합했다. 9장에서는 그 범위를 한 단계 넓힌다. 새 물체(C), 새 고정 지지대(D), 새 성공 조건(E), 카메라·제어 설정(F)을 실제 코드에 추가하고, 각 요소를 참조하는 BDDL이 시뮬레이터에서 실행되는지 확인한다. 여기서 핵심은 BDDL 문법만 통과하는지가 아니라 **새 요소가 화면에 나타나고 Panda의 동작으로 Goal에 도달하는지**다.
+8장에서는 기존 LIBERO에 등록된 물체와 Predicate를 BDDL에서 다시 조합했다. 9장에서는 그 범위를 한 단계 넓힌다. 새 물체(C), 새 고정 지지대(D), 새 성공 조건(E), 카메라·제어 설정(F)을 실제 코드에 추가하고, 각 요소를 참조하는 BDDL이 시뮬레이터에서 실행되는지 확인한다. **새 요소가 화면에 나타나고 Panda의 동작으로 Goal에 도달하는지** 확인한다.
 
 네 사례 모두 같은 Tabletop 작업대와 Panda를 사용한다. C에는 상자·접시, D에는 우유·받침대, E·F에는 우유·접시만 남겼다. 캐비닛·스토브·와인병 등 각 Task의 조건과 동작에 필요 없는 요소는 선언과 참조를 함께 삭제했다. 실행 코드는 [test_extended_custom_tasks.py](./custom_task_validation/test_extended_custom_tasks.py)이며, Windows `libero` 환경에서 `seed=0`, 512×512 화면으로 최종 실행 결과를 각각 한 번 기록했다. 각 실험에서 `env.reset()` 직후 `:init`의 `On` 조건을 다시 검사하고 초기 Goal `False`를 확인했다. 이후 미리 정한 경유점을 따라가는 규칙 기반 제어로 `env.step(action)`에 접근·파지·들기·이동·놓기·그리퍼 이탈 명령을 전달했다. 마지막에는 추가 제어 step을 실행하면서 Goal이 계속 `True`인지 확인했다. Action 구간에는 물체의 MuJoCo 상태를 직접 바꾸지 않았다.
 
 ```powershell
-cd .\docs\W5\LIBERO
-conda activate libero
-python .\test_extended_custom_tasks.py --case all --seed 0 --size 512
+& $liberoPython .\test_extended_custom_tasks.py --case all --seed 0 --size 512
 ```
-
-실행 결과의 사진과 영상은 각 사례 아래에 연결했다. 영상은 로봇 동작의 증거이고, JSON의 `goal_after_robot_action`과 `goal_true_throughout_verification`은 성공 판정의 근거다.
 
 ##### 9.1.1) BDDL 밖에서 작성해야 하는 코드
 
@@ -1778,7 +1807,7 @@ python .\test_extended_custom_tasks.py --case all --seed 0 --size 512
 
 | 확장 항목 | 코드에서 작성해야 하는 내용 | 적용 방법을 설명하는 절 |
 | --- | --- | --- |
-| 새 Object의 형상·물성 | `assets/`의 XML에 충돌·시각 형상, 크기, 질량, 마찰, 배치 기준 site를 정의한다. `envs/objects/`의 클래스에서 XML 경로·자유 관절·회전 범위를 지정하고 `@register_object`로 등록한다. | 9.2.2 C의 XML·Object 클래스 |
+| 새 Object의 형상·물성 | `libero/libero/assets/`의 XML에 충돌·시각 형상, 크기, 질량, 마찰, 배치 기준 site를 정의한다. `libero/libero/envs/objects/`의 클래스에서 XML 경로·자유 관절·회전 범위를 지정하고 `@register_object`로 등록한다. | 9.2.2 C의 XML·Object 클래스 |
 | 새 장면·초기 상태 | 장면 XML과 Arena 연결, Fixture·Region 생성, 배치 sampler, 초기 관절·물체 상태를 작성한다. 기존 환경에서 처리할 수 없는 부분은 새 Problem과 초기화 코드로 확장한다. | 9.3.2 D의 Fixture·배치 코드, 9.3.6 장면·Init 확장 |
 | 새 Goal 의미 | Predicate 클래스의 `__call__()`에 검사할 대상·접촉·거리·자세 기준과 `True/False` 반환을 작성한다. 실행 전에 Predicate 사전에 이름을 등록한다. | 9.4.2 E의 함수·등록 코드 |
 | 로봇·작업대·카메라·제어 | 로봇 모델과 초기 관절각, 작업대 크기·높이, 카메라 위치·방향, 컨트롤러 설정을 작성한다. Wrapper에서 사용할 로봇·카메라·제어 종류를 선택한다. | 9.5.2 F의 카메라·제어 코드, 9.5.6 로봇·작업대 설정 |
@@ -1825,12 +1854,32 @@ Task는 **새로 만든 파란색 표식 상자를 접시 위에 놓기**다. `m
 다음으로 클래스의 생성자에서 XML을 읽고 관절·회전 속성을 지정한다. `CustomMarkerBox`는 등록 과정에서 `custom_marker_box`라는 종류 이름으로 연결된다.
 
 ```python
+from pathlib import Path
+
+from robosuite.models.objects import MujocoXMLObject
+
+from libero.libero.envs.base_object import register_object
+
+
 @register_object
 class CustomMarkerBox(MujocoXMLObject):
     """A 52 x 52 x 110 mm box with one collision shape and an orange marker."""
+
+    def __init__(self, name="custom_marker_box", joints=None):
+        asset = (Path(__file__).resolve().parents[2] / "assets" /
+                 "custom_validation_objects" / "marker_box.xml")
+        super().__init__(
+            str(asset), name=name,
+            joints=[dict(type="free", damping="0.0005")] if joints is None else joints,
+            obj_type="all", duplicate_collision_geoms=False,
+        )
+        self.category_name = "custom_marker_box"
+        self.rotation = (0.0, 0.0)
+        self.rotation_axis = "z"
+        self.object_properties = {"vis_site_names": {}}
 ```
 
-생성자의 관절 설정은 `joints=[dict(type="free", damping="0.0005")] if joints is None else joints`다. `free` joint는 상자가 테이블 위에서 위치와 자세를 바꾸는 **자유 관절**이다. 이것이 있어야 Panda가 집어 들고 접시 위로 옮길 수 있다. 위 코드는 등록 부분만 발췌했다.
+생성자의 관절 설정은 `joints=[dict(type="free", damping="0.0005")] if joints is None else joints`다. `free` joint는 상자가 테이블 위에서 위치와 자세를 바꾸는 **자유 관절**이다. 이것이 있어야 Panda가 집어 들고 접시 위로 옮길 수 있다. 위 코드는 `libero/libero/envs/objects/custom_validation_objects.py`에 저장한다.
 
 XML 작성 후 클래스에 `category_name`, `rotation`, `rotation_axis`, `object_properties`를 지정한다. 실행 파일에서 `import libero.libero.envs.objects.custom_validation_objects`를 수행한 뒤, 9.2.3의 `custom_marker_box_1 - custom_marker_box` 선언으로 장면에 생성한다.
 
@@ -1858,7 +1907,7 @@ XML 작성 후 클래스에 `category_name`, `rotation`, `rotation_axis`, `objec
 ##### 9.2.4) 환경 로딩과 초기 상태
 
 ```powershell
-python .\test_extended_custom_tasks.py --case C --seed 0 --size 512
+& $liberoPython .\test_extended_custom_tasks.py --case C --seed 0 --size 512
 ```
 
 환경 생성과 `reset()`이 성공했고, 초기 Goal은 `False`였다. 2개의 `On` 초기 조건이 모두 `True`였으며, 새 상자와 주변 물체 사이의 의도하지 않은 초기 접촉도 기록되지 않았다. [초기 사진](./images/extended_task_validation/C_initial.png)에는 파란 상자와 주황색 표식이 테이블 위에 보인다. 이는 XML 형상·물체 등록·BDDL 선언이 실제 장면으로 연결됐음을 보여준다.
@@ -1900,15 +1949,28 @@ Task는 **우유를 새로 만든 받침대 위에 놓기**다. 기존 물체 `m
 
 [raised_support.xml](./custom_task_validation/libero/libero/assets/custom_validation_objects/raised_support.xml)에 가로·세로 12 cm, 높이 4 cm인 블록을 정의했다. `support_block` geom은 우유를 실제로 받치는 충돌 면이고, `support_visual`은 화면 표시용이다. `top_region` site는 윗면의 위치와 범위를 표시하는 기준 요소이며 BDDL Goal이 참조한다. [custom_validation_fixtures.py](./custom_task_validation/libero/libero/envs/objects/custom_validation_fixtures.py)의 `RaisedSupport`를 `@register_object`로 등록했다. 자유 관절을 만들지 않아 받침대는 배치된 위치에 고정된다.
 
-기본 Tabletop 환경의 Fixture 배치기는 기존 Fixture를 위한 `z_offset=-0.04 m`를 사용한다. 이 값을 새 받침대에 그대로 적용하면 아래로 가라앉으므로 [libero_custom_support.py](./custom_task_validation/libero/libero/envs/problems/libero_custom_support.py)에서 이 Fixture의 배치 sampler에 한해 `z_offset=0.0`을 적용했다. **배치 sampler**는 BDDL Region에서 실제 배치 좌표를 뽑는 코드이며, `z_offset`은 높이 보정 값이다. 새 환경 클래스 `Libero_Custom_Support`를 `@register_problem`으로 등록하고 Tabletop의 Region sampler도 연결했다. **Problem 등록**은 BDDL 첫 줄의 이름으로 실행할 환경 클래스를 찾게 하는 과정이다. 여기서는 BDDL만 수정해서는 물리적 받침대와 올바른 배치 높이를 만들 수 없었다.
+기본 Tabletop 환경의 Fixture 배치기는 기존 Fixture를 위한 `z_offset=-0.04 m`를 사용한다. 이 값을 새 받침대에 그대로 적용하면 아래로 가라앉으므로 [libero_custom_support.py](./custom_task_validation/libero/libero/envs/problems/libero_custom_support.py)에서 이 Fixture의 배치 sampler에 한해 `z_offset=0.0`을 적용했다. `z_offset`은 배치 높이를 보정하는 값이다. 새 환경 클래스 `Libero_Custom_Support`를 `@register_problem`으로 등록하고 Tabletop의 Region sampler도 연결했다. **Problem 등록**은 BDDL 첫 줄의 이름으로 실행할 환경 클래스를 찾게 하는 과정이다. 여기서는 BDDL만 수정해서는 물리적 받침대와 올바른 배치 높이를 만들 수 없었다.
 
 ```python
+"""Tabletop environment extension for a platform with its own top Region."""
+from libero.libero.envs.bddl_base_domain import TASK_MAPPING, register_problem
+from libero.libero.envs.objects.custom_validation_fixtures import RaisedSupport
+from libero.libero.envs.regions import REGION_SAMPLERS, TableRegionSampler
+
+
+# register_problem stores the class in TASK_MAPPING; its decorator return is None.
+_TabletopBase = TASK_MAPPING["libero_tabletop_manipulation"]
 REGION_SAMPLERS["libero_custom_support"] = {"table": TableRegionSampler}
+
 
 @register_problem
 class Libero_Custom_Support(_TabletopBase):
+    """Reuse the tabletop scene and place the new support at the table surface."""
+
     def _add_placement_initializer(self):
         super()._add_placement_initializer()
+        # This platform's bottom_site matches its true collision bottom.
+        # Tabletop's legacy fixture z_offset (-0.04 m) would sink the platform.
         for name, fixture in self.fixtures_dict.items():
             if isinstance(fixture, RaisedSupport):
                 self.placement_initializer.samplers[name + "_sampler"].z_offset = 0.0
@@ -1936,7 +1998,7 @@ class Libero_Custom_Support(_TabletopBase):
 ##### 9.3.4) 환경 로딩과 초기 상태
 
 ```powershell
-python .\test_extended_custom_tasks.py --case D --seed 0 --size 512
+& $liberoPython .\test_extended_custom_tasks.py --case D --seed 0 --size 512
 ```
 
 새 환경 Problem을 불러온 뒤 `reset()`이 성공했다. 초기 Goal은 `False`, 2개의 `On` 초기 조건은 모두 `True`였다. 받침대가 테이블 위에 놓였고 초기 물체와 받침대 사이에 원하지 않은 접촉이 없었다. [초기 사진](./images/extended_task_validation/D_initial.png)에서 우유와 파란 받침대가 서로 떨어져 보인다.
@@ -1962,18 +2024,28 @@ Panda가 우유를 잡아 약 0.170 m 들어 올리고 받침대 위에 놓았�
 장면은 `libero/libero/assets/scenes/` 아래 XML로 만들고, [환경 생성 코드](./custom_task_validation/reference_code/libero/libero/envs/bddl_base_domain.py)의 `scene_xml`과 연결한다. 기존 [TableArena](./custom_task_validation/reference_code/libero/libero/envs/arenas/table_arena.py)를 사용할 때는 `table` body, `table_collision`, `table_visual`, `table_top`, 다리와 바닥·벽 texture처럼 이 클래스가 찾는 XML 요소를 유지한다. 기존 장면 XML을 복사해 필요한 형상을 추가하는 방식으로 시작할 수 있다.
 
 ```python
-# 새 XML을 assets/scenes/에 작성한 뒤 실행 파일에서 선택한다.
+import test_custom_task_variants as base
+from libero.libero.envs.env_wrapper import OffScreenRenderEnv
+
 env = OffScreenRenderEnv(
-    bddl_file_name="custom_tasks/custom_milk_task.bddl",
-    scene_xml="scenes/my_tabletop_scene.xml",
+    bddl_file_name=str(base.ROOT / "custom_tasks/custom_milk_task.bddl"),
+    scene_xml="scenes/libero_tabletop_base_style.xml",
+    camera_heights=512, camera_widths=512,
 )
+try:
+    env.seed(0)
+    obs = env.reset()
+    print("Image shape:", obs["agentview_image"].shape)
+    print("Initial goal:", bool(env.check_success()))
+finally:
+    env.close()
 ```
 
-위 파일명은 새 장면을 만들 때 사용할 예시다. TableArena와 구조가 다른 작업 공간을 만들면 Arena 클래스와 새 Problem의 `_load_model()`을 작성해 연결하고, `_load_fixtures_in_arena()`·`_load_sites_in_arena()`에서 고정물과 Region 기준도 정의해야 한다. Tabletop은 `arena_type="table"`을 사용하므로 이 선택을 바꾸는 구현도 새 환경에서 담당한다.
+위 예제는 저장소에 있는 기본 장면 XML을 선택해 초기화한다. 새 장면을 작성하면 `scene_xml`을 그 파일의 `assets/` 기준 상대경로로 바꾼다. TableArena와 구조가 다른 작업 공간을 만들면 Arena 클래스와 새 Problem의 `_load_model()`을 작성해 연결하고, `_load_fixtures_in_arena()`·`_load_sites_in_arena()`에서 고정물과 Region 기준도 정의해야 한다. Tabletop은 `arena_type="table"`을 사용하므로 이 선택을 바꾸는 구현도 새 환경에서 담당한다.
 
 **일반적인 방법 — 지원되지 않는 초기 상태**
 
-초기 상태는 [기본 환경 코드](./custom_task_validation/reference_code/libero/libero/envs/bddl_base_domain.py)의 `_add_placement_initializer()`가 BDDL 조건을 배치·속성 sampler로 바꾸고, `_reset_internal()`이 샘플링한 위치·자세·관절값을 적용한다. 새로운 Init 의미를 사용하려면 **조건을 해석하는 분기, 설정할 상태값, reset 시 적용하는 코드**를 작성해야 한다. 예를 들어 서랍을 정해진 위치에서 시작하도록 만들 때는 새 Problem 클래스에 다음 초기화 함수를 작성할 수 있다.
+초기 상태는 [기본 환경 코드](./custom_task_validation/reference_code/libero/libero/envs/bddl_base_domain.py)의 `_add_placement_initializer()`가 BDDL 조건을 배치·속성 sampler로 바꾸고, `_reset_internal()`이 샘플링한 위치·자세·관절값을 적용한다. 새로운 Init 의미를 사용하려면 **조건을 해석하는 분기, 설정할 상태값, reset 시 적용하는 코드**를 작성해야 한다. 예를 들어 서랍을 정해진 위치에서 시작하도록 만들 때는 새 Problem 클래스 내부에 다음 메서드를 작성한다. 독립 실행 파일이 아닌 환경 클래스의 구현 예시다.
 
 ```python
 def _reset_internal(self):
@@ -1988,7 +2060,7 @@ def _reset_internal(self):
 
 **실험에서의 적용 — D의 초기 배치 보정**
 
-D에서는 기존 Tabletop 장면에 새 받침대와 윗면 Region을 추가했다. [환경 코드](./custom_task_validation/libero/libero/envs/problems/libero_custom_support.py)의 `_add_placement_initializer()`에서 받침대 sampler의 `z_offset`을 0으로 바꾸어 상판 위에 배치했다. `reset()` 후 사진과 초기 `On` 조건을 함께 확인한 결과는 9.3.4–9.3.5에 제시했다. 위의 새 장면 XML과 서랍 초기화 코드는 작성 방법을 설명하는 예시이며, D에서 실행한 변경은 받침대 추가와 배치 높이 보정이다.
+D에서는 기존 Tabletop 장면에 새 받침대와 윗면 Region을 추가했다. [환경 코드](./custom_task_validation/libero/libero/envs/problems/libero_custom_support.py)의 `_add_placement_initializer()`에서 받침대 sampler의 `z_offset`을 0으로 바꾸어 상판 위에 배치했다. `reset()` 후 사진과 초기 `On` 조건을 함께 확인한 결과는 9.3.4–9.3.5에 제시했다.
 
 #### 9.4) E — 새로운 Goal Predicate 추가
 
@@ -2015,11 +2087,28 @@ D에서는 기존 Tabletop 장면에 새 받침대와 윗면 Region을 추가했
 [custom_validation_predicates.py](./custom_task_validation/libero/libero/envs/predicates/custom_validation_predicates.py)의 `CenteredUprightOn`은 기존 `On`이 `True`인지 먼저 확인한다. 다음으로 우유와 접시 중심의 평면 거리(XY)를 1 cm 이내로 제한한다. **로컬 Y축**은 우유 상자에 고정된 방향이며, 이 asset에서는 상자 윗면을 향한다. 이를 시뮬레이터의 수직 Z축과 비교한 내적이 1이면 완전히 같은 방향이다. 기준 0.95는 수직에서 약 18.2° 이내의 기울기를 허용한다.
 
 ```python
-if not On()(milk, plate):
-    return False
-xy_distance = np.linalg.norm(milk_pos[:2] - plate_pos[:2])
-local_y_world_z = float(rotation[2, 1])
-return bool(xy_distance <= 0.01 and local_y_world_z >= 0.95)
+import test_custom_bddl
+import numpy as np
+
+from libero.libero.envs.predicates.base_predicates import BinaryAtomic, On
+
+
+class CenteredUprightOn(BinaryAtomic):
+    """Milk contacts the plate, is centered within 1 cm, and stands upright.
+
+    The milk asset's local positive Y axis points toward the carton top.
+    """
+
+    def __call__(self, milk, plate):
+        if not On()(milk, plate):
+            return False
+        milk_pos = milk.get_geom_state()["pos"]
+        plate_pos = plate.get_geom_state()["pos"]
+        xy_distance = np.linalg.norm(milk_pos[:2] - plate_pos[:2])
+        body_id = milk.env.obj_body_id[milk.object_name]
+        rotation = milk.env.sim.data.body_xmat[body_id].reshape(3, 3)
+        local_y_world_z = float(rotation[2, 1])
+        return bool(xy_distance <= 0.01 and local_y_world_z >= 0.95)
 ```
 
 새 함수를 파일에 만드는 것만으로는 LIBERO의 Goal 평가 코드가 이름을 찾지 못한다. [실행 코드](./custom_task_validation/test_extended_custom_tasks.py)는 E 환경을 만들기 전에 모듈을 import하고 `get_predicate_fn_dict()["centereduprighton"] = CenteredUprightOn()`으로 Predicate registry에 명시적으로 등록한다. 이는 BDDL에 없는 **판정 의미 자체**를 Python에서 추가한 사례다.
@@ -2027,6 +2116,7 @@ return bool(xy_distance <= 0.01 and local_y_world_z >= 0.95)
 두 물체를 받는 조건은 E처럼 `BinaryAtomic`을 상속해 `__call__(self, milk, plate)`를 작성한다. 함수 안에서 시뮬레이터의 현재 값을 읽어 위 기준을 검사하고 bool을 반환한다. 실행 파일의 등록 부분은 다음과 같다.
 
 ```python
+import test_custom_bddl  # Windows renderer and log setup
 from libero.libero.envs.predicates import get_predicate_fn_dict
 from libero.libero.envs.predicates.custom_validation_predicates import CenteredUprightOn
 
@@ -2052,7 +2142,7 @@ BDDL에는 Predicate의 **이름과 대상**을 적고, 접촉·거리·자세�
 ##### 9.4.4) 환경 로딩과 초기 상태
 
 ```powershell
-python .\test_extended_custom_tasks.py --case E --seed 0 --size 512
+& $liberoPython .\test_extended_custom_tasks.py --case E --seed 0 --size 512
 ```
 
 새 Predicate를 등록한 뒤 BDDL 로딩과 `reset()`이 성공했다. 초기 Goal은 `False`였고, 2개의 `On` 초기 조건이 모두 `True`였다. [초기 사진](./images/extended_task_validation/E_initial.png)의 우유는 접시와 떨어져 있으므로 이 판정은 자연스럽다.
@@ -2071,10 +2161,10 @@ Panda가 우유를 파지해 약 0.170 m 들어 올리고 접시 위에 놓았�
 
 ##### 9.4.6) 새 Predicate의 경계 조건 검사
 
-새 조건이 기존 `On`보다 엄격한지도 별도 시험했다. [경계 조건 검사 코드](./custom_task_validation/test_custom_predicate_conditions.py)는 우유의 MuJoCo 상태를 **직접 변경**해 접시 중심에서의 거리와 기울기를 바꾼다. 이 검사는 Predicate 자체를 확인하기 위한 것으로 위 Panda 동작 영상에는 포함되지 않는다.
+새 조건이 기존 `On`보다 엄격한지도 별도 시험했다. [경계 조건 검사 코드](./custom_task_validation/test_custom_predicate_conditions.py)는 우유의 MuJoCo 상태를 **직접 변경**해 접시 중심에서의 거리와 기울기를 바꾼다.
 
 ```powershell
-python .\test_custom_predicate_conditions.py
+& $liberoPython .\test_custom_predicate_conditions.py
 ```
 
 | 직접 설정한 상태 | XY 거리 | 우유 로컬 Y축·수직 Z축 내적 | 기존 `On` | 새 `CenteredUprightOn` |
@@ -2112,19 +2202,44 @@ F는 B의 **우유를 접시 위에 놓기** Task를 유지하면서 관찰 시�
 [libero_custom_camera_control.py](./custom_task_validation/libero/libero/envs/problems/libero_custom_camera_control.py)는 기존 Tabletop 환경을 상속하고 `@register_problem`으로 새 환경 이름을 등록한다. D와 같은 방식으로 새 Problem 이름에 Tabletop 배치 sampler도 연결했으며, 기존 `agentview`를 유지한 채 `custom_overview` 카메라를 추가했다.
 
 ```python
-controller["kp"] = 180
-controller["damping_ratio"] = 1.0
-kwargs["controller_configs"] = controller
+from copy import deepcopy
 
-mujoco_arena.set_camera(
-    camera_name="custom_overview",
-    pos=[0.9, 0.0, 1.8],
-    quat=[0.6380177736282349, 0.3048497438430786,
-          0.30484986305236816, 0.6380177736282349],
+from libero.libero.envs.bddl_base_domain import TASK_MAPPING, register_problem
+from libero.libero.envs.problems import libero_tabletop_manipulation  # noqa: F401
+from libero.libero.envs.regions import REGION_SAMPLERS
+
+
+REGION_SAMPLERS["libero_custom_camera_control"] = dict(
+    REGION_SAMPLERS["libero_tabletop_manipulation"]
 )
+
+
+@register_problem
+class Libero_Custom_Camera_Control(TASK_MAPPING["libero_tabletop_manipulation"]):
+    """Preserve the tabletop scene while extending its control and observation."""
+
+    def __init__(self, bddl_file_name, *args, **kwargs):
+        controller = deepcopy(kwargs.get("controller_configs") or {})
+        controller["kp"] = 180
+        controller["damping_ratio"] = 1.0
+        kwargs["controller_configs"] = controller
+        super().__init__(bddl_file_name, *args, **kwargs)
+
+    def _setup_camera(self, mujoco_arena):
+        super()._setup_camera(mujoco_arena)
+        mujoco_arena.set_camera(
+            camera_name="custom_overview",
+            pos=[0.9, 0.0, 1.8],
+            quat=[
+                0.6380177736282349,
+                0.3048497438430786,
+                0.30484986305236816,
+                0.6380177736282349,
+            ],
+        )
 ```
 
-위 코드는 생성자의 제어 설정과 `_setup_camera()`의 카메라 설정을 각각 발췌했다. `kp`는 목표 자세와 현재 자세의 오차에 반응하는 강도를 정하는 제어 이득이다. 여섯 값은 말단의 **위치 3축과 회전 3축**에 대응한다. 기본 실험의 실제 controller 값은 모두 150이었고, F에서는 모두 180으로 읽혔다. `damping_ratio`는 목표 근처의 진동을 줄이기 위한 감쇠 비율로 코드에서 1.0을 전달했다. 이 값의 효과를 성능 향상으로 단정하지 않고, **설정 변경과 실행 성공을 확인한 결과**로 기록한다.
+위 코드는 `libero/libero/envs/problems/libero_custom_camera_control.py`에 저장한다. `kp`는 목표 자세와 현재 자세의 오차에 반응하는 강도를 정하는 제어 이득이다. 여섯 값은 말단의 **위치 3축과 회전 3축**에 대응한다. 기본 실험의 실제 controller 값은 모두 150이었고, F에서는 모두 180으로 읽혔다. `damping_ratio`는 목표 근처의 진동을 줄이기 위한 감쇠 비율로 코드에서 1.0을 전달했다.
 
 ##### 9.5.3) BDDL 작성
 
@@ -2141,7 +2256,7 @@ Goal은 `(And (On milk_1 plate_1))`이다. 카메라 위치나 제어 이득의 
 ##### 9.5.4) 환경 로딩과 초기 상태
 
 ```powershell
-python .\test_extended_custom_tasks.py --case F --seed 0 --size 512
+& $liberoPython .\test_extended_custom_tasks.py --case F --seed 0 --size 512
 ```
 
 새 Problem으로 환경을 만들고 `custom_overview`에서 초기 화면을 받았다. 초기 Goal은 `False`, 2개의 `On` 초기 조건은 모두 `True`였다. [초기 사진](./images/extended_task_validation/F_initial.png)은 기존 시점보다 테이블 주변을 넓게 보여준다. JSON에는 관측 카메라 이름 `custom_overview`와 controller 이득 `[180, 180, 180, 180, 180, 180]`이 기록됐다.
@@ -2170,7 +2285,7 @@ python .\test_extended_custom_tasks.py --case F --seed 0 --size 512
 
 **일반적인 방법 — 작업대 크기와 높이**
 
-작업대 크기는 [libero_tabletop_manipulation.py](./custom_task_validation/libero/libero/envs/problems/libero_tabletop_manipulation.py)의 `table_full_size`, 상판 높이는 `table_offset`에서 정한다. 전달받은 크기는 환경 생성자의 다음 코드로 읽는다.
+작업대 크기는 [libero_tabletop_manipulation.py](./custom_task_validation/libero/libero/envs/problems/libero_tabletop_manipulation.py)의 `table_full_size`, 상판 높이는 `table_offset`에서 정한다. 전달받은 크기는 환경 생성자의 다음 코드로 읽는다. `self`와 `kwargs`를 사용하는 생성자 내부 발췌다.
 
 ```python
 if "table_full_size" in kwargs:
@@ -2184,27 +2299,37 @@ self.table_offset = (0, 0, 0.90)
 
 **실험에서의 적용 — F의 Panda와 관측 설정**
 
-C–F에서는 로봇 모델을 `MountedPanda`로 유지했다. Tabletop은 `robots=["Panda"]`를 받아 이 모델을 선택한다. 초기 관절각은 [mounted_panda.py](./custom_task_validation/reference_code/libero/libero/envs/robots/mounted_panda.py)의 `init_qpos`, 설치 위치는 `base_xpos_offset`에 정의돼 있다. [robots/__init__.py](./custom_task_validation/reference_code/libero/libero/envs/robots/__init__.py)는 모델을 다음처럼 실행 클래스에 연결한다.
+C–F에서는 로봇 모델을 `MountedPanda`로 유지했다. Tabletop은 `robots=["Panda"]`를 받아 이 모델을 선택한다. 초기 관절각은 [mounted_panda.py](./custom_task_validation/reference_code/libero/libero/envs/robots/mounted_panda.py)의 `init_qpos`, 설치 위치는 `base_xpos_offset`에 정의돼 있다. [robots/__init__.py](./custom_task_validation/reference_code/libero/libero/envs/robots/__init__.py)는 모델을 다음처럼 실행 클래스에 연결한다. 아래는 해당 모듈 내부의 등록 코드다.
 
 ```python
+import test_custom_bddl
+from robosuite.robots.single_arm import SingleArm
+from robosuite.robots import ROBOT_CLASS_MAPPING
+
 ROBOT_CLASS_MAPPING.update({"MountedPanda": SingleArm})
 ```
 
 로봇과 관측 설정은 [Wrapper](./custom_task_validation/reference_code/libero/libero/envs/env_wrapper.py)를 통해 환경에 전달했다. F를 불러올 때의 핵심 설정은 다음과 같다. 컨트롤러의 `kp`와 `damping_ratio`는 9.5.2의 환경 클래스에서 설정한다.
 
 ```python
+import test_custom_task_variants as base
 from libero.libero.envs.env_wrapper import OffScreenRenderEnv
 import libero.libero.envs.problems.libero_custom_camera_control
 
 env = OffScreenRenderEnv(
-    bddl_file_name="custom_tasks/custom_camera_control_task.bddl",
-    robots=["Panda"],
-    initialization_noise=None,
-    controller="OSC_POSE",
-    camera_names=["custom_overview"],
-    camera_heights=512,
-    camera_widths=512,
+    bddl_file_name=str(base.ROOT / "custom_tasks/custom_camera_control_task.bddl"),
+    robots=["Panda"], initialization_noise=None,
+    controller="OSC_POSE", camera_names=["custom_overview"],
+    camera_heights=512, camera_widths=512,
 )
+try:
+    env.seed(0)
+    obs = env.reset()
+    print("Image shape:", obs["custom_overview_image"].shape)
+    print("Controller kp:", env.env.robots[0].controller.kp)
+    print("Initial goal:", bool(env.check_success()))
+finally:
+    env.close()
 ```
 
 **별도 설정 확인 — 작업대 크기 변경**
@@ -2212,66 +2337,143 @@ env = OffScreenRenderEnv(
 실행 파일에서 `table_full_size=(1.1, 1.3, 0.05)`를 전달해 길이 1.1 m, 폭 1.3 m, 두께 0.05 m로 생성했다.
 
 ```powershell
-python .\test_tabletop_configuration.py
+& $liberoPython .\test_tabletop_configuration.py
 ```
 
-[설정 확인 코드](./custom_task_validation/test_tabletop_configuration.py)로 변경한 크기를 적용해 `reset()`을 검사했다. 실제 충돌 형상의 절반 크기는 `(0.55, 0.65, 0.025) m`, 로봇 base의 X 위치는 `-0.71 m`였다. 이 검사는 크기 설정과 초기화의 확인이며, 변경한 작업대에서 Task Action을 수행한 결과는 포함하지 않는다.
+[설정 확인 코드](./custom_task_validation/test_tabletop_configuration.py)로 변경한 크기를 적용해 `reset()`을 검사했다. 실제 충돌 형상의 절반 크기는 `(0.55, 0.65, 0.025) m`, 로봇 base의 X 위치는 `-0.71 m`였다.
 
 ### 10. Panda 초기 장면부터 확장 Custom Task까지의 검증 결과
 
-이번 검증의 목적은 **새 Task를 BDDL로 작성했을 때, 의도한 장면이 시뮬레이터에 나타나고 Panda가 실제로 움직여 Goal을 달성하는지 확인하는 것**이다. 5장에서 로봇과 빈 작업대의 초기 장면을 확인한 뒤, 6–7장에서 서랍 Task의 로딩·동작·판정을 살폈다. 8장에서는 이미 있는 LIBERO 요소로 BDDL을 바꾸었고, 9장에서는 코드에 새 요소를 구현해 BDDL과 연결했다. 아래는 그 과정에서 무엇을 확인했고 어떤 부분을 아직 평가하지 않았는지 정리한 결과다.
+이번 검증의 목적은 **새 Task를 BDDL로 작성했을 때, 의도한 장면이 시뮬레이터에 나타나고 Panda가 실제로 움직여 Goal을 달성하는지 확인하는 것**이다. 화면에 물체가 생성되는 과정부터 로봇의 작업 완료까지 확인해, 앞으로 Task를 설계할 때 필요한 근거를 얻고자 했다.
 
-#### 10.1) 5장 — 물체 없는 작업 공간과 Panda의 시작 자세
+5장에서는 책상과 Panda만 있는 초기 장면을 준비했다. 6–7장에서는 서랍 Task의 로딩·관측·Action·성공 판정을 연결했고, 8장에서는 등록된 요소로 새 BDDL을 구성했다. 9장에서는 새 물체·Fixture·Predicate·카메라와 제어 설정을 코드에 추가했다.
 
-Task가 복잡해지기 전에 Panda 모델과 렌더링부터 확인했다. 5.2에서는 BDDL을 불러오지 않고 `MountedPanda`와 빈 TableArena를 만들었다. 로봇의 `init_qpos`에 정의된 7개 관절각을 적용하고 `initialization_noise=None`으로 시작 자세의 무작위 변화를 없앴다. 실제 관절값이 설정과 일치하는지 확인했으며, [초기 자세 사진](./images/panda_initial_pose.png)에는 작업 물체 없이 Panda와 테이블만 보인다.
+#### 10.1) 5장 — 빈 작업 공간과 Panda의 초기 자세
 
-5.3에서는 같은 책상과 Panda의 빈 초기 장면을 [PNG](./images/libero_tabletop_test.png)로 저장해 확인했다. 별도 benchmark 상태나 Task 물체를 불러오지 않는다. 따라서 5장의 결과는 로봇 초기 자세와 작업 공간이 정상적으로 보인다는 근거이며, 아직 BDDL Task나 Panda의 작업 성공을 보여 주지는 않는다.
+먼저 **책상과 Panda만 있는 장면**에서 로봇 모델과 렌더링을 확인했다. 5.2의 `test_panda_initial_pose.py`는 BDDL 없이 `MountedPanda`와 빈 TableArena를 구성한다. TableArena는 작업대의 형상과 배치 기준을 제공하는 모델이다. 크기는 `(1.0, 1.2, 0.05) m`, 상판 높이는 `0.90 m`로 정했고, 작업 물체나 캐비닛·스토브는 추가하지 않았다.
 
-#### 10.2) 6–7장 — 서랍 Custom BDDL이 실제 Task로 이어지는지 확인
+Panda는 `init_qpos`에 정의된 7개 관절각으로 시작한다. `initialization_noise=None`으로 무작위 자세 변화를 없애고, `reset()` 후 실제 관절값이 설정과 일치하는지 검사했다. 작업 물체가 0개인지도 확인했다. 이 단계에서 초기 자세가 틀어지거나 화면이 나오지 않으면 뒤의 Task 배치와 동작을 판단하기 어려우므로, 가장 단순한 구성부터 확인했다.
 
-6장에서는 공식 가운데 서랍 열기 BDDL을 참고해 `custom_test.bddl`을 작성했다. 서랍 Task에 필요한 Fixture·Region·Init과 `(Open wooden_cabinet_1_middle_region)` Goal만 남겨 명세를 분명히 했다. BDDL 경로를 `OffScreenRenderEnv`에 직접 전달하고 `env.reset()`을 실행해, 서랍과 Panda가 나타난 [초기 장면](./images/custom_bddl_test.png)을 확인했다. 이 과정은 단일 BDDL 파일의 로딩이며 별도 benchmark suite 등록은 필요하지 않았다.
+![5장: 작업 물체 없이 책상과 Panda만 있는 초기 장면](./images/panda_initial_pose.png)
 
-6.4에서는 실시간 화면·PNG·영상으로 장면을 확인하는 방법을 정리했다. 실시간 OpenCV 창으로 관측 화면을 보고, `reset()` 직후와 zero action 후의 PNG를 비교하며, 관측 갱신 구간을 MP4로 기록한다. [초기 PNG](./images/custom_bddl_test.png)와 [zero action 종료 PNG](./images/libero_live_agentview.png)는 배치 확인 자료다. [zero action 영상](./images/custom_bddl_monitoring.mp4)은 화면이 계속 갱신되는지를 보여 주며, 서랍을 여는 작업 영상과는 구분한다.
+5.3의 `test_libero_tabletop.py`는 같은 장면을 `libero_tabletop_test.png`로 저장해 확인하는 과정이다. 따라서 5장에서 확인한 것은 **로봇의 시작 자세·빈 작업 공간·이미지 출력**이며, BDDL Task 수행은 다음 단계부터 검증했다.
 
-7장에서는 초기 Goal `False`를 먼저 확인했다. zero action으로 `env.step(action)`과 관측 갱신이 되는지 시험한 다음, 서랍 joint를 **직접** 움직여 `Open` 판정이 `False → True`로 바뀌는지도 별도로 검사했다. 이 단계는 성공 조건의 의미를 확인한 것이며 Panda의 조작 결과는 아니다.
+#### 10.2) 6–7장 — 서랍 BDDL의 로딩에서 실제 작업 완료까지
 
-실제 작업은 7.4에서 수행했다. 서랍을 닫힌 상태로 다시 시작해 Panda의 `OSC_POSE` action으로 손잡이에 접근하고 잡아당겼다. 총 369 Action step을 실행했고, 그리퍼가 이탈한 뒤 마지막 30 step 동안 Goal `True`가 유지됐다. [종료 사진](./images/panda_drawer_action_result.png)과 [실제 동작 영상](./images/panda_drawer_action.mp4)에서 열린 서랍을 확인했다. 동작 구간에서 서랍 joint를 직접 설정하지 않았다. 이렇게 **초기 장면 → Action → 관측 변화 → Goal 판정**을 한 Task 안에서 연결했다.
+##### 10.2.1) 필요한 Fixture와 초기 조건만 남긴 서랍 Task
 
-#### 10.3) 8장 — 기존 요소로 새 BDDL Task 구성
+6장에서는 공식 가운데 서랍 열기 BDDL을 참고해 `custom_test.bddl`을 작성했다. 책상·Panda·서랍 캐비닛만 남기고 조작 물체를 선언하는 `:objects`는 비웠다. 캐비닛의 시작 위치와 중간 서랍 Region을 정의하고, Init에는 캐비닛이 책상 위에 있다는 `On`과 서랍이 닫혀 있다는 `Close`를 지정했다.
 
-새 Task를 만들 때 먼저 물체와 판정 함수가 LIBERO에 이미 등록돼 있는지 확인한다. 등록된 종류라면 BDDL에서 사용할 인스턴스를 선언하고, Region·Init·Goal을 실제 배치와 작업 목적에 맞게 작성할 수 있다. 8장의 A·B는 이 방법을 시험했다. 각각 두 개의 초기 `On` 조건과 초기 Goal `False`를 확인한 뒤 Panda Action을 실행했다.
+Goal은 `(Open wooden_cabinet_1_middle_region)`이다. BDDL 경로를 `OffScreenRenderEnv`에 직접 전달하면 Wrapper가 Problem 이름으로 환경을 선택하고 Parser가 나머지 명세를 해석한다. `env.reset()` 후 Init 두 조건은 모두 `True`, Goal은 `False`였다. 단일 파일을 실행하는 데 별도 benchmark suite 등록은 필요하지 않았다.
 
-**A는 접시 이동이다.** 서랍용 `custom_test.bddl`에는 접시가 없으므로 공식 접시 밀기 BDDL을 출발점으로 삼았다. 접시의 시작 Region과 스토브 앞 목표 Region을 조정하고, Panda가 접시를 테이블 위에서 밀도록 했다. [A 영상](./images/custom_task_validation/A_robot_action.mp4)은 접시가 목표 영역으로 이동하는 과정과 종료 상태를 보여 준다.
+![6장: 책상·Panda·서랍 캐비닛만 남긴 초기 배치](./images/custom_bddl_test.png)
 
-**B는 우유 놓기다.** `milk`는 [기존 Tabletop 장면](./images/milk_source_scene.png)에서도 쓰는 등록 물체이므로, 같은 모델을 BDDL의 `milk_1 - milk`로 선언했다. 우유의 시작 Region과 Init을 추가하고 `(On milk_1 plate_1)`을 Goal로 정했다. [B 영상](./images/custom_task_validation/B_robot_action.mp4)에는 Panda가 우유를 잡아 접시로 옮겨 놓고 그리퍼가 물러나는 동작이 보인다. A와 B에서는 BDDL 로딩·초기 배치·실제 Action·Goal을 각각 확인한다.
+##### 10.2.2) 실시간 화면·PNG·영상으로 관측 갱신 확인
 
-#### 10.4) 9장 — BDDL 밖의 요소를 구현해 Task에 연결
+6.4에서는 OpenCV 창으로 실시간 화면을 보고, 초기·종료 PNG를 비교하며, 진행 과정을 MP4로 기록하는 방법을 정리했다. 세 방법은 같은 `agentview_image` 관측값을 사용한다. 표시·저장 전에 이미지의 상하 방향과 RGB/BGR 순서를 보정해 장면이 정상적으로 보이도록 했다.
 
-LIBERO에 없는 물체나 판정 기준은 BDDL의 이름만 추가해서 만들 수 없다. 먼저 XML·Python에 모델과 동작 방법을 작성하고 등록한 다음 BDDL에서 참조해야 한다. 9장은 이 순서로 C–F를 검증했다.
+7.2에서는 7차원 `zero action`을 60 step 전달했다. `env.step(action)`이 시뮬레이션을 진행하고 관측값을 반환하는지, 매 step의 Goal 검사도 이어지는지 확인했다. 의도적인 이동 명령을 주지 않아도 중력과 접촉 계산은 계속 진행된다. 이 구간에서 Goal은 계속 `False`였으며, 아래 영상은 **관측 갱신을 확인한 기록**이다.
 
-**C의 일반적인 확장 방법**은 물체의 충돌·시각 형상과 물성을 XML asset에 정의하고, Object 클래스를 등록한 뒤 BDDL에 인스턴스를 선언하는 것이다. 이번에는 파란색 표식 상자를 새로 만들어 접시 위에 놓았다. [C 영상](./images/extended_task_validation/C_robot_action.mp4)에서 새 물체가 생성되고 Panda가 파지·이동·놓기를 수행하는지 확인한다.
+![6.4·7.2: zero action 60 step의 관측 갱신](./images/custom_bddl_monitoring.gif)
 
-**D는 고정 Fixture를 추가하는 방법**이다. XML에 물체를 받치는 형상과 윗면 site를 만들고, 환경 코드에서 배치 sampler 높이를 맞춘 다음 BDDL의 Region·Goal에 연결한다. 이번 받침대는 `z_offset=0`으로 배치 높이를 보정했다. [D 영상](./images/extended_task_validation/D_robot_action.mp4)에는 우유를 새 받침대 위로 옮기는 과정이 담겼다.
+##### 10.2.3) 서랍이 열렸을 때 Goal 판정이 바뀌는지 검사
 
-**E는 성공 조건을 새로 정의하는 방법**이다. Predicate 함수가 물체 상태를 읽어 참·거짓을 반환하도록 구현하고 registry에 등록한 뒤 BDDL Goal에서 이름을 사용한다. 이번 `CenteredUprightOn`은 기존 `On`에 접시 중심 거리와 우유의 직립 기준을 추가했다. [E 영상](./images/extended_task_validation/E_robot_action.mp4)의 실제 동작 후 Goal을 확인했고, [별도 경계 검사](./images/extended_task_validation/E_predicate_conditions.json)는 직접 상태 변경으로 기준을 벗어난 경우를 시험했다. 두 검사는 서로 다른 증거다.
+7.3에서는 서랍 joint 값을 직접 설정해 `Open` Predicate를 시험했다. Predicate는 현재 상태가 조건을 만족하는지 참·거짓을 반환하는 함수다. 먼저 이 판정이 맞는지 확인해야 실제 로봇 동작이 실패했을 때 Goal 정의와 제어 문제를 구분할 수 있다.
 
-**F는 관측과 제어를 바꾸는 방법**이다. 카메라와 controller 값은 BDDL이 아니라 새 환경 Problem에 작성하고 Wrapper에서 선택한다. 이번에는 `custom_overview` 시점과 `OSC_POSE`의 `kp=180`, `damping_ratio=1.0`을 적용했다. [F 영상](./images/extended_task_validation/F_robot_action.mp4)에서 바뀐 시점으로 우유 놓기와 Goal 달성을 확인했다. 이는 설정 적용과 Task 실행 결과이며 제어 성능 향상을 입증하는 비교 실험은 아니다.
+서랍 joint의 범위는 `[-0.16, 0.01] m`다. `qpos=-0.007 m`에서는 Goal이 `False`, `qpos=-0.143 m`에서는 `True`였다. 값을 바꾼 뒤 시뮬레이터와 관측을 갱신했고, 아래 화면에서 중간 서랍이 열린 모습과 판정이 일치했다. 이 시험은 직접 상태를 설정한 결과이며, Panda의 서랍 열기 동작과는 별도로 기록했다.
 
-| 사례 | 실제 확인한 핵심 변화 | 초기 Goal·`On` | 전체 Action step | 마지막 Goal 검증 |
+![7.3: 서랍 joint를 직접 설정한 Predicate 시험](./images/custom_bddl_predicate_test.gif)
+
+##### 10.2.4) Panda가 손잡이를 잡고 실제로 서랍 열기
+
+7.4에서는 닫힌 초기 상태로 다시 시작해 `OSC_POSE` Action을 실행했다. 이 컨트롤러는 말단의 위치·회전 변화와 그리퍼 명령을 받는다. 손잡이 geom의 현재 위치와 서랍이 움직이는 축을 읽고, **접근 → 파지 → 당기기 → 놓기 → 후퇴** 순서로 Panda를 제어했다. 동작 구간에서 서랍 joint를 직접 설정하지 않았다.
+
+총 **369 Action step**을 실행했고, 최종 서랍 joint는 약 **−0.141538 m**였다. 손잡이 파지와 그리퍼 이탈을 확인했으며, 마지막 30 step 내내 Goal `True`가 유지됐다. 아래 영상과 종료 사진은 서랍이 실제 로봇의 접촉으로 열렸음을 보여 준다.
+
+![7.4: Panda의 실제 서랍 열기 동작](./images/panda_drawer_action.gif)
+
+![7.4: 그리퍼가 이탈한 뒤에도 열린 중간 서랍](./images/panda_drawer_action_result.png)
+
+6–7장을 통해 **BDDL 로딩 → Init 확인 → Action 전달 → 관측 변화 → Goal 판정**을 하나의 작업에서 연결했다. 직접 joint를 바꾸는 시험과 실제 조작을 구분한 점도 이후 검증의 기준으로 삼았다.
+
+#### 10.3) 8장 — 기존 LIBERO 요소로 새로운 BDDL 구성
+
+새 Task를 만들 때는 먼저 물체 종류와 Predicate가 LIBERO에 등록돼 있는지 확인한다. 기존 요소를 사용할 수 있으면 BDDL의 Object·Region·Init·Goal을 조합해 작업을 정의한다. A·B는 같은 책상·Panda·기본 제어 설정을 사용하면서, 각 작업에 필요한 물체와 Fixture만 남긴 사례다.
+
+##### 10.3.1) A — 접시를 스토브 앞 영역으로 밀기
+
+A는 공식 접시 밀기 BDDL을 바탕으로 접시와 스토브만 남겼다. 접시의 시작 Region은 중심을 유지하면서 폭을 0.02 m에서 0.04 m로 넓혔고, 공식 스토브 앞 목표 Region은 그대로 사용했다. Init은 접시·스토브의 배치 조건 2개, Goal은 `(On plate_1 main_table_stove_front_region)`이다.
+
+Panda가 접시 표면에 접촉해 테이블 위에서 밀었다. 접시를 들어 올려 옮기는 방식은 사용하지 않았다. 총 **645 step** 후 목표 영역에 도달했고, 접촉 종료·후퇴 이후 마지막 40 step 동안 Goal이 유지됐다. 이 사례는 기존 물체와 Region으로 정의한 작업이 실제 접촉 동작까지 이어지는지 확인한 결과다.
+
+![8-A: 접시를 스토브 앞 목표 영역으로 미는 실제 동작](./images/custom_task_validation/A_robot_action.gif)
+
+##### 10.3.2) B — 다른 Tabletop Task의 우유 모델을 접시 놓기에 사용
+
+`milk`는 `hope_objects.py`의 `Milk` 클래스가 기존 `milk.xml`을 읽어 생성하는 등록 물체다. 같은 모델을 사용하는 공식 `LIVING_ROOM_SCENE2_pick_up_the_milk_and_put_it_in_the_basket.bddl`을 원래 구성대로 렌더링해 출처를 확인했다. 아래 사진의 가운데 아래쪽, 빨간 `Milk` 글자가 있는 상자가 우유다. 출처 사진에는 원본 Task의 바구니와 다른 식품도 함께 보인다.
+
+![8-B의 우유 출처: 공식 Living Room Tabletop의 원래 장면](./images/milk_source_scene.png)
+
+B에서는 `milk_1 - milk`로 우유를 선언했다. 오른쪽 `milk`는 물체 종류, 왼쪽 `milk_1`은 새 환경에 생성할 인스턴스 이름이다. 우유와 접시만 남기고 우유의 시작 Region·Init을 추가했으며, Goal을 `(On milk_1 plate_1)`로 정했다. 원본의 바구니 넣기와 달리 새 작업은 접시 위에 놓기다.
+
+초기에는 우유와 접시가 떨어져 있고 Goal은 `False`였다. Panda가 우유를 파지해 약 0.170 m 들어 올린 뒤 접시 위에 놓았다. 총 **273 step**, 마지막 30 step 동안 Goal `True`를 확인했다. 새 모델을 구현하지 않고 **기존 물체를 다른 초기 배치와 Goal에 연결한 경우**다.
+
+![8-B: 기존 milk 모델을 집어 접시 위에 놓는 실제 동작](./images/custom_task_validation/B_robot_action.gif)
+
+#### 10.4) 9장 — 새 요소를 코드에 구현한 뒤 BDDL에 연결
+
+LIBERO에 없는 형상이나 판정 의미를 사용하려면 먼저 모델·함수를 구현하고 등록해야 한다. 9장에서는 일반적인 추가 방법을 설명한 뒤 C–F 실험으로 적용 결과를 확인했다. 네 경우 모두 필요한 대상만 남기고 초기 `On` 2개와 Goal `False`를 검사한 다음 실제 Panda Action을 실행했다.
+
+##### 10.4.1) C — 새 Object의 형상·물성·등록
+
+새 물체는 **XML 모델 작성 → Object 클래스 구현·등록 → BDDL 선언** 순서로 추가한다. XML에는 충돌 형상·크기·질량·마찰을 정의하고, 클래스가 이 파일을 읽도록 연결한다. 실행 전에 모듈을 import해야 등록된 종류 이름을 BDDL에서 찾을 수 있다.
+
+C에서는 파란색 표식 상자를 만들었다. 크기는 52×52×110 mm이며, 충돌 계산용 geom과 색·주황 표식 표시용 geom을 분리했다. `CustomMarkerBox`를 등록하고 `custom_marker_box_1 - custom_marker_box`를 선언했다. 장면에는 이 상자와 접시만 있다. Panda가 상자를 약 0.173 m 들어 올려 접시 위에 놓았고, **277 step** 후 마지막 30 step 동안 Goal이 유지됐다.
+
+![9-C: 새로 만든 파란색 표식 상자를 접시에 놓는 실제 동작](./images/extended_task_validation/C_robot_action.gif)
+
+##### 10.4.2) D — 새 Fixture와 물체를 놓을 윗면 Region
+
+고정 구조를 추가할 때는 실제로 물체를 받칠 형상과 Goal이 참조할 영역을 함께 만든다. 충돌 geom은 물리적 지지를 계산하고, site는 윗면의 위치·범위를 표시하는 기준이다. site만 정의하면 물체를 받치는 형상이 생기는 것은 아니다.
+
+D에서는 가로·세로 12 cm, 높이 4 cm의 받침대를 Fixture로 등록했다. 기존 배치기의 높이 보정을 그대로 쓰면 받침대가 가라앉으므로, 새 환경에서 해당 sampler의 `z_offset`을 0으로 조정했다. 우유·받침대만 남기고 `(On milk_1 raised_support_1_top_region)`을 Goal로 사용했다.
+
+Panda가 우유를 새 받침대 위에 놓고 후퇴했다. 총 **294 step** 후 우유와 받침대의 물리적 접촉을 확인했고, 마지막 40 step 동안 Goal이 유지됐다. 새 Fixture의 생성뿐 아니라 초기 높이·윗면 Region·실제 지지가 함께 맞는지 검증한 사례다.
+
+![9-D: 새 받침대 위에 우유를 놓는 실제 동작](./images/extended_task_validation/D_robot_action.gif)
+
+##### 10.4.3) E — 접시 중앙에 똑바로 놓는 새 Predicate
+
+새 성공 조건은 검사할 상태와 허용 범위를 정한 뒤 Python 함수로 구현한다. 현재 시뮬레이터 값을 읽어 참·거짓을 반환하고, Predicate registry에 등록한 이름을 BDDL Goal에서 사용한다. registry는 조건 이름과 판정 함수를 연결하는 목록이다.
+
+E의 `CenteredUprightOn`은 기존 `On`에 **접시 중심과의 XY 거리 ≤ 1 cm**, **우유의 직립 방향과 수직축의 내적 ≥ 0.95**를 더했다. 우유 모델에서는 로컬 Y축이 윗면을 향하며, 내적이 1이면 수직축과 완전히 같은 방향이다. 물체와 초기 배치는 B를 유지하고 Goal을 더 엄격하게 바꿨다.
+
+실제 Panda 동작은 **273 step**이었다. 최종 중심 거리는 **0.000795 m**, 방향 내적은 **0.999832**였고, 그리퍼 이탈 후 마지막 30 step 동안 새 Goal이 유지됐다. 별도 직접 상태 변경 검사에서는 9.9 mm가 `True`, 10.1 mm와 20° 기울임이 `False`였다. 이때 기존 `On`은 모두 `True`여서, 새 조건이 위치·자세를 추가로 구분함을 확인했다.
+
+![9-E: 우유를 접시 중앙에 세워 놓는 실제 동작](./images/extended_task_validation/E_robot_action.gif)
+
+##### 10.4.4) F — 새 관측 카메라와 제어 설정
+
+카메라 위치·방향과 컨트롤러 수치는 환경 코드에 작성하고 Wrapper에서 선택한다. F에서는 새 Problem에 `custom_overview` 카메라를 추가하고, `OSC_POSE`의 위치·회전 6축 `kp`를 150에서 180으로 설정했다. 감쇠 비율 `damping_ratio=1.0`도 전달했다. BDDL은 이 Problem을 선택하고 우유·접시의 배치와 기존 `On` Goal을 정의한다.
+
+같은 Panda 모델로 우유 놓기를 실행해 **261 step** 후 Goal에 도달했고, 마지막 30 step 동안 유지됐다. 아래 영상은 넓어진 관측 시점에서 기록한 결과다.
+
+![9-F: 새 카메라와 제어 설정에서 수행한 우유 놓기](./images/extended_task_validation/F_robot_action.gif)
+
+#### 10.5) 전체 결과와 새 Task 설계에 적용할 기준
+
+| 사례 | 실행 장면의 핵심 대상 | 초기 Goal·Init | 전체 Action step | 마지막 Goal 유지 |
 | --- | --- | --- | ---: | --- |
-| [A 접시 이동](./images/custom_task_validation/A_robot_action.mp4) | 기존 물체·Region·Goal 재구성 | `False`, 2/2 | 645 | 마지막 40 step 모두 `True` |
-| [B 우유 놓기](./images/custom_task_validation/B_robot_action.mp4) | 등록된 `milk` 인스턴스 추가 | `False`, 2/2 | 273 | 마지막 30 step 모두 `True` |
-| [C 새 물체](./images/extended_task_validation/C_robot_action.mp4) | 상자 XML·Object 등록 | `False`, 2/2 | 277 | 마지막 30 step 모두 `True` |
-| [D 새 Fixture](./images/extended_task_validation/D_robot_action.mp4) | 받침대·site·배치 높이 | `False`, 2/2 | 294 | 마지막 40 step 모두 `True` |
-| [E 새 Goal 의미](./images/extended_task_validation/E_robot_action.mp4) | Predicate 구현·등록 | `False`, 2/2 | 273 | 마지막 30 step 모두 `True` |
-| [F 새 실행 환경](./images/extended_task_validation/F_robot_action.mp4) | 카메라·controller 변경 | `False`, 2/2 | 261 | 마지막 30 step 모두 `True` |
+| 7장 서랍 열기 | 서랍 캐비닛 | `False`, `On`·`Close` 2/2 | 369 | 30 step 모두 `True` |
+| A 접시 밀기 | 접시·스토브 | `False`, `On` 2/2 | 645 | 40 step 모두 `True` |
+| B 우유 놓기 | 우유·접시 | `False`, `On` 2/2 | 273 | 30 step 모두 `True` |
+| C 새 Object | 표식 상자·접시 | `False`, `On` 2/2 | 277 | 30 step 모두 `True` |
+| D 새 Fixture | 우유·받침대 | `False`, `On` 2/2 | 294 | 40 step 모두 `True` |
+| E 새 Predicate | 우유·접시 | `False`, `On` 2/2 | 273 | 30 step 모두 `True` |
+| F 새 실행 환경 | 우유·접시 | `False`, `On` 2/2 | 261 | 30 step 모두 `True` |
 
-표는 필요한 물체만 남긴 BDDL의 재실행 결과다. 전체 Action step에는 마지막 Goal 검증 구간이 포함된다. 모든 사례에서 초기 `On` 2개가 충족됐고, 로봇 동작 후 Goal이 검증 구간 내내 `True`로 유지됐다. 각 실험 절의 초기·종료 사진, GIF, MP4, JSON으로 화면과 판정을 함께 확인했다.
+모든 장면에 책상과 Panda가 있으며, 전체 Action step에는 마지막 검증 구간도 포함된다. 성공 여부는 초기 배치 사진, 실제 동작 영상, 종료 Goal과 그리퍼 이탈을 함께 확인했다. 직접 상태 변경으로 Predicate를 시험한 결과는 실제 로봇 수행 기록과 구분했다.
 
-#### 10.5) 검증의 의미와 범위
+작업대 크기 변경은 `(1.1, 1.3, 0.05) m` 설정과 `reset()`까지만 확인했다. 각 작업은 `seed=0`의 초기 배치에서 규칙 기반 제어로 수행했다.
 
-9장에는 새 장면 구조, 아직 지원하지 않는 Init, 새 로봇 모델을 작성하는 방법도 담았다. 이 부분은 **작성 가이드**이며 A–F의 실행 성공 사례에 포함되지 않는다. 작업대 크기 변경은 설정 적용과 `reset()`까지만 확인했다. 변경한 작업대에서 Panda Action을 성공시켰다는 뜻은 아니다.
-
-실행한 Task에서는 화면과 수치 판정을 같이 보았다. 초기 배치가 의도한 위치에 있는지 사진으로 확인하고, Panda의 접근·파지·이동 또는 접시 밀기를 영상으로 확인한 다음, 종료 Goal과 마지막 검증 구간을 검사했다. Predicate를 직접 상태 변경으로 시험한 결과는 로봇 동작과 분리했다. 이런 구분이 있어야 **BDDL이 장면을 만들었다는 사실**과 **Panda가 Task를 수행했다는 사실**을 각각 설명할 수 있다.
-
-결국 BDDL은 사용할 요소와 시작·성공 조건을 정하고, LIBERO 코드는 새 요소의 형상·배치·판정·환경을 제공한다. 실제 Goal에 도달하려면 로봇의 접근 자세와 이동 경로도 필요했다. 이번 기록은 `seed=0`에서 각 사례를 최종 실행한 규칙 기반 제어의 결과다. 여러 초기 배치에서의 성공률이나 학습 정책의 성능까지 평가한 것은 아니다. 그 범위 안에서 **새 Task가 화면에 생성되고, Panda가 실제로 움직이며, 눈으로 본 결과와 Goal 판정이 일치하는지** 검증했다.
+새 Task를 설계할 때는 **필요한 요소 선정 → BDDL과 코드 작성 → 초기 배치 확인 → 실제 Action → Goal 검증** 순서로 진행할 수 있다. 기존 요소가 있으면 BDDL에서 조합하고, 새 요소가 필요하면 모델·환경·판정 함수를 구현해 연결한다. 이번 검증에서는 이 과정을 따라 명세가 화면의 장면으로 만들어지고, Panda의 실제 동작으로 목표에 도달하며, 눈으로 본 결과와 Goal 판정이 일치하는지 확인했다.

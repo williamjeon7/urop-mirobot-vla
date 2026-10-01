@@ -141,6 +141,8 @@ def main():
             raise RuntimeError("The task must start with a correctly placed, closed drawer.")
         save_frame(IMAGES / "custom_bddl_test.png", obs,
                    "Drawer task: initial | goal=False")
+        (ROOT / "custom_bddl_test.png").write_bytes(
+            (IMAGES / "custom_bddl_test.png").read_bytes())
         print("Environment reset success", flush=True)
         print("Initial goal success:", initial_goal, flush=True)
         print("Scene:", info, flush=True)
