@@ -5,7 +5,8 @@
     "mujoco": "2.3.7",
     "robosuite": "1.4.0",
     "numpy": "1.22.4",
-    "Pillow": "10.4.0"
+    "Pillow": "10.4.0",
+    "opencv-python": "4.6.0.66"
   },
   "baseline_cameras": {
     "agentview": {
@@ -155,6 +156,74 @@
       ]
     }
   ],
+  "projection_alignment": {
+    "source_case": "nominal58_wide",
+    "output": "nominal84x58_wide.png",
+    "target_horizontal_fov_deg": 84.0,
+    "target_vertical_fov_deg": 58.0,
+    "K_target_centered_design_px": [
+      [
+        710.7920094906834,
+        0.0,
+        640.0
+      ],
+      [
+        0.0,
+        649.4571918977125,
+        360.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_to_target_homography": [
+      [
+        1.0944401237805232,
+        0.0,
+        -60.441679219534876
+      ],
+      [
+        0.0,
+        1.0,
+        -5.684341886080802e-14
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "projection_test_points": [
+      [
+        0.0,
+        0.0,
+        1.0
+      ],
+      [
+        0.1,
+        0.05,
+        1.0
+      ],
+      [
+        -0.3,
+        0.2,
+        1.0
+      ]
+    ],
+    "max_projection_test_error_px": 5.684341886080802e-14,
+    "source_covers_all_output_pixels": true,
+    "rgb_bgr_roundtrip": true,
+    "image_format": {
+      "shape": [
+        720,
+        1280,
+        3
+      ],
+      "dtype": "uint8"
+    }
+  },
   "state_unchanged_during_render": true,
   "notes": "Projection comparison only; no D405 measurements or calibration."
 }

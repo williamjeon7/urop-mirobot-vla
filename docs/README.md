@@ -36,7 +36,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W5 | [W5/CHECKLIST.md](W5/CHECKLIST.md) | 9/28 보고에서 정한 **작업 목록** — action 의미 맞추기(선결), LIBERO 환경 구성 두 방향 비교, W4 에서 넘어온 것 |
 | W5 | [W5/CHECKPOINT.md](W5/CHECKPOINT.md) | **출발 가중치** — LIBERO policy vs video model 비교, 우리는 LIBERO policy 에서 출발 |
 | W5 | [W5/ACTION_MEANING.md](W5/ACTION_MEANING.md) | **action 의미** — (가) 실행 단계에서 환산 vs (나) fine-tuning 에서 재학습 |
-| W5 | [W5/D405_LIBERO_CAMERA.md](W5/D405_LIBERO_CAMERA.md) | **RGB 카메라 비교** — D405 공개 파라미터와 LIBERO 설정, 동일 상태 렌더링 비교, 기하·색·시간 보정과 검증 계획 |
+| W5 | [W5/D405_LIBERO_CAMERA.md](W5/D405_LIBERO_CAMERA.md) | **RGB 카메라 비교** — 카메라 파라미터 설명, 동일 장면의 시야각 비교, D405 공개 RGB 시야각에 따른 투영 변환 실험 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 

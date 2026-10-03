@@ -583,7 +583,7 @@ finally:
 & $liberoPython .\test_custom_bddl.py --steps 60 --size 512 --seed 0
 ```
 
-**PNG로 초기·종료 상태 비교.** 같은 실행에서 `reset()` 직후 [초기 장면](./images/custom_bddl_test.png)과 zero action 실행 후 [종료 장면](./images/libero_live_agentview.png)을 저장한다. 두 사진을 열어 서랍과 Panda가 보이는지, 의도하지 않은 장면 변화가 없는지 확인한다. 화면 창 없이 파일만 만들려면 `--headless`를 붙인다.
+**PNG로 초기·종료 상태 비교.** 같은 실행에서 `reset()` 직후 초기 장면과 zero action 실행 후 종료 장면을 저장한다. 두 사진을 열어 서랍과 Panda가 보이는지, 의도하지 않은 장면 변화가 없는지 확인한다. 화면 창 없이 파일만 만들려면 `--headless`를 붙인다.
 
 ```powershell
 & $liberoPython .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0
@@ -596,14 +596,14 @@ Invoke-Item .\images\custom_bddl_test.png
 Invoke-Item .\images\libero_live_agentview.png
 ```
 
-**MP4로 step 사이의 움직임 확인.** `--record`를 붙이면 기본 경로 `images/custom_bddl_monitoring.mp4`에 저장한다. 원하는 경로를 지정하려면 `--record images/파일명.mp4`처럼 입력한다. [zero action 모니터링 영상](./images/custom_bddl_monitoring.mp4)에서 초기화 이후 관측 화면이 이어지는지 확인할 수 있다.
+**MP4로 step 사이의 움직임 확인.** `--record`를 붙이면 기본 경로 `images/custom_bddl_monitoring.mp4`에 저장한다. 원하는 경로를 지정하려면 `--record images/파일명.mp4`처럼 입력한다. zero action 모니터링 영상에서 초기화 이후 관측 화면이 이어지는지 확인할 수 있다.
 
 ```powershell
 & $liberoPython .\test_custom_bddl.py --headless --steps 60 --size 512 --seed 0 --record
 Invoke-Item .\images\custom_bddl_monitoring.mp4
 ```
 
-[![zero action 관측 미리보기](./images/custom_bddl_monitoring.gif)](./images/custom_bddl_monitoring.mp4)
+![zero action 관측 미리보기](./images/custom_bddl_monitoring.gif)
 
 이 세 방법은 **환경 로딩과 관측 갱신**을 확인한다. zero action은 서랍을 열기 위한 제어 명령이 아니므로 여기서 Goal 달성을 기대하지 않는다. 7.3의 `--predicate-test`는 서랍 joint를 직접 바꾸어 Goal 판정만 시험하는 별도 실행이다. Panda가 `OSC_POSE` action으로 실제 서랍을 열어 성공한 과정은 7.4의 `test_panda_drawer_action.py`와 그 결과 사진·영상에서 확인한다.
 
@@ -690,7 +690,7 @@ finally:
 
 ![zero action 후의 서랍 Task](./images/bddl_zero_action_test.png)
 
-[![zero action 모니터링 영상](./images/custom_bddl_monitoring.gif)](./images/custom_bddl_monitoring.mp4)
+![zero action 모니터링 영상](./images/custom_bddl_monitoring.gif)
 
 실시간 창으로 보려면 `--headless`를 빼고 실행한다. `cv2.putText()`로 각 frame의 Goal을 표시하며, 창을 클릭한 뒤 `q`, `Q`, `Esc`로 종료한다. `env.close()`와 `cv2.destroyAllWindows()`는 종료 시 실행된다.
 
@@ -740,7 +740,7 @@ qpos가 감소하는 방향으로 서랍이 열리며, 사진에서 열린 모�
 
 ![직접 joint를 설정한 Goal 판정 시험](./images/custom_bddl_goal_test.png)
 
-[![직접 상태 변경 Predicate 시험](./images/custom_bddl_predicate_test.gif)](./images/custom_bddl_predicate_test.mp4)
+![직접 상태 변경 Predicate 시험](./images/custom_bddl_predicate_test.gif)
 
 이 결과는 Predicate의 동작을 확인한 것이다. Panda가 손잡이를 잡고 당긴 결과는 다음 절에서 별도로 확인한다.
 
@@ -1045,7 +1045,7 @@ if __name__ == "__main__":
 
 ![Panda Action 전 닫힌 서랍](./images/panda_drawer_action_initial.png)
 
-[![Panda가 실제로 서랍을 여는 과정](./images/panda_drawer_action.gif)](./images/panda_drawer_action.mp4)
+![Panda가 실제로 서랍을 여는 과정](./images/panda_drawer_action.gif)
 
 [서랍 Action 결과 JSON](./images/panda_drawer_action_result.json)
 
@@ -1688,9 +1688,7 @@ plate_1
 
 검증안 A는 LIBERO 공식 BDDL을 바탕으로 하며, 접시 시작 Region의 범위를 조정하고 미사용 Region을 정리했다. 사용한 Object와 Goal은 공식 정의를 따른다.
 
-검증안 B는 각 구성 요소 자체는 LIBERO에서 실제 지원되는 것을 확인했지만,
-`milk + main_table + plate` 조합은 새로 작성한 Custom Task이므로
-아직 실행 성공을 가정하지 않는다.
+검증안 B는 기존 `milk`, `main_table`, `plate`를 조합해 작성한 새 Task다.
 
 다음 8.4에서 두 파일을 각각 `OffScreenRenderEnv`에 전달하여
 
@@ -1729,13 +1727,13 @@ Initial Goal == False 확인
 
 사진에서 확인한 배치를 코드로도 확인했다. A·B 각각 2개의 초기 `On` 조건이 모두 `True`였다. B의 우유는 지정한 `milk_region` 위에 있었고, 다른 물체나 고정물과 의도하지 않은 접촉도 없었다. 조건별 결과는 [A 결과 JSON](./images/custom_task_validation/A_result.json)과 [B 결과 JSON](./images/custom_task_validation/B_result.json)에 있다.
 
-초기 장면 사진은 [검증안 A](./images/custom_task_validation/A_initial.png), [검증안 B](./images/custom_task_validation/B_initial.png)에 저장했다. 사진에서 B의 우유가 보인다는 사실은 `milk_1`이 시뮬레이터 장면에 생성됐다는 시각적 근거다. 화면 밖에서 생성됐거나 다른 물체와 겹친 경우를 성공으로 처리하지 않기 위해 사진을 함께 확인했다.
+아래 사진에서 A·B의 초기 장면을 확인할 수 있다. 사진에서 B의 우유가 보인다는 사실은 `milk_1`이 시뮬레이터 장면에 생성됐다는 시각적 근거다. 화면 밖에서 생성됐거나 다른 물체와 겹친 경우를 성공으로 처리하지 않기 위해 사진을 함께 확인했다.
 
 ![검증안 A의 초기 장면](./images/custom_task_validation/A_initial.png)
 
 ![검증안 B의 초기 장면](./images/custom_task_validation/B_initial.png)
 
-초기 프레임에서 Panda가 움직이는 과정까지 확인하려면 [A 시뮬레이션 영상](./images/custom_task_validation/A_robot_action.mp4)과 [B 시뮬레이션 영상](./images/custom_task_validation/B_robot_action.mp4)을 연다. 각 영상의 첫 프레임이 위 초기 장면이며, 이후 프레임은 8.5의 실제 `env.step(action)` 실행이다.
+8.5의 동작 움짤은 위 초기 장면에서 시작해 실제 `env.step(action)` 실행을 보여 준다.
 
 #### 8.5) Action 실행과 Goal Condition 검증
 
@@ -1752,11 +1750,11 @@ Panda의 7차원 `OSC_POSE` action을 `env.step(action)`에 전달해 두 작업
 
 ![검증안 B의 action 종료 장면](./images/custom_task_validation/B_action_end.png)
 
-동작 전 과정을 [A 성공 영상](./images/custom_task_validation/A_robot_action.mp4), [B 성공 영상](./images/custom_task_validation/B_robot_action.mp4)에서 볼 수 있다. A는 접촉 종료 후 40 step, B는 놓기와 후퇴 후 30 step 동안 Goal이 계속 `True`였다. 최종 상태에서 물체는 그리퍼에 잡혀 있지 않았다. 영상의 동작 구간에서는 물체 위치나 관절 상태를 직접 바꾸지 않았다.
+동작 전 과정은 아래 A·B 움짤에서 볼 수 있다. A는 접촉 종료 후 40 step, B는 놓기와 후퇴 후 30 step 동안 Goal이 계속 `True`였다. 최종 상태에서 물체는 그리퍼에 잡혀 있지 않았다. 영상의 동작 구간에서는 물체 위치나 관절 상태를 직접 바꾸지 않았다.
 
 | A: 접시 이동 | B: 우유를 접시 위에 놓기 |
 | --- | --- |
-| [![A 성공 영상 미리보기](./images/custom_task_validation/A_robot_action.gif)](./images/custom_task_validation/A_robot_action.mp4) | [![B 성공 영상 미리보기](./images/custom_task_validation/B_robot_action.gif)](./images/custom_task_validation/B_robot_action.mp4) |
+| ![A 성공 영상 미리보기](./images/custom_task_validation/A_robot_action.gif) | ![B 성공 영상 미리보기](./images/custom_task_validation/B_robot_action.gif) |
 
 Goal 정의가 작동하는지는 별도 시험으로 확인했다. 같은 seed로 다시 `reset()`하고 20 step 동안 초기 물체를 안정시킨 뒤, A는 접시의 자유 관절 위치를 목표 Region 중심으로, B는 우유의 위치를 접시 위로 **직접** 옮겼다. `sim.forward()`로 상태를 반영하고 30 step 동안 물리 시뮬레이션을 진행한 뒤 사진과 `env.check_success()`를 확인했다. 두 경우 모두 `False → True`가 나왔다.
 
@@ -1781,8 +1779,6 @@ Goal 정의가 작동하는지는 별도 시험으로 확인했다. 같은 seed�
 | Region·Init | 기존 장면의 기준 대상에 대해 `:target`, `:ranges`, 지원되는 초기 Predicate를 지정 | 새 장면 구조나 지원되지 않는 초기 상태는 환경 코드와 초기화 방식 수정 필요 |
 | Goal | [기존 Predicate](./custom_task_validation/reference_code/libero/libero/envs/predicates/base_predicates.py)의 `On`, `Open` 등을 조합 | 새로운 판정 의미는 Predicate 구현 및 등록 필요 |
 | 로봇·카메라·제어 | BDDL에서 고르는 Task 조건과 별개 | 로봇 모델, 작업대 크기, 카메라와 컨트롤러는 [환경 생성 코드](./custom_task_validation/reference_code/libero/libero/envs/bddl_base_domain.py)와 [wrapper 설정](./custom_task_validation/reference_code/libero/libero/envs/env_wrapper.py)에서 변경 |
-
-실제 사진 [B 초기 장면](./images/custom_task_validation/B_initial.png)과 [B 시뮬레이션 영상](./images/custom_task_validation/B_robot_action.mp4)은 **등록된 물체를 BDDL에 추가한 결과**의 예시다. 8장의 실행 범위는 기존 요소의 조합이며, 새 물체·Fixture·Predicate와 환경 설정의 추가 구현은 9장에서 검증한다.
 
 ![기존 LIBERO 물체를 추가한 검증안 B의 장면](./images/custom_task_validation/B_initial.png)
 
@@ -1910,7 +1906,7 @@ XML 작성 후 클래스에 `category_name`, `rotation`, `rotation_axis`, `objec
 & $liberoPython .\test_extended_custom_tasks.py --case C --seed 0 --size 512
 ```
 
-환경 생성과 `reset()`이 성공했고, 초기 Goal은 `False`였다. 2개의 `On` 초기 조건이 모두 `True`였으며, 새 상자와 주변 물체 사이의 의도하지 않은 초기 접촉도 기록되지 않았다. [초기 사진](./images/extended_task_validation/C_initial.png)에는 파란 상자와 주황색 표식이 테이블 위에 보인다. 이는 XML 형상·물체 등록·BDDL 선언이 실제 장면으로 연결됐음을 보여준다.
+환경 생성과 `reset()`이 성공했고, 초기 Goal은 `False`였다. 2개의 `On` 초기 조건이 모두 `True`였으며, 새 상자와 주변 물체 사이의 의도하지 않은 초기 접촉도 기록되지 않았다. 초기 사진에는 파란 상자와 주황색 표식이 테이블 위에 보인다. 이는 XML 형상·물체 등록·BDDL 선언이 실제 장면으로 연결됐음을 보여준다.
 
 ![C: 새 상자의 초기 배치](./images/extended_task_validation/C_initial.png)
 
@@ -1920,7 +1916,7 @@ Panda가 상자에 접근해 파지하고 약 0.173 m 들어 올린 다음 접�
 
 ![C: 상자를 접시에 놓은 최종 장면](./images/extended_task_validation/C_action_end.png)
 
-[![C: 상자를 접시로 옮기는 동작 미리보기](./images/extended_task_validation/C_robot_action.gif)](./images/extended_task_validation/C_robot_action.mp4)
+![C: 상자를 접시로 옮기는 동작 미리보기](./images/extended_task_validation/C_robot_action.gif)
 
 [C 결과 JSON](./images/extended_task_validation/C_result.json)
 
@@ -2001,7 +1997,7 @@ class Libero_Custom_Support(_TabletopBase):
 & $liberoPython .\test_extended_custom_tasks.py --case D --seed 0 --size 512
 ```
 
-새 환경 Problem을 불러온 뒤 `reset()`이 성공했다. 초기 Goal은 `False`, 2개의 `On` 초기 조건은 모두 `True`였다. 받침대가 테이블 위에 놓였고 초기 물체와 받침대 사이에 원하지 않은 접촉이 없었다. [초기 사진](./images/extended_task_validation/D_initial.png)에서 우유와 파란 받침대가 서로 떨어져 보인다.
+새 환경 Problem을 불러온 뒤 `reset()`이 성공했다. 초기 Goal은 `False`, 2개의 `On` 초기 조건은 모두 `True`였다. 받침대가 테이블 위에 놓였고 초기 물체와 받침대 사이에 원하지 않은 접촉이 없었다. 초기 사진에서 우유와 파란 받침대가 서로 떨어져 보인다.
 
 ![D: 우유와 새 받침대의 초기 배치](./images/extended_task_validation/D_initial.png)
 
@@ -2011,7 +2007,7 @@ Panda가 우유를 잡아 약 0.170 m 들어 올리고 받침대 위에 놓았�
 
 ![D: 우유가 받침대 위에 놓인 최종 장면](./images/extended_task_validation/D_action_end.png)
 
-[![D: 우유를 받침대에 놓는 동작 미리보기](./images/extended_task_validation/D_robot_action.gif)](./images/extended_task_validation/D_robot_action.mp4)
+![D: 우유를 받침대에 놓는 동작 미리보기](./images/extended_task_validation/D_robot_action.gif)
 
 [D 결과 JSON](./images/extended_task_validation/D_result.json)
 
@@ -2145,7 +2141,7 @@ BDDL에는 Predicate의 **이름과 대상**을 적고, 접촉·거리·자세�
 & $liberoPython .\test_extended_custom_tasks.py --case E --seed 0 --size 512
 ```
 
-새 Predicate를 등록한 뒤 BDDL 로딩과 `reset()`이 성공했다. 초기 Goal은 `False`였고, 2개의 `On` 초기 조건이 모두 `True`였다. [초기 사진](./images/extended_task_validation/E_initial.png)의 우유는 접시와 떨어져 있으므로 이 판정은 자연스럽다.
+새 Predicate를 등록한 뒤 BDDL 로딩과 `reset()`이 성공했다. 초기 Goal은 `False`였고, 2개의 `On` 초기 조건이 모두 `True`였다. 초기 사진의 우유는 접시와 떨어져 있으므로 이 판정은 자연스럽다.
 
 ![E: 우유와 접시의 초기 배치](./images/extended_task_validation/E_initial.png)
 
@@ -2155,7 +2151,7 @@ Panda가 우유를 파지해 약 0.170 m 들어 올리고 접시 위에 놓았�
 
 ![E: 중앙에 똑바로 놓인 우유의 최종 장면](./images/extended_task_validation/E_action_end.png)
 
-[![E: 우유를 접시 중앙에 놓는 동작 미리보기](./images/extended_task_validation/E_robot_action.gif)](./images/extended_task_validation/E_robot_action.mp4)
+![E: 우유를 접시 중앙에 놓는 동작 미리보기](./images/extended_task_validation/E_robot_action.gif)
 
 [E 결과 JSON](./images/extended_task_validation/E_result.json)
 
@@ -2259,17 +2255,17 @@ Goal은 `(And (On milk_1 plate_1))`이다. 카메라 위치나 제어 이득의 
 & $liberoPython .\test_extended_custom_tasks.py --case F --seed 0 --size 512
 ```
 
-새 Problem으로 환경을 만들고 `custom_overview`에서 초기 화면을 받았다. 초기 Goal은 `False`, 2개의 `On` 초기 조건은 모두 `True`였다. [초기 사진](./images/extended_task_validation/F_initial.png)은 기존 시점보다 테이블 주변을 넓게 보여준다. JSON에는 관측 카메라 이름 `custom_overview`와 controller 이득 `[180, 180, 180, 180, 180, 180]`이 기록됐다.
+새 Problem으로 환경을 만들고 `custom_overview`에서 초기 화면을 받았다. 초기 Goal은 `False`, 2개의 `On` 초기 조건은 모두 `True`였다. 초기 사진은 기존 시점보다 테이블 주변을 넓게 보여준다. JSON에는 관측 카메라 이름 `custom_overview`와 controller 이득 `[180, 180, 180, 180, 180, 180]`이 기록됐다.
 
 ![F: custom_overview로 본 초기 장면](./images/extended_task_validation/F_initial.png)
 
 ##### 9.5.5) Panda Action과 Goal 검증
 
-동일한 우유 집기·이동·놓기 동작을 새 환경에서 실행했다. 총 261 action step 뒤 우유와 접시의 접촉 및 Goal `True`를 확인했고, 그리퍼 이탈 후 마지막 30개 검증 step 내내 `True`가 유지됐다. 이 검증 구간도 총 step에 포함된다. [최종 사진](./images/extended_task_validation/F_action_end.png)과 영상은 새 카메라 시점에서 기록됐다. 이 결과는 새 카메라와 제어 설정을 적용한 환경에서도 Task가 실제로 수행됨을 보여준다.
+동일한 우유 집기·이동·놓기 동작을 새 환경에서 실행했다. 총 261 action step 뒤 우유와 접시의 접촉 및 Goal `True`를 확인했고, 그리퍼 이탈 후 마지막 30개 검증 step 내내 `True`가 유지됐다. 이 검증 구간도 총 step에 포함된다. 최종 사진과 영상은 새 카메라 시점에서 기록됐다. 이 결과는 새 카메라와 제어 설정을 적용한 환경에서도 Task가 실제로 수행됨을 보여준다.
 
 ![F: custom_overview로 본 Goal 달성 장면](./images/extended_task_validation/F_action_end.png)
 
-[![F: 새 카메라 시점의 우유 놓기 동작 미리보기](./images/extended_task_validation/F_robot_action.gif)](./images/extended_task_validation/F_robot_action.mp4)
+![F: 새 카메라 시점의 우유 놓기 동작 미리보기](./images/extended_task_validation/F_robot_action.gif)
 
 [F 결과 JSON](./images/extended_task_validation/F_result.json)
 
@@ -2348,6 +2344,21 @@ finally:
 
 5장에서는 책상과 Panda만 있는 초기 장면을 준비했다. 6–7장에서는 서랍 Task의 로딩·관측·Action·성공 판정을 연결했고, 8장에서는 등록된 요소로 새 BDDL을 구성했다. 9장에서는 새 물체·Fixture·Predicate·카메라와 제어 설정을 코드에 추가했다.
 
+작업명세서는 로봇이 수행할 일과 성공 기준을 정한 설명이다. **BDDL**은 이를 물체·영역·초기 상태·목표 조건으로 나눠 적은 파일이다. LIBERO가 이 파일을 읽어 환경과 성공 조건을 구성하고, MuJoCo가 로봇과 물체의 움직임·접촉을 계산한다. 목표를 적은 뒤에는 그 목표를 수행할 **Action**을 별도로 만들어 로봇에 전달한다.
+
+| 구성 요소 | 뜻과 이번 실험의 예 |
+| --- | --- |
+| Object | Task에 등장하는 물체다. 잡아서 옮기는 우유와 받침으로 쓰는 접시가 모두 해당한다. `milk_1 - milk`는 등록된 `milk` 종류로 `milk_1`이라는 개별 물체, 즉 인스턴스를 만드는 선언이다. |
+| Fixture | 작업의 기준이 되는 구조물이다. 캐비닛·스토브·받침대가 해당하며, 캐비닛 내부 서랍처럼 움직이는 관절을 가질 수 있다. |
+| Region | 물체를 배치하거나 목표로 사용할 영역이다. 작업대의 좌표 범위나 받침대 윗면을 지정한다. |
+| Init | 작업을 시작할 때 갖춰야 할 상태다. 우유의 시작 위치나 닫힌 서랍 상태를 정의한다. |
+| Goal·Predicate | Goal은 성공 조건, Predicate는 그 조건을 현재 상태에서 검사하는 함수다. `On`은 위에 놓였는지, `Open`은 열렸는지 판정한다. |
+
+BDDL의 `:objects`에는 물체, `:fixtures`에는 기준 구조물을 선언한다. `:obj_of_interest`는 작업에서 관심을 둘 물체나 Region의 목록이며, 생성할 물체와 성공 조건은 각각 Object·Fixture 선언과 Goal에서 정한다. `:language`는 작업의 자연어 설명이고, `problem` 이름은 사용할 환경 클래스를 선택한다.
+
+실행은 **BDDL 준비 → 환경 생성 → `reset()`으로 초기 상태 구성 → 사진·Init·초기 Goal 확인 → `step(action)`으로 조작 → 종료 장면·Goal 확인** 순서다. 여기서 한 step은 `env.step(action)`을 한 번 호출한 단위다. `check_success()`는 현재 Goal의 참·거짓을 반환한다. 초기 Goal은 `False`로 시작하고, 작업이 끝난 뒤에는 그리퍼를 놓고 후퇴한 상태에서도 `True`가 유지되는지 검사했다.
+
+
 #### 10.1) 5장 — 빈 작업 공간과 Panda의 초기 자세
 
 먼저 **책상과 Panda만 있는 장면**에서 로봇 모델과 렌더링을 확인했다. 5.2의 `test_panda_initial_pose.py`는 BDDL 없이 `MountedPanda`와 빈 TableArena를 구성한다. TableArena는 작업대의 형상과 배치 기준을 제공하는 모델이다. 크기는 `(1.0, 1.2, 0.05) m`, 상판 높이는 `0.90 m`로 정했고, 작업 물체나 캐비닛·스토브는 추가하지 않았다.
@@ -2364,7 +2375,7 @@ Panda는 `init_qpos`에 정의된 7개 관절각으로 시작한다. `initializa
 
 6장에서는 공식 가운데 서랍 열기 BDDL을 참고해 `custom_test.bddl`을 작성했다. 책상·Panda·서랍 캐비닛만 남기고 조작 물체를 선언하는 `:objects`는 비웠다. 캐비닛의 시작 위치와 중간 서랍 Region을 정의하고, Init에는 캐비닛이 책상 위에 있다는 `On`과 서랍이 닫혀 있다는 `Close`를 지정했다.
 
-Goal은 `(Open wooden_cabinet_1_middle_region)`이다. BDDL 경로를 `OffScreenRenderEnv`에 직접 전달하면 Wrapper가 Problem 이름으로 환경을 선택하고 Parser가 나머지 명세를 해석한다. `env.reset()` 후 Init 두 조건은 모두 `True`, Goal은 `False`였다. 단일 파일을 실행하는 데 별도 benchmark suite 등록은 필요하지 않았다.
+Goal은 `(Open wooden_cabinet_1_middle_region)`이다. BDDL 경로를 `OffScreenRenderEnv`에 전달했다. 이 Wrapper는 환경을 만드는 호출을 연결하는 코드로, BDDL의 Problem 이름에 맞는 환경 클래스를 선택한다. Parser는 파일의 물체·영역·Init·Goal 선언을 읽어 환경에서 사용할 데이터로 바꾼다. `env.reset()` 후 Init 두 조건은 모두 `True`, Goal은 `False`였다. 단일 파일을 실행하는 데 여러 Task를 묶은 benchmark suite에 별도로 등록할 필요는 없었다.
 
 ![6장: 책상·Panda·서랍 캐비닛만 남긴 초기 배치](./images/custom_bddl_test.png)
 
@@ -2372,13 +2383,13 @@ Goal은 `(Open wooden_cabinet_1_middle_region)`이다. BDDL 경로를 `OffScreen
 
 6.4에서는 OpenCV 창으로 실시간 화면을 보고, 초기·종료 PNG를 비교하며, 진행 과정을 MP4로 기록하는 방법을 정리했다. 세 방법은 같은 `agentview_image` 관측값을 사용한다. 표시·저장 전에 이미지의 상하 방향과 RGB/BGR 순서를 보정해 장면이 정상적으로 보이도록 했다.
 
-7.2에서는 7차원 `zero action`을 60 step 전달했다. `env.step(action)`이 시뮬레이션을 진행하고 관측값을 반환하는지, 매 step의 Goal 검사도 이어지는지 확인했다. 의도적인 이동 명령을 주지 않아도 중력과 접촉 계산은 계속 진행된다. 이 구간에서 Goal은 계속 `False`였으며, 아래 영상은 **관측 갱신을 확인한 기록**이다.
+7.2에서는 모든 성분이 0인 7차원 명령, 즉 `zero action`을 60 step 전달했다. `env.step(action)`이 시뮬레이션을 진행하고 관측값을 반환하는지, 매 step의 Goal 검사도 이어지는지 확인했다. 의도적인 이동 명령을 주지 않아도 중력과 접촉 계산은 계속 진행된다. 이 구간에서 Goal은 계속 `False`였으며, 아래 영상은 **관측 갱신을 확인한 기록**이다.
 
 ![6.4·7.2: zero action 60 step의 관측 갱신](./images/custom_bddl_monitoring.gif)
 
 ##### 10.2.3) 서랍이 열렸을 때 Goal 판정이 바뀌는지 검사
 
-7.3에서는 서랍 joint 값을 직접 설정해 `Open` Predicate를 시험했다. Predicate는 현재 상태가 조건을 만족하는지 참·거짓을 반환하는 함수다. 먼저 이 판정이 맞는지 확인해야 실제 로봇 동작이 실패했을 때 Goal 정의와 제어 문제를 구분할 수 있다.
+7.3에서는 서랍 joint 값을 직접 설정해 `Open` Predicate를 시험했다. 먼저 Goal 판정을 확인한 뒤 Panda의 실제 당기기 동작을 실행했다.
 
 서랍 joint의 범위는 `[-0.16, 0.01] m`다. `qpos=-0.007 m`에서는 Goal이 `False`, `qpos=-0.143 m`에서는 `True`였다. 값을 바꾼 뒤 시뮬레이터와 관측을 갱신했고, 아래 화면에서 중간 서랍이 열린 모습과 판정이 일치했다. 이 시험은 직접 상태를 설정한 결과이며, Panda의 서랍 열기 동작과는 별도로 기록했다.
 
@@ -2386,7 +2397,7 @@ Goal은 `(Open wooden_cabinet_1_middle_region)`이다. BDDL 경로를 `OffScreen
 
 ##### 10.2.4) Panda가 손잡이를 잡고 실제로 서랍 열기
 
-7.4에서는 닫힌 초기 상태로 다시 시작해 `OSC_POSE` Action을 실행했다. 이 컨트롤러는 말단의 위치·회전 변화와 그리퍼 명령을 받는다. 손잡이 geom의 현재 위치와 서랍이 움직이는 축을 읽고, **접근 → 파지 → 당기기 → 놓기 → 후퇴** 순서로 Panda를 제어했다. 동작 구간에서 서랍 joint를 직접 설정하지 않았다.
+7.4에서는 닫힌 초기 상태로 다시 시작해 `OSC_POSE` Action을 실행했다. 이 컨트롤러에 전달하는 7차원 Action은 말단 위치 3축·회전 3축·그리퍼 1개 명령으로 구성된다. 손잡이의 충돌 형상인 geom의 현재 위치와 서랍이 움직이는 축을 읽고, **접근 → 파지 → 당기기 → 놓기 → 후퇴** 순서로 Panda를 제어했다. 동작 구간에서 서랍 joint를 직접 설정하지 않았다.
 
 총 **369 Action step**을 실행했고, 최종 서랍 joint는 약 **−0.141538 m**였다. 손잡이 파지와 그리퍼 이탈을 확인했으며, 마지막 30 step 내내 Goal `True`가 유지됐다. 아래 영상과 종료 사진은 서랍이 실제 로봇의 접촉으로 열렸음을 보여 준다.
 
@@ -2426,7 +2437,7 @@ LIBERO에 없는 형상이나 판정 의미를 사용하려면 먼저 모델·�
 
 ##### 10.4.1) C — 새 Object의 형상·물성·등록
 
-새 물체는 **XML 모델 작성 → Object 클래스 구현·등록 → BDDL 선언** 순서로 추가한다. XML에는 충돌 형상·크기·질량·마찰을 정의하고, 클래스가 이 파일을 읽도록 연결한다. 실행 전에 모듈을 import해야 등록된 종류 이름을 BDDL에서 찾을 수 있다.
+새 물체는 **XML 모델 작성 → Object 클래스 구현·등록 → BDDL 선언** 순서로 추가한다. XML은 MuJoCo가 읽는 모델 파일 형식이며, 물체의 형상과 물리 속성을 담은 이 파일을 asset이라고 부른다. XML에는 충돌 형상·크기·질량·마찰을 정의하고, 클래스가 이 파일을 읽도록 연결한다. 실행 전에 모듈을 import해야 등록된 종류 이름을 BDDL에서 찾을 수 있다.
 
 C에서는 파란색 표식 상자를 만들었다. 크기는 52×52×110 mm이며, 충돌 계산용 geom과 색·주황 표식 표시용 geom을 분리했다. `CustomMarkerBox`를 등록하고 `custom_marker_box_1 - custom_marker_box`를 선언했다. 장면에는 이 상자와 접시만 있다. Panda가 상자를 약 0.173 m 들어 올려 접시 위에 놓았고, **277 step** 후 마지막 30 step 동안 Goal이 유지됐다.
 
@@ -2436,7 +2447,7 @@ C에서는 파란색 표식 상자를 만들었다. 크기는 52×52×110 mm이�
 
 고정 구조를 추가할 때는 실제로 물체를 받칠 형상과 Goal이 참조할 영역을 함께 만든다. 충돌 geom은 물리적 지지를 계산하고, site는 윗면의 위치·범위를 표시하는 기준이다. site만 정의하면 물체를 받치는 형상이 생기는 것은 아니다.
 
-D에서는 가로·세로 12 cm, 높이 4 cm의 받침대를 Fixture로 등록했다. 기존 배치기의 높이 보정을 그대로 쓰면 받침대가 가라앉으므로, 새 환경에서 해당 sampler의 `z_offset`을 0으로 조정했다. 우유·받침대만 남기고 `(On milk_1 raised_support_1_top_region)`을 Goal로 사용했다.
+D에서는 가로·세로 12 cm, 높이 4 cm의 받침대를 Fixture로 등록했다. Sampler는 Region의 범위에서 초기 배치 좌표를 정하는 코드이고, offset은 기준에 더하는 보정값이다. 기존 높이 보정 `z_offset=-0.04 m`를 새 받침대에 적용하면 가라앉으므로, 이 Fixture의 보정값을 0으로 바꿨다. 우유·받침대만 남기고 `(On milk_1 raised_support_1_top_region)`을 Goal로 사용했다.
 
 Panda가 우유를 새 받침대 위에 놓고 후퇴했다. 총 **294 step** 후 우유와 받침대의 물리적 접촉을 확인했고, 마지막 40 step 동안 Goal이 유지됐다. 새 Fixture의 생성뿐 아니라 초기 높이·윗면 Region·실제 지지가 함께 맞는지 검증한 사례다.
 
@@ -2454,7 +2465,7 @@ E의 `CenteredUprightOn`은 기존 `On`에 **접시 중심과의 XY 거리 ≤ 1
 
 ##### 10.4.4) F — 새 관측 카메라와 제어 설정
 
-카메라 위치·방향과 컨트롤러 수치는 환경 코드에 작성하고 Wrapper에서 선택한다. F에서는 새 Problem에 `custom_overview` 카메라를 추가하고, `OSC_POSE`의 위치·회전 6축 `kp`를 150에서 180으로 설정했다. 감쇠 비율 `damping_ratio=1.0`도 전달했다. BDDL은 이 Problem을 선택하고 우유·접시의 배치와 기존 `On` Goal을 정의한다.
+카메라 위치·방향과 컨트롤러 수치는 환경 코드에 작성하고 Wrapper에서 선택한다. F에서는 새 Problem에 `custom_overview` 카메라를 추가하고, `OSC_POSE`의 위치·회전 6축 `kp`를 150에서 180으로 설정했다. `kp`는 목표 자세와 현재 자세의 오차에 얼마나 강하게 반응할지 정하는 제어 이득이다. 감쇠 비율 `damping_ratio=1.0`도 전달했다. BDDL은 이 Problem을 선택하고 우유·접시의 배치와 기존 `On` Goal을 정의한다.
 
 같은 Panda 모델로 우유 놓기를 실행해 **261 step** 후 Goal에 도달했고, 마지막 30 step 동안 유지됐다. 아래 영상은 넓어진 관측 시점에서 기록한 결과다.
 
@@ -2462,15 +2473,33 @@ E의 `CenteredUprightOn`은 기존 `On`에 **접시 중심과의 XY 거리 ≤ 1
 
 #### 10.5) 전체 결과와 새 Task 설계에 적용할 기준
 
-| 사례 | 실행 장면의 핵심 대상 | 초기 Goal·Init | 전체 Action step | 마지막 Goal 유지 |
-| --- | --- | --- | ---: | --- |
-| 7장 서랍 열기 | 서랍 캐비닛 | `False`, `On`·`Close` 2/2 | 369 | 30 step 모두 `True` |
-| A 접시 밀기 | 접시·스토브 | `False`, `On` 2/2 | 645 | 40 step 모두 `True` |
-| B 우유 놓기 | 우유·접시 | `False`, `On` 2/2 | 273 | 30 step 모두 `True` |
-| C 새 Object | 표식 상자·접시 | `False`, `On` 2/2 | 277 | 30 step 모두 `True` |
-| D 새 Fixture | 우유·받침대 | `False`, `On` 2/2 | 294 | 40 step 모두 `True` |
-| E 새 Predicate | 우유·접시 | `False`, `On` 2/2 | 273 | 30 step 모두 `True` |
-| F 새 실행 환경 | 우유·접시 | `False`, `On` 2/2 | 261 | 30 step 모두 `True` |
+**사례별 Task 구성**
+
+| 사례·세부 Task | Object·Fixture | Region | Goal과 Predicate |
+| --- | --- | --- | --- |
+| 7장: 가운데 서랍 열기 | Object 없음<br>Fixture: 캐비닛 `wooden_cabinet_1` | 시작 `cabinet_region`<br>서랍 `middle_region` | `Open`: 가운데 서랍이 열림<br>`(Open wooden_cabinet_1_middle_region)` |
+| A: 접시를 스토브 앞 영역으로 밀기 | 접시 `plate_1`<br>Fixture: 스토브 `flat_stove_1` | 시작 `plate_region`, `stove_region`<br>목표 `stove_front_region` | `On`: 접시가 목표 영역 위에 있음<br>`(On plate_1 main_table_stove_front_region)` |
+| B: 기존 우유를 집어 접시에 놓기 | 우유 `milk_1`, 접시 `plate_1` | 시작 `milk_region`, `plate_region` | `On`: 우유가 접시 위에 있음<br>`(On milk_1 plate_1)` |
+| C: 새 파란색 표식 상자를 접시에 놓기 | 상자 `custom_marker_box_1`<br>접시 `plate_1` | 시작 `custom_marker_box_region`, `plate_region` | `On`: 상자가 접시 위에 있음<br>`(On custom_marker_box_1 plate_1)` |
+| D: 우유를 새 받침대 위에 놓기 | 우유 `milk_1`<br>Fixture: 받침대 `raised_support_1` | 시작 `milk_region`, `support_region`<br>목표 `top_region` | `On`: 우유가 받침대 윗면에 있음<br>`(On milk_1 raised_support_1_top_region)` |
+| E: 우유를 접시 중앙에 똑바로 놓기 | 우유 `milk_1`, 접시 `plate_1` | 시작 `milk_region`, `plate_region` | `CenteredUprightOn`: `On` + 중심 거리 ≤ 1 cm + 직립 내적 ≥ 0.95<br>`(CenteredUprightOn milk_1 plate_1)` |
+| F: 새 카메라·제어 설정으로 우유를 접시에 놓기 | 우유 `milk_1`, 접시 `plate_1` | 시작 `milk_region`, `plate_region` | `On`: B의 목표 유지<br>`(On milk_1 plate_1)` |
+
+모든 사례에서 책상은 `main_table` Fixture로 선언했다. 표의 시작 Region에 각 물체·구조물을 놓는 `On` 조건을 Init에 지정했고, 서랍 Task에는 `Close`도 추가했다. F의 카메라 `custom_overview`와 제어 이득 `kp=180`은 환경 코드에서 설정했다.
+
+표에는 Region의 선언 이름을 적었으며, 실행 중에는 대상 이름이 앞에 붙는다. 예를 들어 `plate_region`은 `main_table_plate_region`, 받침대의 `top_region`은 `raised_support_1_top_region`이 된다. Goal은 각 조건을 `And`로 묶어 작성했으므로, 안에 적은 조건이 모두 참이면 성공이다.
+
+**사례별 실행 결과**
+
+| 사례 | 초기 Goal·Init | Action·마지막 Goal 유지 | 종료 사진 | 실제 동작 |
+| --- | --- | --- | --- | --- |
+| 7장 | Goal `False`<br>`On·Close` 2/2 `True` | 총 369 step<br>마지막 30 step `True` | <img src="./images/panda_drawer_action_result.png" width="220" alt="7장 종료 장면"> | <img src="./images/panda_drawer_action.gif" width="220" alt="7장 실제 동작"> |
+| A | Goal `False`<br>`On` 2/2 `True` | 총 645 step<br>마지막 40 step `True` | <img src="./images/custom_task_validation/A_action_end.png" width="220" alt="A 종료 장면"> | <img src="./images/custom_task_validation/A_robot_action.gif" width="220" alt="A 실제 동작"> |
+| B | Goal `False`<br>`On` 2/2 `True` | 총 273 step<br>마지막 30 step `True` | <img src="./images/custom_task_validation/B_action_end.png" width="220" alt="B 종료 장면"> | <img src="./images/custom_task_validation/B_robot_action.gif" width="220" alt="B 실제 동작"> |
+| C | Goal `False`<br>`On` 2/2 `True` | 총 277 step<br>마지막 30 step `True` | <img src="./images/extended_task_validation/C_action_end.png" width="220" alt="C 종료 장면"> | <img src="./images/extended_task_validation/C_robot_action.gif" width="220" alt="C 실제 동작"> |
+| D | Goal `False`<br>`On` 2/2 `True` | 총 294 step<br>마지막 40 step `True` | <img src="./images/extended_task_validation/D_action_end.png" width="220" alt="D 종료 장면"> | <img src="./images/extended_task_validation/D_robot_action.gif" width="220" alt="D 실제 동작"> |
+| E | Goal `False`<br>`On` 2/2 `True` | 총 273 step<br>마지막 30 step `True` | <img src="./images/extended_task_validation/E_action_end.png" width="220" alt="E 종료 장면"> | <img src="./images/extended_task_validation/E_robot_action.gif" width="220" alt="E 실제 동작"> |
+| F | Goal `False`<br>`On` 2/2 `True` | 총 261 step<br>마지막 30 step `True` | <img src="./images/extended_task_validation/F_action_end.png" width="220" alt="F 종료 장면"> | <img src="./images/extended_task_validation/F_robot_action.gif" width="220" alt="F 실제 동작"> |
 
 모든 장면에 책상과 Panda가 있으며, 전체 Action step에는 마지막 검증 구간도 포함된다. 성공 여부는 초기 배치 사진, 실제 동작 영상, 종료 Goal과 그리퍼 이탈을 함께 확인했다. 직접 상태 변경으로 Predicate를 시험한 결과는 실제 로봇 수행 기록과 구분했다.
 
