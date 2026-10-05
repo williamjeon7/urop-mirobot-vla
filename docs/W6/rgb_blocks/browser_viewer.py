@@ -1,6 +1,8 @@
 """Stream the real LIBERO simulation to a localhost browser without saving files."""
 
 import argparse
+import errno
+import http.client
 import json
 import math
 import sys
@@ -14,6 +16,7 @@ PORT = 8766
 CAMERA_SIZE = 512
 SEED = 0
 FPS = 20.0
+VIEWER_ID = "libero-rgb-blocks-v1"
 
 PAGE = """<!doctype html>
 <html lang="ko">
@@ -75,7 +78,7 @@ class LiveSimulation:
         self.thread = None
         self.jpeg = None
         self.frame_time = None
-        self.status = {"state": "starting", "step": 0, "goal": None,
+        self.status = {"viewer_id": VIEWER_ID, "state": "starting", "step": 0, "goal": None,
                        "block_size_mm": None, "fps": 0.0, "error": None,
                        "zero_actions_only": True, "saved_files": False}
 
@@ -230,6 +233,71 @@ def make_server(simulation, port=PORT):
     return server
 
 
+def probe_existing_viewer(port, timeout=2.0):
+    """Recognize our viewer only; never stop or reuse an unrelated service."""
+    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
+    try:
+        connection.request("GET", "/status")
+        response = connection.getresponse()
+        if response.status != 200:
+            return None
+        body = response.read(65537)
+        if len(body) > 65536:
+            return None
+        status = json.loads(body.decode("utf-8"))
+        required = {"state", "step", "goal", "block_size_mm", "fps", "error",
+                    "zero_actions_only", "saved_files", "frame_age_seconds"}
+        if not isinstance(status, dict) or not required.issubset(status):
+            return None
+        if (status["state"] not in ("starting", "running", "error", "stopped")
+                or type(status["step"]) is not int or status["step"] < 0
+                or status["zero_actions_only"] is not True or status["saved_files"] is not False):
+            return None
+        if status.get("viewer_id") == VIEWER_ID:
+            return status
+        if status.get("viewer_id") is not None:
+            return None
+        # A viewer started before this fix has no ID; require the exact page too.
+        connection.request("GET", "/")
+        response = connection.getresponse()
+        if response.status == 200 and response.read(len(PAGE) + 1) == PAGE:
+            return status
+    except (OSError, http.client.HTTPException, UnicodeError, ValueError, RecursionError):
+        return None
+    finally:
+        connection.close()
+    return None
+
+
+def print_viewer_address(port):
+    print("Browser viewer: http://127.0.0.1:{}".format(port), flush=True)
+    print("Remote-SSH: forward port {} in VS Code PORTS, then open http://localhost:{}".format(
+        port, port), flush=True)
+
+
+def reuse_existing_viewer(status, port):
+    """Report existing settings honestly; failed or stale workers are not LIVE."""
+    if status["error"] is not None or status["state"] not in ("starting", "running"):
+        print("기존 RGB 서버가 있지만 정상 실행 상태가 아닙니다: {}. "
+              "서버를 시작한 터미널에서 종료한 뒤 다시 실행하세요.".format(
+                  status["error"] or status["state"]), file=sys.stderr)
+        return 1
+    age = status["frame_age_seconds"]
+    if status["state"] == "running" and (
+            type(age) not in (int, float) or not 0 <= age <= 5 or not math.isfinite(age)):
+        print("기존 RGB 서버의 화면 갱신이 멈췄습니다. "
+              "서버를 시작한 터미널에서 종료한 뒤 다시 실행하세요.", file=sys.stderr)
+        return 1
+    print("RGB 서버가 이미 실행 중입니다. 새 서버를 만들지 않고 기존 화면을 사용합니다.",
+          flush=True)
+    print_viewer_address(port)
+    print("기존 설정은 유지됩니다. 크기·화면 설정을 바꿨다면 기존 서버를 종료하고 다시 실행하세요.",
+          flush=True)
+    print("VS Code PORTS에서 포트를 전달한 뒤 브라우저에서 주소를 여세요. 추가 비밀번호는 없습니다.",
+          flush=True)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=PORT)
@@ -245,12 +313,14 @@ def main():
     try:
         server = make_server(simulation, port=args.port)
     except OSError as error:
+        if error.errno == errno.EADDRINUSE:
+            existing = probe_existing_viewer(args.port)
+            if existing is not None:
+                return reuse_existing_viewer(existing, args.port)
         print("Cannot start localhost viewer: {}. Try --port with an unused port.".format(error),
               file=sys.stderr)
         return 1
-    print("Browser viewer: http://127.0.0.1:{}".format(args.port), flush=True)
-    print("Remote-SSH: forward port {} in VS Code PORTS, then open http://localhost:{}".format(
-        args.port, args.port), flush=True)
+    print_viewer_address(args.port)
     print("No images or videos are saved. Stop with Ctrl+C.", flush=True)
     try:
         simulation.start()
