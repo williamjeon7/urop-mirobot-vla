@@ -43,6 +43,8 @@
 
 **주의** — `--home` 을 주지 않으면 호밍하지 않는다. 파일의 첫 줄이 보통 홈 근처라, 로봇이 엉뚱한 자세에 있으면
 첫 이동이 크다. 처음에는 `--dry-run` 으로 좌표를 보고, 비상정지에 손이 닿는 곳에서 시작할 것.
+**전원을 다시 넣은 뒤에는 축이 잠겨** 첫 줄이 `Error,A106,Locked status of each axis` 로 거부된다 — `--home` 을 붙인다
+(10/5. 같은 전원에서 포트만 다시 여는 것으로는 잠기지 않았다).
 """
 
 from __future__ import annotations
@@ -51,6 +53,8 @@ import argparse
 import math
 import re
 import time
+from array import array
+from bisect import bisect_left
 from pathlib import Path
 
 from common.gcode import HOME_SEQUENCE
@@ -220,48 +224,110 @@ def run_stream(probe, entries, moves: int, poll_timeout: float, settle_timeout: 
                 break
 
     total_s = time.perf_counter() - t0
-    probe.log("stream", total_s=total_s, poll_hz=poll_hz, misses=misses, sent=sent, rows=samples)
+    # 에러로 멈췄으면 그 줄을 같이 남긴다 — 10/5 의 A106 두 번은 화면에만 찍혀 기록에 원문이 없었다
+    probe.log("stream", total_s=total_s, poll_hz=poll_hz, misses=misses, error=failed, sent=sent, rows=samples)
     hz = len(samples) / total_s if total_s else 0.0
     gaps = [b["t_s"] - a["t_s"] for a, b in zip(samples, samples[1:])]
     spread = (f"  간격 {min(gaps)*1000:.0f}~{max(gaps)*1000:.0f}ms, 중앙 "
               f"{sorted(gaps)[len(gaps)//2]*1000:.0f}ms" if gaps else "")
     print(f"\n{len(samples)}개 자세를 받았다 — {total_s:.1f}s 동안 {hz:.1f}Hz (무응답 {misses}회){spread}")
-    if poll_hz > 0 and hz < poll_hz * 0.8:
+    if failed or not samples:
+        print("  (에러로 멈췄거나 받은 자세가 없어 Hz 는 판정하지 않는다)")
+    elif poll_hz > 0 and hz < poll_hz * 0.8:
         print(f"  !! {poll_hz:.0f}Hz 를 못 맞췄다 — `?` 왕복이 {1000/poll_hz:.0f}ms 보다 오래 걸린다는 뜻이다")
 
     print_closest(sent, samples)
     return index
 
 
+def rot_gap(cart, commanded) -> float:
+    """보고 자세와 명령의 A·B·C 차 중 가장 큰 것 (°)."""
+    return max(abs(r - c) for r, c in zip(cart[3:6], commanded[3:6]))
+
+
+def monotone_match(earliest: list[int], n_samples: int, cost) -> list[int]:
+    """waypoint k 마다 샘플 j_k 를 하나씩 고른다 — **j 는 줄 순서대로 줄지 않고**, `j_k ≥ earliest[k]`, 비용 합이 가장 작게.
+
+    동적 계획법: D[k][j] = cost(k, j) + min_{j' ≤ j} D[k−1][j']. 표 크기는 waypoint × 샘플
+    (10/5 1157줄 기록이면 1157 × 1529 ≈ 180만 칸, 몇 초). 모든 k 에 `earliest[k] < n_samples` 여야 한다.
+    """
+    inf = float("inf")
+    prefix = [0.0] * n_samples                 # min_{j' ≤ j} D[k−1][j']
+    back: list[array] = []                     # 그 최소를 낸 j' — 거꾸로 따라가는 데 쓴다
+    for k, lo in enumerate(earliest):
+        best, arg = inf, -1
+        new_prefix, new_back = [inf] * n_samples, array("i", [-1]) * n_samples
+        for j in range(lo, n_samples):
+            d = cost(k, j) + prefix[j]
+            if d < best:
+                best, arg = d, j
+            new_prefix[j], new_back[j] = best, arg
+        prefix = new_prefix
+        back.append(new_back)
+    picks, bound = [0] * len(earliest), n_samples - 1
+    for k in range(len(earliest) - 1, -1, -1):
+        picks[k] = back[k][bound]
+        bound = picks[k]
+    return picks
+
+
+def closest_passes(sent, samples) -> list[dict]:
+    """waypoint 마다 **가장 가까이 지나간 곳** — 위치와 자세를 따로 찾는다.
+
+    두 조건 아래에서 고른다 — (1) 그 줄을 보낸 뒤의 샘플, (2) **줄 순서대로** (뒤 waypoint 의 샘플이 앞 waypoint
+    의 샘플보다 이르지 않다). 그 안에서 오차 합이 가장 작은 짝을 `monotone_match` 로 찾는다.
+    욕심껏 하나씩 고르면 두 가지로 틀린다.
+    - 앞 waypoint 를 찾은 자리부터 끝까지 찾으면, 자세가 거의 일정한 구간에서 자세 최근접이 아무 데나 찍히고 그 자리가
+      다음 탐색의 시작이 되어 실행 끝까지 밀린다 — 10/5 1157줄 기록의 화면 표가 그래서 중앙 23 · 최대 77mm 로 틀렸다
+      (로봇 노트북이 보낸 뒤 2초로 묶어 다시 센 값은 0.31 · 4.33mm)
+    - 보낸 뒤 몇 초로 묶으면, 버퍼가 차서 실행이 보내기보다 늦을 때(9/21 61줄) 같은 자세가 되풀이되는
+      구간(홈 → A20 → 홈 → B20)에서 앞의 홈을 집는다
+    """
+    usable = [r for r in samples if r["cart"] and len(r["cart"]) >= 6]
+    times = [r["t_s"] for r in usable]
+    rows = [{"label": m["label"], "t_s": m["t_s"]} for m in sent]
+    marks = [(k, m, bisect_left(times, m["t_s"])) for k, m in enumerate(sent)]
+    marks = [(k, m, lo) for k, m, lo in marks if lo < len(usable)]  # 마지막 샘플 뒤에 보낸 줄은 "기록 없음"
+    if not marks:
+        return rows
+    earliest = [lo for _, _, lo in marks]
+    pos = monotone_match(earliest, len(usable),
+                         lambda i, j: math.dist(usable[j]["cart"][:3], marks[i][1]["commanded"][:3]))
+    rot = monotone_match(earliest, len(usable), lambda i, j: rot_gap(usable[j]["cart"], marks[i][1]["commanded"]))
+    for (k, m, _), jp, jr in zip(marks, pos, rot):
+        rows[k].update(pos_mm=math.dist(usable[jp]["cart"][:3], m["commanded"][:3]), pos_t=usable[jp]["t_s"],
+                       rot_deg=rot_gap(usable[jr]["cart"], m["commanded"]), rot_t=usable[jr]["t_s"])
+    return rows
+
+
 def print_closest(sent, samples) -> None:
-    """waypoint 마다 **가장 가까이 지나간 곳**. 위치와 자세를 따로 센다.
+    """`closest_passes` 를 표로. 줄이 많으면 앞뒤만 찍고 요약(중앙 · 95% · 최대)을 붙인다.
 
     지나가는 중의 기록이라 waypoint 를 정확히 밟지 않는다 — 버퍼가 이어 붙이며 모서리를 깎기 때문이다.
     위치와 자세를 섞어 하나의 수로 만들려면 "1° 를 몇 mm 로 칠까" 를 정해야 하는데 근거가 없어서, 따로 센다.
     홈 근처 waypoint 들처럼 **XYZ 가 같고 각도만 다른** 구간에서는 위치 열이 0 이고 자세 열이 정보를 갖는다.
-
-    명령을 보낸 순서대로 실행되므로, 찾는 구간도 앞 waypoint 가 가장 가까웠던 시점 뒤로만 본다.
-    그렇게 하지 않으면 XYZ 가 같은 waypoint 들이 서로의 샘플을 집는다.
     """
-    usable = [r for r in samples if r["cart"] and len(r["cart"]) >= 6]
+    rows = closest_passes(sent, samples)
     print(f"\n{'설명':14} | {'보낸 때':>7} | {'위치':>9} {'그때':>7} | {'자세':>8} {'그때':>7}")
-    start = 0
-    for mark in sent:
-        window = [(i, r) for i, r in enumerate(usable) if i >= start and r["t_s"] >= mark["t_s"]]
-        if not window:
-            print(f"{mark['label']:14} | {mark['t_s']:6.2f}s | {'기록 없음':>9}")
-            continue
-        i_pos, best_pos = min(window, key=lambda ir: math.dist(ir[1]["cart"][:3], mark["commanded"][:3]))
-        i_rot, best_rot = min(window, key=lambda ir: max(abs(r - c) for r, c
-                                                         in zip(ir[1]["cart"][3:6], mark["commanded"][3:6])))
-        print(f"{mark['label']:14} | {mark['t_s']:6.2f}s | "
-              f"{math.dist(best_pos['cart'][:3], mark['commanded'][:3]):6.2f}mm {best_pos['t_s']:6.2f}s | "
-              f"{max(abs(r - c) for r, c in zip(best_rot['cart'][3:6], mark['commanded'][3:6])):6.2f}° "
-              f"{best_rot['t_s']:6.2f}s")
-        start = max(start, i_pos, i_rot)  # 뒤 waypoint 는 둘 다 지난 뒤에서만 찾는다
+    shown = rows if len(rows) <= 40 else rows[:10] + [None] + rows[-10:]
+    for r in shown:
+        if r is None:
+            print(f"{'...':14} | (가운데 {len(rows) - 20}줄 생략)")
+        elif "pos_mm" not in r:
+            print(f"{r['label']:14} | {r['t_s']:6.2f}s | {'기록 없음':>9}")
+        else:
+            print(f"{r['label']:14} | {r['t_s']:6.2f}s | {r['pos_mm']:6.2f}mm {r['pos_t']:6.2f}s | "
+                  f"{r['rot_deg']:6.2f}° {r['rot_t']:6.2f}s")
+    found = [r for r in rows if "pos_mm" in r]
+    if found:
+        def summary(key, unit):
+            v = sorted(r[key] for r in found)
+            worst = max(found, key=lambda r: r[key])
+            return (f"중앙 {v[len(v) // 2]:.2f} · 95% {v[min(len(v) - 1, int(0.95 * len(v)))]:.2f} · "
+                    f"최대 {v[-1]:.2f}{unit} ({worst['label']})")
+        print(f"\n{len(found)}/{len(rows)}줄 — 위치 {summary('pos_mm', 'mm')}, 자세 {summary('rot_deg', '°')}")
     print("\n두 열은 **모서리가 얼마나 깎였는지**다 — 0 에 가까우면 그 waypoint 를 거의 밟고 지나갔다는 뜻.")
     print("변환 검증에 쓸 '도착해서 선' 자세가 필요하면 --auto 로 다시 돌린다")
-
 
 
 def main() -> None:

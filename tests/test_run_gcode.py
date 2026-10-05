@@ -5,7 +5,9 @@
 
 from __future__ import annotations
 
-from tools.run_gcode import Z_FLOOR_MM, Z_WARN_MM, low_lines, z_of
+import math
+
+from tools.run_gcode import Z_FLOOR_MM, Z_WARN_MM, closest_passes, low_lines, z_of
 
 
 def entries(*commands: str) -> list[tuple[str, str]]:
@@ -36,6 +38,64 @@ def test_floor_and_warn_split():
     warned = [z for _, _, z in low_lines(cmds, Z_WARN_MM) if z >= Z_FLOOR_MM]
     assert blocked == [65.9, 60.713]
     assert warned == [70.9, 66.0]
+
+
+
+def lerp(a, b, u):
+    return [x + (y - x) * u for x, y in zip(a, b)]
+
+
+def test_closest_constant_orientation_repeated():
+    """10/5 1157줄과 같은 꼴 — 자세가 거의 일정하고 같은 고리를 4번 돈다, 버퍼는 비어 있다(보내고 0.1초 뒤 지나간다).
+    옛 화면 표는 자세 최근접을 끝까지 찾아 탐색이 실행 끝으로 밀렸다 (중앙 23 · 최대 77mm)."""
+    ring = [[200 + 30 * math.cos(2 * math.pi * i / 50), 30 * math.sin(2 * math.pi * i / 50), 200, 0, 3, 0]
+            for i in range(50)]
+    path, dt, lag = ring * 4, 0.117, 0.1
+    sent = [{"label": f"s{k}", "commanded": c, "t_s": k * dt} for k, c in enumerate(path)]
+
+    def at(t):  # 그 시각 로봇 자세 — 보낸 뒤 lag 초에 그 waypoint 를 지난다
+        u = min(max((t - lag) / dt, 0), len(path) - 1)
+        k = min(int(u), len(path) - 2)
+        return lerp(path[k], path[k + 1], u - k)
+
+    samples = []
+    for j in range(int((len(path) * dt + 1) / 0.0885)):
+        cart = at(j * 0.0885)
+        cart[4] += 0.01 * math.sin(j)  # 자세는 잡음만
+        samples.append({"t_s": j * 0.0885, "cart": cart})
+    rows = closest_passes(sent, samples)
+    pos = sorted(r["pos_mm"] for r in rows)
+    assert pos[len(pos) // 2] < 1.0 and pos[-1] < 2.0, (pos[len(pos) // 2], pos[-1])
+    assert all(abs(r["pos_t"] - (r["t_s"] + lag)) < 0.1 for r in rows[1:])  # 제 회차에서 찾았다 (첫 줄은 이미 그 자리에 있다)
+
+
+def test_closest_buffer_lag_repeated_pose():
+    """9/21 61줄과 같은 꼴 — 버퍼가 차서 실행이 보내기보다 몇 초 늦고, 같은 자세(홈)가 되풀이된다.
+    "보낸 뒤 몇 초" 로 묶으면 뒤의 B20 · C20 을 못 찾고 앞의 홈을 집는다."""
+    home = [198.67, 0, 230.72, 0, 0, 0]
+    poses = [home, home[:3] + [20, 0, 0], home, home[:3] + [0, 20, 0], home, home[:3] + [0, 0, 20], home]
+    sent = [{"label": f"w{k}", "commanded": c, "t_s": 0.02 * k} for k, c in enumerate(poses)]  # 다 금방 보낸다
+
+    def at(t):  # waypoint k 에 t = k + 1 초에 닿는다 (한 동작 1초, 줄 순서대로)
+        u = min(max(t - 1.0, 0), len(poses) - 1)
+        k = min(int(u), len(poses) - 2)
+        return lerp(poses[k], poses[k + 1], u - k)
+
+    samples = [{"t_s": j * 0.05, "cart": at(j * 0.05)} for j in range(int(9 / 0.05))]
+    rows = closest_passes(sent, samples)
+    assert all(r["rot_deg"] < 0.6 for r in rows), [round(r["rot_deg"], 2) for r in rows]
+    times = [r["rot_t"] for r in rows]
+    assert times == sorted(times)
+    assert all(abs(rows[k]["rot_t"] - (k + 1)) < 0.06 for k in (1, 3, 5))  # 돈 자세는 제때 찾았다
+
+
+def test_closest_after_last_sample():
+    """마지막 샘플 뒤에 보낸 줄은 기록 없음 — 에러로 일찍 멈춘 경우."""
+    sent = [{"label": "a", "commanded": [200, 0, 200, 0, 0, 0], "t_s": 0.0},
+            {"label": "b", "commanded": [210, 0, 200, 0, 0, 0], "t_s": 5.0}]
+    rows = closest_passes(sent, [{"t_s": 0.1, "cart": [200, 0, 200, 0, 0, 0]}])
+    assert rows[0]["pos_mm"] == 0.0 and "pos_mm" not in rows[1]
+    assert closest_passes(sent, []) == [{"label": "a", "t_s": 0.0}, {"label": "b", "t_s": 5.0}]
 
 
 if __name__ == "__main__":
