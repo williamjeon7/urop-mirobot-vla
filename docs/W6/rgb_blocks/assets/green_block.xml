@@ -1,0 +1,18 @@
+<mujoco model="green_block">
+  <worldbody>
+    <body>
+      <body name="object">
+        <geom name="collision" type="box" size="0.02 0.02 0.02"
+              group="0" mass="0.05" friction="1 0.005 0.0001"
+              rgba="0 1 0 1"/>
+        <geom name="visual" type="box" size="0.02 0.02 0.02"
+              group="1" contype="0" conaffinity="0" mass="1e-8"
+              rgba="0 1 0 1"/>
+      </body>
+      <site name="bottom_site" pos="0 0 -0.02" size="0.001" rgba="0 0 0 0"/>
+      <site name="top_site" pos="0 0 0.02" size="0.001" rgba="0 0 0 0"/>
+      <site name="horizontal_radius_site" pos="0.0282842712474619 0 0"
+            size="0.001" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+</mujoco>
