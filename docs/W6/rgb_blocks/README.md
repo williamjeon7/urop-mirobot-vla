@@ -3,29 +3,41 @@
 테이블 위의 빨강·초록·파랑 정육면체와 Panda를 실제 LIBERO 시뮬레이션으로 확인한다.
 세 블록은 색상만 다르고 기본 한 변은 **40 mm**다. 아래 1→2→3 순서대로 따라 하면 된다.
 
-## localhost 브라우저에서 실시간 확인
+## Bash에서 localhost를 실행해 실시간 확인
 
 지금처럼 VS Code로 **OASYS에 연결된 상태**에서 아래 순서대로 진행하면 된다.
+화면 왼쪽 아래에 `SSH: OASYS`가 표시돼 있으면 준비가 된 것이다.
 시뮬레이터는 OASYS에서 실행하고, 화면은 내 PC의 브라우저에서 본다.
 로컬 PC에 Conda나 LIBERO를 설치하거나 저장소를 다시 내려받을 필요는 없다.
+**아래 과정에서는 비밀번호를 입력하지 않는다.** 이미 연결된 VS Code의 SSH 연결을
+그대로 사용하며, 서버와 웹페이지도 비밀번호를 요구하지 않는다. 새 `ssh` 명령은 실행하지 않는다.
+처음 OASYS에 접속할 때 필요한 SSH 인증은 별개다. 이 안내는 현재처럼 접속된 상태를 기준으로 한다.
 화면은 실시간으로 전달되며 이미지·GIF·영상 파일은 저장하지 않는다.
 이미 OASYS에서 서버가 실행 중이면 중복 실행하지 말고 **2번 포트 전달부터** 진행한다.
 
 ### 1. OASYS 터미널에서 서버 실행
 
 VS Code 상단 **Terminal(터미널) → New Terminal(새 터미널)**을 누른다.
-`<USER>@OASYS`가 표시된 **Remote-SSH 터미널**에 다음을 순서대로 입력한다.
-로컬 PC의 PowerShell에 입력하는 것이 아니다:
+`<USER>@OASYS`가 표시된 **Bash 터미널**에 아래 명령 하나를 입력한다.
+Windows 실행기나 로컬 PC의 PowerShell은 사용하지 않는다:
 
 ```bash
-cd ~/UROP
-source ~/miniforge3/etc/profile.d/conda.sh
-conda activate libero
-python docs/W6/rgb_blocks/browser_viewer.py
+bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh
 ```
 
+스크립트가 Conda의 `libero` 환경을 자동 활성화하고 localhost 서버를 실행한다.
+이미 UROP 루트에 있는 터미널에서는 `bash docs/W6/rgb_blocks/run_browser.sh`로 실행해도 같다.
 이 터미널은 서버가 실행되는 동안 열어 둔다. 기본 포트는 `8766`이다.
 기존에 사용 중인 `8765` 포트는 건드리지 않는다. 초기 화면 생성에는 잠시 시간이 걸릴 수 있다.
+
+정상 실행되면 다음 주소가 출력되고, 이어서 `RGB simulation ready`가 표시된다:
+
+```text
+Browser viewer: http://127.0.0.1:8766
+RGB simulation ready: 40.0 mm cubes; initial checks ...
+```
+
+이제 터미널에 다른 명령을 입력하지 말고 2번으로 진행한다.
 
 ### 2. VS Code에서 포트 전달
 
@@ -37,6 +49,9 @@ python docs/W6/rgb_blocks/browser_viewer.py
 해당 줄의 지구본 모양 **Open in Browser(브라우저에서 열기)** 버튼을 누른다.
 또는 내 PC의 Chrome·Edge 등에서 `http://localhost:8766`을 연다.
 
+`http://localhost:8766`은 Bash에 입력하는 명령이 아니라 **브라우저 주소창에 넣는 주소**다.
+OASYS에서 실행한 서버를 내 PC의 localhost로 연결하는 단계이므로 포트 전달을 생략하면 안 된다.
+
 내 PC에서 `8766`을 이미 사용 중이면 VS Code가 다른 로컬 포트를 배정할 수 있다.
 그때는 PORTS 탭의 **Forwarded Address(전달된 주소)**에 적힌 주소를 그대로 연다.
 이 전달은 기존 VS Code SSH 연결을 사용하며 별도의 비밀번호 입력이나 로컬 프로그램 실행은 필요 없다.
@@ -45,12 +60,24 @@ python docs/W6/rgb_blocks/browser_viewer.py
 
 브라우저에 테이블, Panda, 빨강·초록·파랑 정육면체가 보이고 **step 숫자가 계속 증가**하면
 정상적으로 실행 중이다. `Goal=True`는 초기 배치 조건이 맞다는 뜻이며, 블록을 집었다는 뜻이 아니다.
-브라우저를 닫아도 서버는 계속 실행된다. 모두 종료하려면 1번의 OASYS 터미널을 클릭하고 `Ctrl+C`를 누른다.
+브라우저를 닫아도 서버는 계속 실행된다. 직접 실행한 서버를 종료하려면
+1번의 OASYS 터미널을 클릭하고 `Ctrl+C`를 누른다.
+이미 실행 중인 서버에 접속한 경우에는 그 서버를 시작한 터미널에서 종료한다.
+Codex가 미리 켜둔 서버라 실행 터미널이 없다면 Codex에 서버 종료를 요청하면 된다.
 
 화면이 연결되지 않으면 OASYS 터미널에서 서버가 계속 실행 중인지, PORTS 탭에 `8766`이 등록됐는지,
 브라우저 주소가 그 탭의 전달된 주소와 같은지 확인한다.
-서버에서 포트 사용 중 오류가 나오면 `python docs/W6/rgb_blocks/browser_viewer.py --port 8767`로 실행하고,
+
+- `연결할 수 없음`: PORTS 탭에서 `8766`을 전달했는지 먼저 확인한다.
+- `시뮬레이터 준비 중`: 잠시 기다린다. 오래 지속되거나 오류가 표시되면 OASYS 터미널을 확인한다.
+- `Address already in use`: 이미 실행된 서버가 있으면 2번부터 진행한다.
+
+서버에서 포트 사용 중 오류가 나오면 아래처럼 다른 포트를 지정하고,
 2번에서도 `8767`을 전달한다. 다른 프로그램을 종료할 필요는 없다.
+
+```bash
+bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --port 8767
+```
 
 ### 검증한 범위
 
@@ -78,27 +105,14 @@ OASYS에 `DISPLAY`가 없어도 EGL로 렌더링하며, OpenCV로 JPEG를 만들
 ### 화면 없이 환경 검증
 
 ```bash
+cd ~/UROP
+source ~/miniforge3/etc/profile.d/conda.sh
 conda activate libero
 python docs/W6/rgb_blocks/test_rgb_blocks.py --headless --steps 60 --size 512 --seed 0
 ```
 
 창 없이 지정한 step 수를 실행하고 결과만 터미널에 출력한다.
 이미지·동영상·JSON 파일은 만들지 않는다.
-
-### 선택 사항: 로컬 Windows OpenCV 창
-
-브라우저 대신 W5처럼 OpenCV 창으로 보고 싶으면, W5 환경이 준비된 **로컬 Windows PC**에서
-기존 UROP 저장소의 [`run_local.cmd`](./run_local.cmd)를 더블클릭하거나 PowerShell에서 실행한다:
-
-```powershell
-.\docs\W6\rgb_blocks\run_local.cmd
-```
-
-이 실행기는 활성화된 `libero` 환경이나 기존 Anaconda·Miniforge·Miniconda 환경을 찾아
-W5의 WGL/DLL 설정을 적용한다. 다른 설치 위치라면 `-PythonPath "C:\path\to\libero\python.exe"`를 지정한다.
-패키지 설치나 기존 환경 설정 파일 변경은 하지 않으며, 기존 LIBERO `config.yaml`이 없으면
-W5 설정을 먼저 요청하고 종료한다. OpenCV 창은 `q`, `Q`, `Esc` 또는 창 닫기로 종료한다.
-이 선택 사항은 로컬 PC에 W5 환경이 필요하지만, 기본 브라우저 방식에는 필요하지 않다.
 
 ## 코드에서 수치 조절
 
@@ -157,7 +171,7 @@ red = RedBlock(name="red_block_1", edge_length_m=0.03)  # 개별 생성도 가�
 
 `assets/`는 기본 40 mm의 MuJoCo Object XML 세 개, `objects.py`는 크기 조절·등록 코드,
 `tabletop.bddl`은 초기 배치, `browser_viewer.py`는 localhost 브라우저 실시간 스트림 코드다.
+`run_browser.sh`가 Bash에서 Conda 활성화와 서버 실행을 한 번에 처리한다.
 `test_rgb_blocks.py`는 W5 방식의 OpenCV 모니터링·headless 검증 코드이며,
-`run_local.cmd`·`run_local.ps1`은 선택 사항인 로컬 Windows 실행 진입점이다.
 `preview.py`의 정지 화면 및 `animation.py`·`show_simulation.py`의 셀 GIF 기능은 별도로 남아 있다.
 BDDL의 goal은 초기 배치 확인용 `On` 조건이다. 자동 집기 태스크 및 실물 로봇 명령은 포함하지 않는다.
