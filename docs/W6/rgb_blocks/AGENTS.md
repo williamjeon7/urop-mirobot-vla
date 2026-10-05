@@ -5,6 +5,9 @@
 - 기본 실행 방식은 W5처럼 일반 Python 스크립트의 `env.reset()` → `env.step(action)` →
   `agentview_image` → `cv2.imshow()` → `env.check_success()` 반복이다.
   다른 표시 방식은 사용자가 요청했을 때만 도입한다.
+- 사용자가 localhost 표시를 요청한 현재 기본 뷰어는 `browser_viewer.py`다.
+  W5의 reset/step/관측/Goal 검사를 재사용하고 OpenCV JPEG를 메모리에서 MJPEG로 전송한다.
+  `127.0.0.1`에만 바인딩하고 VS Code Remote 포트 전달로 로컬 브라우저에서 확인한다.
 - 블록은 Red/Green/Blue 정육면체이며 크기는 `objects.py`의 `BLOCK_SIZE_MM`으로 조절한다.
 - 사용자가 별도로 요청하지 않으면 이미지·GIF·영상·결과 JSON 파일을 저장하지 않는다.
 - Windows는 W5에서 작동한 `libero` 환경과 WGL/DLL 설정을 사용한다.
