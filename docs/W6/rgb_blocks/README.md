@@ -9,7 +9,40 @@ XML의 box `size`는 각 축의 반길이(m)이며, Python 코드에서 세 축�
 
 [W5 NewTaskBDDL 6.4·7.2](../../W5/NewTaskBDDL.md)처럼 일반 Python 실행으로
 OpenCV 창을 열고, `env.step(action)` 이후 `agentview_image`와 Goal을 계속 갱신한다.
-W5가 실행됐던 **로컬 Windows PC의 `libero` 환경**에서 프로젝트 루트를 열고 실행한다:
+W5가 실행됐던 **로컬 Windows PC의 `libero` 환경**을 사용한다.
+
+### 로컬 PC 모니터에서 바로 보기
+
+**OASYS Remote-SSH 터미널이 아니라 로컬 Windows PC에서** 실행한다.
+로컬 PC에 있는 기존 UROP 저장소를 업데이트한 뒤, Windows 파일 탐색기에서
+[`run_local.cmd`](./run_local.cmd)를 더블클릭하면 OpenCV 창이 뜬다.
+별도 LIBERO 폴더나 VS Code 작업 영역을 새로 만들 필요는 없다.
+
+또는 로컬 PowerShell에서 기존 UROP 저장소 루트를 열고 실행한다:
+
+```powershell
+git pull --ff-only
+.\docs\W6\rgb_blocks\run_local.cmd
+```
+
+실행기는 활성화된 `libero` 환경을 먼저 찾고, 없으면 W5의
+`anaconda3\envs\libero\python.exe`, `miniforge3`·`miniconda3` 순으로 찾는다.
+W5처럼 해당 환경의 DLL 경로·WGL을 설정하고 기존 Windows 호환성을 검사한다.
+패키지 설치나 기존 환경 설정 파일 변경은 하지 않는다.
+기존 LIBERO `config.yaml`이 없으면 자동 생성·질문 대신 W5 설정을 먼저 요청하고 종료한다.
+다른 위치에 설치했다면 Python 경로를 지정한다:
+
+```powershell
+.\docs\W6\rgb_blocks\run_local.cmd -PythonPath "C:\path\to\libero\python.exe"
+```
+
+SSH 접속이나 비밀번호 입력, localhost 서버는 사용하지 않는다.
+현재 OASYS 연결만으로는 로컬 PC 프로그램을 대신 실행할 수 없으므로,
+더블클릭 또는 위 명령은 반드시 로컬 PC에서 해야 한다.
+
+### Python으로 직접 실행
+
+W5의 `libero` 환경이 활성화된 **로컬** 터미널에서도 실행할 수 있다:
 
 ```powershell
 conda activate libero
@@ -86,5 +119,6 @@ red = RedBlock(name="red_block_1", edge_length_m=0.03)  # 개별 생성도 가�
 
 `assets/`는 기본 40 mm의 MuJoCo Object XML 세 개, `objects.py`는 크기 조절·등록 코드,
 `tabletop.bddl`은 초기 배치, `test_rgb_blocks.py`는 W5 방식의 OpenCV 모니터링 코드다.
+`run_local.cmd`·`run_local.ps1`은 로컬 Windows 실행 진입점이다.
 `preview.py`의 정지 화면 및 `animation.py`·`show_simulation.py`의 셀 GIF 기능은 별도로 남아 있다.
 BDDL의 goal은 초기 배치 확인용 `On` 조건이다. 자동 집기 태스크 및 실물 로봇 명령은 포함하지 않는다.
