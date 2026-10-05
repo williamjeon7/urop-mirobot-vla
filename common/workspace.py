@@ -118,8 +118,9 @@ def read_point_marker(text: str) -> str | None:
 # Mirobot 쪽 짝을 홈(수평 199mm)에 두면 바깥쪽 여유가 경고선(280mm)까지 81mm 뿐이다. LIBERO 정책은 시작점에서
 # 바깥으로 300~400mm 를 움직여서, 그대로면 배율을 0.23 까지 줄여야 들어간다. 짝을 베이스 쪽으로 당기면 배율을
 # 키울 수 있다 — X 120 이면 0.44 (10/1, LIBERO-Spatial 정책 10개 에피소드 기준, docs/W5/PIPELINE.md 4-4).
-# **"candidate" 는 후보이지 기본값이 아니다** — 시작 자세(`X 120 Y 0 Z 230.72` 근처)와 베이스 근처 점이 실물에서
-# 거부되지 않는지 확인한 뒤 `DEFAULT_MAPPING` 을 바꾼다.
+# **"candidate" 는 10/5 에 내려놓았다** — 시작 자세 `G0 X123.15 Y0.01 Z230.63 …` 가 실물에서 `Soft limit:Y`(어깨 J2)로 거부됐다.
+# 새 방식은 **짝은 홈 그대로, 시뮬 Panda 의 시작 자세를 거기에 맞추고, 배율은 세로 정렬 `(230.72 − Zt) / 264.1` 로** 정한다
+# (docs/W5/TABLE_ALIGNMENT.md). `Zt` 가 오면 그 배율로 항목을 새로 둔다. 기록으로 남겨 두고 쓰지 않는다.
 MAPPINGS: dict[str, tuple[Vec3 | None, float]] = {
     "home": (None, 1.0),                                          # 9/30 까지 — 그 점의 홈, 배율 1
     "candidate": ((120.0, 0.0, MIROBOT_HOME_GRIP_MM[2]), 0.44),   # 파지점 기준. 높이는 홈 파지점과 같다
