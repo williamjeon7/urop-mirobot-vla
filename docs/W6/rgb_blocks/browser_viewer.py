@@ -5,6 +5,8 @@ import errno
 import http.client
 import json
 import math
+import secrets
+import socket
 import sys
 import threading
 import time
@@ -30,16 +32,11 @@ h1 { font-size: 24px; } a { color: #93c5fd; }
 #screen { background: #030712; border-radius: 12px; overflow: hidden; }
 img { display: block; width: 100%; height: auto; min-height: 300px; object-fit: contain; }
 #status { min-height: 48px; line-height: 1.6; }
-.note { color: #9ca3af; line-height: 1.7; }
 </style>
 <main>
 <h1>LIBERO Tabletop · Red / Green / Blue</h1>
-<p id="status">시뮬레이터를 준비 중입니다. 첫 실행은 잠시 기다려 주세요.</p>
+<p id="status">시뮬레이터 준비 중…</p>
 <div id="screen"><img id="video" src="/stream.mjpg" alt="LIBERO 실시간 화면"></div>
-<p class="note">OASYS에서 실제 물리 시뮬레이션을 실행해 이 화면으로 전송합니다.<br>
-블록 크기: <code>objects.py</code>의 <code>BLOCK_SIZE_MM</code> 수정 후 서버 재시작.<br>
-현재는 zero action으로 배치를 확인합니다. 자동 집기 동작은 없습니다.<br>
-이미지·동영상은 저장하지 않습니다. 종료: 서버 터미널에서 <code>Ctrl+C</code>.</p>
 </main>
 <script>
 const status = document.getElementById('status');
@@ -50,14 +47,16 @@ async function update() {
     const response = await fetch('/status', {cache: 'no-store'});
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const info = await response.json();
-    if (info.error) status.textContent = '오류: ' + info.error + ' · 서버 터미널을 확인하세요.';
+    video.style.display = '';
+    if (info.error) status.textContent = '오류: ' + info.error;
     else if (info.state === 'running') {
       status.textContent = 'LIVE · 한 변 ' + info.block_size_mm + ' mm · step ' + info.step
         + ' · goal=' + info.goal + ' · ' + info.fps.toFixed(1) + ' FPS'
         + (info.frame_age_seconds > 3 ? ' · 화면 갱신 지연' : '');
-    } else status.textContent = '시뮬레이터 준비 중… (' + info.state + ')';
+    } else status.textContent = info.state === 'stopped' ? '종료' : '시뮬레이터 준비 중…';
   } catch (_) {
-    status.textContent = '서버 연결이 끊겼습니다. 실행 터미널과 VS Code 포트 전달을 확인하세요.';
+    status.textContent = '연결 끊김';
+    video.style.display = 'none';
   }
 }
 update(); setInterval(update, 1000);
@@ -179,7 +178,9 @@ class LiveSimulation:
 
 
 def make_server(simulation, port=PORT):
-    """Expose only a fixed page, read-only status, and an in-memory MJPEG stream."""
+    """Serve frames and allow a terminal client to stop this specific instance."""
+    shutdown_token = secrets.token_urlsafe(32)
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
@@ -199,14 +200,35 @@ def make_server(simulation, port=PORT):
                 if path == "/":
                     self.reply(200, "text/html; charset=utf-8", PAGE)
                 elif path == "/status":
+                    status = simulation.get_status()
+                    status["shutdown_token"] = shutdown_token
                     self.reply(200, "application/json; charset=utf-8",
-                               json.dumps(simulation.get_status()).encode("utf-8"))
+                               json.dumps(status).encode("utf-8"))
                 elif path == "/stream.mjpg":
                     self.stream()
                 else:
                     self.reply(404, "text/plain; charset=utf-8", b"Not found")
             except (BrokenPipeError, ConnectionResetError, TimeoutError):
                 pass
+
+        def do_POST(self):
+            if urlsplit(self.path).path != "/shutdown":
+                self.reply(404, "text/plain; charset=utf-8", b"Not found")
+                return
+            token = self.headers.get("X-RGB-Viewer-Token", "")
+            if (self.headers.get("Origin") is not None or not token.isascii()
+                    or not secrets.compare_digest(token, shutdown_token)):
+                self.reply(403, "text/plain; charset=utf-8", b"Forbidden")
+                return
+            try:
+                self.reply(202, "application/json", b'{"stopping":true}')
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            simulation.stop_event.set()
+            with simulation.condition:
+                simulation.condition.notify_all()
+            self.server.shutdown()
 
         def stream(self):
             self.connection.settimeout(5)
@@ -270,9 +292,71 @@ def probe_existing_viewer(port, timeout=2.0):
 
 
 def print_viewer_address(port):
-    print("Browser viewer: http://127.0.0.1:{}".format(port), flush=True)
-    print("Remote-SSH: forward port {} in VS Code PORTS, then open http://localhost:{}".format(
-        port, port), flush=True)
+    print("http://localhost:{}".format(port), flush=True)
+
+
+def request_shutdown(port, token, timeout=2.0):
+    if not isinstance(token, str) or not token:
+        return False
+    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
+    try:
+        connection.request("POST", "/shutdown", body=b"",
+                           headers={"X-RGB-Viewer-Token": token})
+        response = connection.getresponse()
+        response.read(1024)
+        return response.status == 202
+    except (OSError, http.client.HTTPException, ValueError, UnicodeError):
+        return False
+    finally:
+        connection.close()
+
+
+def wait_for_server_exit(port, timeout=15.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+                pass
+        except ConnectionRefusedError:
+            return True
+        except OSError:
+            pass
+        time.sleep(0.1)
+    return False
+
+
+def stop_existing_viewer(port, status=None):
+    if status is None:
+        status = probe_existing_viewer(port)
+    if status is None:
+        if wait_for_server_exit(port, timeout=0.5):
+            print("서버가 종료되어 있습니다.", flush=True)
+            return 0
+        print("RGB 서버로 확인되지 않아 종료하지 않았습니다.", file=sys.stderr)
+        return 1
+    if not request_shutdown(port, status.get("shutdown_token")):
+        print("서버 종료 요청에 실패했습니다.", file=sys.stderr)
+        return 1
+    if not wait_for_server_exit(port):
+        print("서버 종료를 확인하지 못했습니다.", file=sys.stderr)
+        return 1
+    print("서버 종료", flush=True)
+    return 0
+
+
+def follow_existing_viewer(port, token):
+    try:
+        while True:
+            time.sleep(0.5)
+            current = probe_existing_viewer(port)
+            if current is None:
+                if wait_for_server_exit(port, timeout=0.5):
+                    return 0
+                continue
+            if current.get("shutdown_token") != token:
+                return 0
+    except KeyboardInterrupt:
+        return stop_existing_viewer(port, status={"shutdown_token": token})
 
 
 def reuse_existing_viewer(status, port):
@@ -288,14 +372,13 @@ def reuse_existing_viewer(status, port):
         print("기존 RGB 서버의 화면 갱신이 멈췄습니다. "
               "서버를 시작한 터미널에서 종료한 뒤 다시 실행하세요.", file=sys.stderr)
         return 1
-    print("RGB 서버가 이미 실행 중입니다. 새 서버를 만들지 않고 기존 화면을 사용합니다.",
-          flush=True)
+    token = status.get("shutdown_token")
+    if not isinstance(token, str) or not token:
+        print("이전 버전 서버입니다. 기존 실행 터미널에서 종료한 뒤 다시 실행하세요.", file=sys.stderr)
+        return 1
     print_viewer_address(port)
-    print("기존 설정은 유지됩니다. 크기·화면 설정을 바꿨다면 기존 서버를 종료하고 다시 실행하세요.",
-          flush=True)
-    print("VS Code PORTS에서 포트를 전달한 뒤 브라우저에서 주소를 여세요. 추가 비밀번호는 없습니다.",
-          flush=True)
-    return 0
+    print("기존 서버 연결 · Ctrl+C로 종료", flush=True)
+    return follow_existing_viewer(port, token)
 
 
 def main():
@@ -304,11 +387,14 @@ def main():
     parser.add_argument("--size", type=int, default=CAMERA_SIZE, help="Camera resolution, not cube size.")
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--fps", type=float, default=FPS)
+    parser.add_argument("--stop", action="store_true", help="Stop the RGB server on this port.")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535 or not 128 <= args.size <= 2048:
         parser.error("port must be 1..65535 and size must be 128..2048")
     if not math.isfinite(args.fps) or not 0 < args.fps <= 60:
         parser.error("fps must be finite and in (0, 60]")
+    if args.stop:
+        return stop_existing_viewer(args.port)
     simulation = LiveSimulation(resolution=args.size, seed=args.seed, fps=args.fps)
     try:
         server = make_server(simulation, port=args.port)
@@ -321,7 +407,7 @@ def main():
               file=sys.stderr)
         return 1
     print_viewer_address(args.port)
-    print("No images or videos are saved. Stop with Ctrl+C.", flush=True)
+    print("Ctrl+C로 종료", flush=True)
     try:
         simulation.start()
         server.serve_forever(poll_interval=0.25)

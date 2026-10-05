@@ -73,10 +73,15 @@ class BrowserViewerHTTPTests(unittest.TestCase):
         self.simulation = FakeSimulation()
         self.server = make_server(self.simulation, port=0)
         self.address, self.port = self.server.server_address
-        self.thread = threading.Thread(
-            target=self.server.serve_forever, kwargs={"poll_interval": 0.05},
-            daemon=True,
-        )
+        # Match main(): close the listening socket when serve_forever returns.
+        # This also lets shutdown tests verify that the port truly closes.
+        def serve_and_close():
+            try:
+                self.server.serve_forever(poll_interval=0.05)
+            finally:
+                self.server.server_close()
+
+        self.thread = threading.Thread(target=serve_and_close, daemon=True)
         self.thread.start()
 
     def tearDown(self):
@@ -86,10 +91,10 @@ class BrowserViewerHTTPTests(unittest.TestCase):
         self.thread.join(timeout=2)
         self.assertFalse(self.thread.is_alive(), "HTTP server did not stop")
 
-    def request(self, path, method="GET"):
+    def request(self, path, method="GET", headers=None):
         connection = http.client.HTTPConnection(self.address, self.port, timeout=3)
         try:
-            connection.request(method, path)
+            connection.request(method, path, headers=headers or {})
             response = connection.getresponse()
             return response.status, dict(response.getheaders()), response.read()
         finally:
@@ -131,6 +136,8 @@ class BrowserViewerHTTPTests(unittest.TestCase):
         self.assertEqual(body, PAGE)
         self.assertIn("시뮬레이터", body.decode("utf-8"))
         self.assertIn('src="/stream.mjpg"', body.decode("utf-8"))
+        self.assertNotIn('class="note"', body.decode("utf-8"))
+        self.assertNotIn("OASYS에서 실제 물리 시뮬레이션을 실행해", body.decode("utf-8"))
 
     def test_page_route_ignores_query_string(self):
         code, _, body = self.request("/?cache_bust=123")
@@ -143,18 +150,109 @@ class BrowserViewerHTTPTests(unittest.TestCase):
         self.assertEqual(headers["Content-Type"], "application/json; charset=utf-8")
         self.assertEqual(headers["Cache-Control"], "no-store")
         self.assertEqual(headers["Content-Length"], str(len(body)))
-        self.assertEqual(json.loads(body.decode("utf-8")), self.simulation.get_status())
+        status = json.loads(body.decode("utf-8"))
+        token = status.pop("shutdown_token")
+        self.assertIsInstance(token, str)
+        self.assertGreaterEqual(len(token), 32)
+        self.assertTrue(token.isascii())
+        self.assertEqual(status, self.simulation.get_status())
+        self.assertNotIn("shutdown_token", self.simulation.get_status())
 
     def test_existing_legacy_viewer_is_recognized_over_http(self):
         # Keep this FakeSimulation without viewer_id to cover a server that was
         # already running before the duplicate-launch fix was installed.
-        self.assertEqual(browser_viewer.probe_existing_viewer(self.port),
-                         self.simulation.get_status())
+        status = browser_viewer.probe_existing_viewer(self.port)
+        self.assertTrue(status.pop("shutdown_token"))
+        self.assertEqual(status, self.simulation.get_status())
 
     def test_existing_identified_viewer_is_recognized_over_http(self):
         self.simulation.status["viewer_id"] = browser_viewer.VIEWER_ID
-        self.assertEqual(browser_viewer.probe_existing_viewer(self.port),
-                         self.simulation.get_status())
+        status = browser_viewer.probe_existing_viewer(self.port)
+        self.assertTrue(status.pop("shutdown_token"))
+        self.assertEqual(status, self.simulation.get_status())
+
+    def shutdown_token(self):
+        code, _, body = self.request("/status")
+        self.assertEqual(code, 200)
+        return json.loads(body.decode("utf-8"))["shutdown_token"]
+
+    def test_shutdown_requires_correct_token_and_no_origin(self):
+        token = self.shutdown_token()
+        for headers in (
+            {}, {"X-RGB-Viewer-Token": "wrong-token"},
+            {"X-RGB-Viewer-Token": "caf\u00e9"},
+            {"X-RGB-Viewer-Token": token, "Origin": "http://untrusted.example"},
+            {"X-RGB-Viewer-Token": token, "Origin": ""},
+            {"X-RGB-Viewer-Token": token, "Origin": "null"},
+        ):
+            with self.subTest(headers=list(headers)):
+                code, response_headers, body = self.request(
+                    "/shutdown", method="POST", headers=headers)
+                self.assertEqual(code, 403)
+                self.assertEqual(body, b"Forbidden")
+                self.assertNotIn("Access-Control-Allow-Origin", response_headers)
+                self.assertFalse(self.simulation.stop_event.is_set())
+                self.assertEqual(self.request("/status")[0], 200)
+        self.assertEqual(self.shutdown_token(), token)
+
+    def test_authenticated_shutdown_stops_server_and_closes_port(self):
+        code, headers, body = self.request(
+            "/shutdown", method="POST",
+            headers={"X-RGB-Viewer-Token": self.shutdown_token()})
+        self.assertEqual(code, 202)
+        self.assertEqual(json.loads(body.decode("utf-8")), {"stopping": True})
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+        self.thread.join(timeout=2)
+        self.assertFalse(self.thread.is_alive())
+        self.assertTrue(self.simulation.stop_event.is_set())
+        self.assertTrue(browser_viewer.wait_for_server_exit(self.port, timeout=1))
+
+    def test_shutdown_client_uses_token_and_server_closes(self):
+        self.assertTrue(browser_viewer.request_shutdown(self.port, self.shutdown_token()))
+        self.thread.join(timeout=2)
+        self.assertFalse(self.thread.is_alive())
+        self.assertTrue(browser_viewer.wait_for_server_exit(self.port, timeout=1))
+
+    def test_get_shutdown_unknown_post_and_preflight_do_not_stop_server(self):
+        token = self.shutdown_token()
+        code, _, _ = self.request("/shutdown")
+        self.assertEqual(code, 404)
+        code, _, _ = self.request("/missing", method="POST",
+                                  headers={"X-RGB-Viewer-Token": token})
+        self.assertEqual(code, 404)
+        code, headers, _ = self.request(
+            "/shutdown", method="OPTIONS",
+            headers={"Origin": "http://untrusted.example",
+                     "Access-Control-Request-Method": "POST",
+                     "Access-Control-Request-Headers": "X-RGB-Viewer-Token"})
+        self.assertEqual(code, 501)
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+        self.assertNotIn("Access-Control-Allow-Headers", headers)
+        self.assertFalse(self.simulation.stop_event.is_set())
+        self.assertEqual(self.request("/status")[0], 200)
+
+    def test_shutdown_token_is_unique_to_each_server_instance(self):
+        first_token = self.shutdown_token()
+        other_simulation = FakeSimulation()
+        other_server = make_server(other_simulation, port=0)
+        other_thread = threading.Thread(
+            target=other_server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+        other_thread.start()
+        try:
+            other_status = browser_viewer.probe_existing_viewer(other_server.server_address[1])
+            other_token = other_status["shutdown_token"]
+            self.assertNotEqual(first_token, other_token)
+            code, _, _ = self.request(
+                "/shutdown", method="POST", headers={"X-RGB-Viewer-Token": other_token})
+            self.assertEqual(code, 403)
+            self.assertFalse(self.simulation.stop_event.is_set())
+        finally:
+            other_simulation.stop()
+            other_server.shutdown()
+            other_server.server_close()
+            other_thread.join(timeout=2)
+            self.assertFalse(other_thread.is_alive())
 
     def test_unknown_routes_do_not_serve_repository_files(self):
         for path in (
@@ -241,6 +339,7 @@ class ExistingViewerTests(unittest.TestCase):
     def setUp(self):
         self.status = FakeSimulation().get_status()
         self.status["viewer_id"] = browser_viewer.VIEWER_ID
+        self.status["shutdown_token"] = "test-terminal-shutdown-token"
 
     def probe_mock_response(self, body, page=PAGE, status_code=200, page_code=200):
         connection = mock.Mock()
@@ -267,16 +366,27 @@ class ExistingViewerTests(unittest.TestCase):
                                   return_value=existing) as probe, \
                 mock.patch.object(browser_viewer.LiveSimulation, "start") as start, \
                 mock.patch.object(browser_viewer.LiveSimulation, "stop") as stop, \
+                mock.patch.object(browser_viewer, "follow_existing_viewer",
+                                  return_value=0) as follow, \
                 redirect_stdout(stdout), redirect_stderr(stderr):
             result = browser_viewer.main()
         start.assert_not_called()
         stop.assert_not_called()
+        if result == 0:
+            follow.assert_called_once_with(12345, existing["shutdown_token"])
+        else:
+            follow.assert_not_called()
         return result, probe, stdout.getvalue(), stderr.getvalue()
 
     def reuse(self, status):
         stdout, stderr = io.StringIO(), io.StringIO()
-        with redirect_stdout(stdout), redirect_stderr(stderr):
+        with mock.patch.object(browser_viewer, "follow_existing_viewer", return_value=0) as follow, \
+                redirect_stdout(stdout), redirect_stderr(stderr):
             result = browser_viewer.reuse_existing_viewer(status, 12345)
+        if result == 0:
+            follow.assert_called_once_with(12345, status["shutdown_token"])
+        else:
+            follow.assert_not_called()
         return result, stdout.getvalue(), stderr.getvalue()
 
     def test_matching_marker_requires_no_legacy_page_request(self):
@@ -348,9 +458,9 @@ class ExistingViewerTests(unittest.TestCase):
             OSError(errno.EADDRINUSE, "Address already in use"), self.status)
         self.assertEqual(result, 0)
         probe.assert_called_once_with(12345)
-        self.assertIn("이미 실행 중", stdout)
+        self.assertIn("기존 서버 연결", stdout)
         self.assertIn("http://localhost:12345", stdout)
-        self.assertIn("기존 설정은 유지", stdout)
+        self.assertIn("Ctrl+C로 종료", stdout)
         self.assertEqual(stderr, "")
 
     def test_duplicate_launch_does_not_reuse_unrecognized_service(self):
@@ -374,8 +484,8 @@ class ExistingViewerTests(unittest.TestCase):
                       block_size_mm=None, frame_age_seconds=None, fps=0.0)
         result, stdout, stderr = self.reuse(status)
         self.assertEqual(result, 0)
-        self.assertIn("기존 화면", stdout)
-        self.assertIn("기존 설정은 유지", stdout)
+        self.assertIn("기존 서버 연결", stdout)
+        self.assertIn("Ctrl+C로 종료", stdout)
         self.assertEqual(stderr, "")
 
     def test_error_and_stopped_servers_are_not_announced_as_live(self):
@@ -406,6 +516,178 @@ class ExistingViewerTests(unittest.TestCase):
                 self.assertEqual(result, 0)
                 self.assertIn("http://localhost:12345", stdout)
                 self.assertEqual(stderr, "")
+
+    def test_legacy_server_without_shutdown_token_is_not_followed(self):
+        for token in (None, "", 123, False):
+            with self.subTest(token=token):
+                result, stdout, stderr = self.reuse(dict(self.status, shutdown_token=token))
+                self.assertEqual(result, 1)
+                self.assertEqual(stdout, "")
+                self.assertIn("이전 버전 서버", stderr)
+
+    def test_shutdown_request_sends_only_the_instance_token(self):
+        connection = mock.Mock()
+        response = mock.Mock(status=202)
+        connection.getresponse.return_value = response
+        with mock.patch.object(browser_viewer.http.client, "HTTPConnection",
+                               return_value=connection) as constructor:
+            self.assertTrue(browser_viewer.request_shutdown(12345, "token", timeout=0.5))
+        constructor.assert_called_once_with("127.0.0.1", 12345, timeout=0.5)
+        connection.request.assert_called_once_with(
+            "POST", "/shutdown", body=b"", headers={"X-RGB-Viewer-Token": "token"})
+        response.read.assert_called_once_with(1024)
+        connection.close.assert_called_once_with()
+
+    def test_invalid_shutdown_token_never_opens_connection(self):
+        for token in (None, "", [], 123, False):
+            with self.subTest(token=token):
+                with mock.patch.object(browser_viewer.http.client, "HTTPConnection") as connection:
+                    self.assertFalse(browser_viewer.request_shutdown(12345, token))
+                connection.assert_not_called()
+
+    def test_shutdown_refusal_and_connection_error_are_reported_as_failure(self):
+        for code in (200, 403, 404, 500):
+            with self.subTest(code=code):
+                connection = mock.Mock()
+                connection.getresponse.return_value.status = code
+                with mock.patch.object(browser_viewer.http.client, "HTTPConnection",
+                                       return_value=connection):
+                    self.assertFalse(browser_viewer.request_shutdown(12345, "token"))
+                connection.close.assert_called_once_with()
+        for error in (ConnectionRefusedError(), TimeoutError(),
+                      http.client.BadStatusLine("bad status"), ValueError("bad header")):
+            with self.subTest(error=type(error).__name__):
+                connection = mock.Mock()
+                connection.request.side_effect = error
+                with mock.patch.object(browser_viewer.http.client, "HTTPConnection",
+                                       return_value=connection):
+                    self.assertFalse(browser_viewer.request_shutdown(12345, "token"))
+                connection.close.assert_called_once_with()
+
+    def test_exit_confirmation_requires_connection_refused_not_network_error(self):
+        with mock.patch.object(browser_viewer.time, "monotonic", side_effect=[0, 0]), \
+                mock.patch.object(browser_viewer.socket, "create_connection",
+                                  side_effect=ConnectionRefusedError()) as connect:
+            self.assertTrue(browser_viewer.wait_for_server_exit(12345, timeout=1))
+        connect.assert_called_once_with(("127.0.0.1", 12345), timeout=0.5)
+        for error in (TimeoutError(), OSError("network error")):
+            with self.subTest(error=type(error).__name__):
+                with mock.patch.object(browser_viewer.time, "monotonic", side_effect=[0, 0, 1]), \
+                        mock.patch.object(browser_viewer.time, "sleep"), \
+                        mock.patch.object(browser_viewer.socket, "create_connection", side_effect=error):
+                    self.assertFalse(browser_viewer.wait_for_server_exit(12345, timeout=1))
+
+    def test_exit_confirmation_fails_if_listener_stays_open(self):
+        with mock.patch.object(browser_viewer.time, "monotonic", side_effect=[0, 0, 1]), \
+                mock.patch.object(browser_viewer.time, "sleep"), \
+                mock.patch.object(browser_viewer.socket, "create_connection", return_value=mock.MagicMock()):
+            self.assertFalse(browser_viewer.wait_for_server_exit(12345, timeout=1))
+
+    def test_stop_existing_viewer_requires_identity_and_actual_exit(self):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with mock.patch.object(browser_viewer, "probe_existing_viewer", return_value=self.status) as probe, \
+                mock.patch.object(browser_viewer, "request_shutdown", return_value=True) as shutdown, \
+                mock.patch.object(browser_viewer, "wait_for_server_exit", return_value=True) as wait, \
+                redirect_stdout(stdout), redirect_stderr(stderr):
+            self.assertEqual(browser_viewer.stop_existing_viewer(12345), 0)
+        probe.assert_called_once_with(12345)
+        shutdown.assert_called_once_with(12345, self.status["shutdown_token"])
+        wait.assert_called_once_with(12345)
+        self.assertIn("서버 종료", stdout.getvalue())
+        self.assertEqual(stderr.getvalue(), "")
+
+    def test_stop_unknown_service_does_not_send_shutdown(self):
+        for is_closed, expected in ((True, 0), (False, 1)):
+            with self.subTest(is_closed=is_closed):
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with mock.patch.object(browser_viewer, "probe_existing_viewer", return_value=None), \
+                        mock.patch.object(browser_viewer, "request_shutdown") as shutdown, \
+                        mock.patch.object(browser_viewer, "wait_for_server_exit", return_value=is_closed) as wait, \
+                        redirect_stdout(stdout), redirect_stderr(stderr):
+                    self.assertEqual(browser_viewer.stop_existing_viewer(12345), expected)
+                shutdown.assert_not_called()
+                wait.assert_called_once_with(12345, timeout=0.5)
+                if is_closed:
+                    self.assertIn("종료되어 있습니다", stdout.getvalue())
+                else:
+                    self.assertIn("종료하지 않았습니다", stderr.getvalue())
+
+    def test_stop_failure_is_not_announced_as_success(self):
+        for accepted, exited in ((False, False), (True, False)):
+            with self.subTest(accepted=accepted, exited=exited):
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with mock.patch.object(browser_viewer, "request_shutdown", return_value=accepted), \
+                        mock.patch.object(browser_viewer, "wait_for_server_exit", return_value=exited) as wait, \
+                        redirect_stdout(stdout), redirect_stderr(stderr):
+                    self.assertEqual(browser_viewer.stop_existing_viewer(12345, self.status), 1)
+                self.assertEqual(stdout.getvalue(), "")
+                self.assertTrue(stderr.getvalue())
+                if accepted:
+                    wait.assert_called_once_with(12345)
+                else:
+                    wait.assert_not_called()
+
+    def test_follow_existing_viewer_ctrl_c_stops_that_instance(self):
+        for result in (0, 1):
+            with self.subTest(result=result):
+                with mock.patch.object(browser_viewer.time, "sleep", side_effect=[None, KeyboardInterrupt]), \
+                        mock.patch.object(browser_viewer, "probe_existing_viewer", return_value=self.status) as probe, \
+                        mock.patch.object(browser_viewer, "stop_existing_viewer", return_value=result) as stop:
+                    self.assertEqual(browser_viewer.follow_existing_viewer(
+                        12345, self.status["shutdown_token"]), result)
+                probe.assert_called_once_with(12345)
+                stop.assert_called_once_with(12345, status={"shutdown_token": self.status["shutdown_token"]})
+
+    def test_follow_ended_or_replaced_server_never_stops_replacement(self):
+        for current in (None, dict(self.status, shutdown_token="replacement-token")):
+            with self.subTest(current=current is not None):
+                with mock.patch.object(browser_viewer.time, "sleep"), \
+                        mock.patch.object(browser_viewer, "probe_existing_viewer", return_value=current), \
+                        mock.patch.object(browser_viewer, "wait_for_server_exit", return_value=True) as wait, \
+                        mock.patch.object(browser_viewer, "stop_existing_viewer") as stop:
+                    self.assertEqual(browser_viewer.follow_existing_viewer(
+                        12345, self.status["shutdown_token"]), 0)
+                stop.assert_not_called()
+                if current is None:
+                    wait.assert_called_once_with(12345, timeout=0.5)
+                else:
+                    wait.assert_not_called()
+
+    def test_transient_status_failure_keeps_foreground_ctrl_c_available(self):
+        with mock.patch.object(browser_viewer.time, "sleep", side_effect=[None, None, KeyboardInterrupt]), \
+                mock.patch.object(browser_viewer, "probe_existing_viewer", side_effect=[None, self.status]) as probe, \
+                mock.patch.object(browser_viewer, "wait_for_server_exit", return_value=False) as wait, \
+                mock.patch.object(browser_viewer, "stop_existing_viewer", return_value=0) as stop:
+            self.assertEqual(browser_viewer.follow_existing_viewer(
+                12345, self.status["shutdown_token"]), 0)
+        self.assertEqual(probe.call_args_list, [mock.call(12345), mock.call(12345)])
+        wait.assert_called_once_with(12345, timeout=0.5)
+        stop.assert_called_once_with(12345, status={"shutdown_token": self.status["shutdown_token"]})
+
+    def test_main_stop_option_never_creates_simulation_or_server(self):
+        for result in (0, 1):
+            with self.subTest(result=result):
+                with mock.patch.object(sys, "argv", ["browser_viewer.py", "--port", "12345", "--stop"]), \
+                        mock.patch.object(browser_viewer, "LiveSimulation") as simulation, \
+                        mock.patch.object(browser_viewer, "make_server") as server, \
+                        mock.patch.object(browser_viewer, "stop_existing_viewer", return_value=result) as stop:
+                    self.assertEqual(browser_viewer.main(), result)
+                stop.assert_called_once_with(12345)
+                simulation.assert_not_called()
+                server.assert_not_called()
+
+    def test_main_ctrl_c_closes_owned_simulation_and_server(self):
+        server = mock.Mock()
+        server.serve_forever.side_effect = KeyboardInterrupt
+        simulation = mock.Mock()
+        with mock.patch.object(sys, "argv", ["browser_viewer.py"]), \
+                mock.patch.object(browser_viewer, "LiveSimulation", return_value=simulation), \
+                mock.patch.object(browser_viewer, "make_server", return_value=server), \
+                redirect_stdout(io.StringIO()):
+            self.assertEqual(browser_viewer.main(), 0)
+        simulation.start.assert_called_once_with()
+        simulation.stop.assert_called_once_with()
+        server.server_close.assert_called_once_with()
 
 
 if __name__ == "__main__":
