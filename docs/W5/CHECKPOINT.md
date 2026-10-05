@@ -141,7 +141,7 @@ Cosmos-Predict2-2B-Video2World ──── LIBERO 데모로 전체 fine-tuning 
 
 **→ 확인하고 풀었다 (10/1).**
 
-- **추정이 맞았다** — 9/28 로그(`codex_robot_icl_20260928/summary.json`)의 막힌 주소는
+- **추정이 맞았다** — 9/28 로그(`codex_robot_icl_20260928/summary.json`, 10/5 에 저장소에서 지워졌다 — 필요한 내용은 이 절에 옮겨 적었다)의 막힌 주소는
   `…/Cosmos-Predict2-2B-Video2World/resolve/main/tokenizer/tokenizer.pth` 다
 - **원인은 승인이 아니라 로그인이었다** — 서버에 토큰이 아예 없었다(`~/.cache/huggingface/token` 없음, `HF_TOKEN` 없음).
   저장소는 `gated="auto"` 라 약관 동의 즉시 열린다. LIBERO policy 는 `gated=False`
