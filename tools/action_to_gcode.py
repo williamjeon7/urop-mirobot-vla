@@ -3,7 +3,7 @@
 
     # 기록에 남은 action 열로 끝까지 도는지 본다
     python -m tools.action_to_gcode --log data/follow/2026_09_28-10_36_55.jsonl
-    python -m tools.run_gcode <나온 파일> --dry-run        # 도달 범위 경고가 있나
+    python -m tools.run_gcode <나온 파일> --dry-run        # 도달 범위·Z 하한 경고가 있나
 
 policy 가 내는 action 은 "여기로 가라" 가 아니라 **Panda OSC 에 주는 변화량**이라, 같은 값이라도 실제로
 얼마나 가는지는 컨트롤러의 강성·감쇠와 현재 속도가 정한다. 그래서 곱하기로는 Mirobot 좌표로 못 바꾼다.
@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 
 from tools.libero_axis_probe import CAMERAS, FPS, find_task, grid_frame, read_pose  # 환경 변수도 여기서 정해진다
-from tools.run_gcode import ANGLE_WARN_DEG, REACH_WARN_MM
+from tools.run_gcode import ANGLE_WARN_DEG, REACH_WARN_MM, Z_FLOOR_MM, Z_WARN_MM
 
 import imageio
 import numpy as np
@@ -259,6 +259,10 @@ def main() -> None:
     z_lo = min(r["mirobot_xyz_mm"][2] for r in kept)
     over_reach = [r["step"] for r in kept if r["reach_mm"] > REACH_WARN_MM]
     over_angle = [r["step"] for r in kept if max(abs(v) for v in r["mirobot_abc_deg"]) > ANGLE_WARN_DEG]
+    # 세로 하한은 경고만 하고 값은 그대로 둔다 — 잘라 쓰면 정책 동작과 Mirobot 동작이 몰래 달라진다.
+    # 실제로 막는 것은 run_gcode 다 (보내기 전에 파일 전체를 본다)
+    below_floor = [r["step"] for r in kept if r["mirobot_xyz_mm"][2] < Z_FLOOR_MM]
+    low_z = [r["step"] for r in kept if Z_FLOOR_MM <= r["mirobot_xyz_mm"][2] < Z_WARN_MM]
     print(f"{'스텝':>6} {'chunk':>5} | {'X':>8} {'Y':>8} {'Z':>8} mm | {'A':>7} {'B':>7} {'C':>7} ° | {'수평':>6}")
     for r in kept[:3] + (["..."] if len(kept) > 6 else []) + kept[-3:]:
         if r == "...":
@@ -268,12 +272,18 @@ def main() -> None:
         a, b, c = r["mirobot_abc_deg"]
         print(f"{r['step']:6d} {r['chunk']:5d} | {x:8.2f} {y:8.2f} {z:8.2f} | {a:7.2f} {b:7.2f} {c:7.2f} | {r['reach_mm']:6.1f}")
     print(f"\n{len(rows)}스텝 → G0 {len(kept)}줄.  수평 최대 {reach:.1f}mm (경고선 {REACH_WARN_MM:.0f}), "
-          f"각도 최대 {angle:.1f}° (경고선 {ANGLE_WARN_DEG:.0f}), Z 최저 {z_lo:.1f}mm")
+          f"각도 최대 {angle:.1f}° (경고선 {ANGLE_WARN_DEG:.0f}), "
+          f"Z 최저 {z_lo:.1f}mm (하한 {Z_FLOOR_MM:g} · 경고선 {Z_WARN_MM:g})")
     if over_reach:
         print(f"  !! 수평 경고선 넘은 줄 {len(over_reach)}개 — 처음 {over_reach[:5]}")
     if over_angle:
         print(f"  !! 각도 경고선 넘은 줄 {len(over_angle)}개 — 처음 {over_angle[:5]}")
-    if not over_reach and not over_angle:
+    if below_floor:
+        print(f"  !! Z 하한 {Z_FLOOR_MM:g}mm 아래 줄 {len(below_floor)}개 — 처음 {below_floor[:5]} "
+              f"(run_gcode 가 보내지 않는다)")
+    if low_z:
+        print(f"  !  Z {Z_WARN_MM:g}mm 아래 줄 {len(low_z)}개 — 처음 {low_z[:5]}")
+    if not (over_reach or over_angle or below_floor or low_z):
         print("  경고 없음")
     # 재현 검산 — eval 은 과제 성공(done)이 뜨는 순간 멈춘다. 같은 장면·같은 action 이면 마지막 action 에서 처음 떠야 한다.
     # 장면이 다르면 안 뜬다(10/1 대조). 다만 대기 10 vs 30 같은 작은 차이는 못 가린다 — 자세까지 같은지는

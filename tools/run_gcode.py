@@ -37,6 +37,10 @@
 **`--stream` 주의** — 보낸 줄은 취소되지 않는다. 중간에 `Ctrl-C` 를 눌러도 이미 버퍼에 들어간 이동은 끝까지 간다.
 처음 보는 궤적은 `--auto` 로 먼저 돌려 보고 나서 쓸 것.
 
+**Z 하한 (10/5)** — 플랜지 Z 가 66mm 보다 낮은 이동 줄이 **하나라도 있으면 아무것도 보내지 않는다** (71mm 아래는 경고만).
+보내기 전에 파일 전체를 본다. 집게를 닫은 채 작업대에 닿는 높이(60.7mm)에 여유를 얹은 값이다 (`Z_FLOOR_MM` 주석).
+`--dry-run` 은 막지 않고 어느 줄인지만 보여준다. Zt 측정처럼 일부러 내려가는 파일은 `--z-floor 40` 처럼 낮춰서 보낸다.
+
 **주의** — `--home` 을 주지 않으면 호밍하지 않는다. 파일의 첫 줄이 보통 홈 근처라, 로봇이 엉뚱한 자세에 있으면
 첫 이동이 크다. 처음에는 `--dry-run` 으로 좌표를 보고, 비상정지에 손이 닿는 곳에서 시작할 것.
 """
@@ -55,7 +59,15 @@ from tools.probe_mirobot import Probe, fields, find_field, fmt, is_error, is_ok,
 
 REACH_WARN_MM = 280.0  # 수평 거리. 도달 약 315mm — 여유를 둔다
 ANGLE_WARN_DEG = 30.0
+# 세로 하한 — 플랜지 Z (10/5 실측, docs/W5/TABLE_ALIGNMENT.md 7절). 집게를 닫은 채 끝단이 작업대에 닿는 플랜지 Z 가
+# 60.713mm 다 (연 상태 55.715 — 닫으면 끝단이 5mm 더 내려온다). 여유 5mm(종이 시험 ±1, 장착부 처짐 2, 자리별 1)를
+# 얹은 66 아래는 **보내지 않고**, 10mm 를 얹은 71 아래는 경고한다. Mirobot 은 힘을 못 느껴 누르면 스텝을 잃는다.
+# 공구 축이 수직(A0 B0 C0)일 때 잰 값이다 — 기울면 끝단 높이가 달라지는데 따로 재지 않았다.
+# 작업대나 장착이 바뀌면 다시 잰다. 일부러 낮게 가는 파일(Zt 측정)은 `--z-floor` 로 낮춘다
+Z_FLOOR_MM = 66.0
+Z_WARN_MM = 71.0
 AXIS_LETTERS = "XYZABC"
+MOVE_RE = re.compile(r"^\s*G0?[01](?!\d)", re.IGNORECASE)  # G0 G00 G1 G01
 
 
 def parse_file(path: Path) -> list[tuple[str, str]]:
@@ -81,7 +93,35 @@ def pose_of(command: str) -> list[float] | None:
     return [found.get(letter, 0.0) for letter in AXIS_LETTERS] if set(AXIS_LETTERS) <= set(found) else None
 
 
-def show_plan(entries) -> None:
+def z_of(command: str) -> float | None:
+    """이동 줄(G0/G1)의 Z. 여섯 축이 다 없어도 Z 만 있으면 읽는다 — `G0 Z50` 같은 줄이 하한 검사에서 빠지지 않게.
+
+    `pose_of` 는 여섯 축이 다 있어야 자세로 치고, 아니면 설정 줄로 보낸다. 그 틈으로 낮은 줄이 지나가면 안 된다.
+    값은 절대 좌표(G90)로 읽는다 — 우리 파일은 모두 G90 이다.
+    """
+    move = MOVE_RE.match(command)
+    if not move:
+        return None
+    z = re.search(r"Z\s*(-?\d+(?:\.\d+)?)", command[move.end():], re.IGNORECASE)
+    return float(z.group(1)) if z else None
+
+
+def low_lines(entries, below_mm: float) -> list[tuple[str, str, float]]:
+    """Z 가 `below_mm` 보다 낮은 이동 줄 — (어느 줄, 설명, Z).
+
+    어느 줄은 `show_plan` 의 # 번호(`#12`)다. 여섯 축이 다 없는 줄은 번호가 없어서 명령 그대로 적는다.
+    """
+    out, n = [], 0
+    for label, command in entries:
+        full = pose_of(command) is not None
+        n += full
+        z = z_of(command)
+        if z is not None and z < below_mm:
+            out.append((f"#{n}" if full else f"'{command.strip()}'", label, z))
+    return out
+
+
+def show_plan(entries, z_floor: float = Z_FLOOR_MM) -> None:
     print(f"\n{'#':>2} {'설명':<12} | {'X':>8} {'Y':>8} {'Z':>8} | {'A':>7} {'B':>7} {'C':>7} | {'수평':>6} | {'홈에서':>7}")
     n = 0
     for label, command in entries:
@@ -97,6 +137,10 @@ def show_plan(entries) -> None:
             flags.append(f"수평 {reach:.0f}mm")
         if max(abs(v) for v in pose[3:]) > ANGLE_WARN_DEG:
             flags.append("각도 큼")
+        if pose[2] < z_floor:
+            flags.append(f"Z 하한 {z_floor:g} 아래")
+        elif pose[2] < Z_WARN_MM:
+            flags.append("Z 낮음")
         print(f"{n:2d} {label:<12} | {pose[0]:8.2f} {pose[1]:8.2f} {pose[2]:8.2f} | {pose[3]:7.2f} {pose[4]:7.2f} {pose[5]:7.2f}"
               f" | {reach:6.1f} | {from_home:6.1f}mm{'  !! ' + ', '.join(flags) if flags else ''}")
 
@@ -235,6 +279,9 @@ def main() -> None:
     parser.add_argument("--home", action="store_true", help="시작 전에 호밍 ($22=1 $H M20 G90) — 로봇이 크게 움직인다")
     parser.add_argument("--settle-timeout", type=float, default=20.0)
     parser.add_argument("--log-dir", default="data/gcode_run")
+    parser.add_argument("--z-floor", type=float, default=Z_FLOOR_MM,
+                        help=f"플랜지 Z 하한 mm — 이보다 낮은 이동 줄이 하나라도 있으면 아무것도 보내지 않는다 "
+                             f"(기본 {Z_FLOOR_MM:g}, 10/5 실측). Zt 측정처럼 일부러 내려가는 파일만 낮춘다 (예: 40)")
     args = parser.parse_args()
 
     if args.stream:
@@ -244,10 +291,24 @@ def main() -> None:
     moves = sum(1 for _, c in entries if pose_of(c) is not None)
     print(f"{args.gcode} — 명령 {len(entries)}줄 (이동 {moves}개)"
           f"{'  [stream — 멈추지 않고 이어서, 보고값 안 남음]' if args.stream else ''}")
-    show_plan(entries)
+    show_plan(entries, args.z_floor)
+
+    # 세로 하한은 보내기 전에 파일 전체로 본다 — --stream 은 버퍼에 들어간 이동을 취소할 수 없어서
+    # 줄마다 보다가 멈추는 방식으로는 막지 못한다
+    blocked = low_lines(entries, args.z_floor)
+    low = [row for row in low_lines(entries, Z_WARN_MM) if row[2] >= args.z_floor]
+    if args.z_floor != Z_FLOOR_MM:
+        print(f"\n!! Z 하한을 {args.z_floor:g}mm 로 바꿨다 (기본 {Z_FLOOR_MM:g})")
+    if low:
+        print(f"\n!  Z {Z_WARN_MM:g}mm 아래 {len(low)}줄 (경고) — 처음 {', '.join(f'{w} Z{z:g}' for w, _, z in low[:5])}")
+    if blocked:
+        print(f"\n!! Z 하한 {args.z_floor:g}mm 아래 {len(blocked)}줄 — 처음 {', '.join(f'{w} Z{z:g}' for w, _, z in blocked[:5])}")
     if args.dry_run:
         print("\n--dry-run: 아무것도 보내지 않았다")
         return
+    if blocked:
+        raise SystemExit(f"\n하한 아래 줄이 있어 보내지 않는다. 일부러 내려가는 파일이면 --z-floor 로 낮춘다 "
+                         f"(작업대에 닿는 플랜지 Z: 연 55.7, 닫은 60.7mm)")
 
     if serial is None:
         raise SystemExit("pyserial 이 없다: python -m pip install pyserial")
@@ -265,7 +326,7 @@ def main() -> None:
     time.sleep(2)  # 포트를 열면 보드가 리셋된다
     for _, line in probe.read_lines(0.5):
         print(f"  boot: {line}")
-    probe.log("run_gcode_open", port=args.port, gcode=str(args.gcode), auto=args.auto)
+    probe.log("run_gcode_open", port=args.port, gcode=str(args.gcode), auto=args.auto, z_floor=args.z_floor)
     print(f"log: {log_path}")
 
     results = []
