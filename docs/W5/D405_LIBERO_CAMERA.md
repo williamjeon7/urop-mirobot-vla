@@ -69,9 +69,39 @@ LIBERO에서는 카메라에 하나의 ‘기본 RGB 색’을 넣는 방식으�
 D405에 가까운 시뮬레이션 영상을 만들려면 D405 촬영값을 기준으로 다음처럼 대응값을 만든다.
 
 1. 일정한 조명·카메라 설정에서 실제 색 기준표를 D405로 촬영한다.
-2. LIBERO에 대응하는 색 조각을 만들고 렌더링한다. 기준값은 재질의 `rgba`가 아니라 **렌더링된 영상에서 읽은 RGB**다.
+2. MuJoCo 장면의 **MJCF에 ColorChecker 모양의 물체를 하나 추가**하고 LIBERO 카메라로 렌더링한다. 물체 안의 각 사각형에 `rgba`로 색을 지정한다. 보정 계산에 넣는 LIBERO RGB는 **렌더링된 영상에서 읽은 픽셀값**이다.
 3. 각 색 조각의 중앙 영역에서 평균 RGB를 구해 `LIBERO 관측값 → D405 기준값` 쌍으로 묶는다. 강한 반사나 값이 255에 붙어 색 차이를 잃은 부분은 제외한다.
 4. 대응값 사이의 차이를 줄이는 **색 보정 행렬(CCM, Color Correction Matrix)**을 구한다. 보정 계산에 사용하지 않은 색 조각이나 별도 촬영으로 결과를 확인한다.
+
+**MJCF 물체의 구조와 색 지정**
+
+**BDDL**은 작업에 등장하는 대상, 초기 상태, 목표 조건을 기술하는 형식이다. **MJCF(MuJoCo XML Format)**는 MuJoCo의 물체·재질·조명·카메라를 기술하는 XML 형식이다. XML은 `<body>`와 같은 태그와 그 속성으로 내용을 구조화하는 형식이다. 색 기준표의 형상과 색은 MJCF에서 정의한다.
+
+하나의 `<body>`로 기준표 전체를 묶고, 그 안에 배경판과 색 조각을 넣는다. `<geom>`은 물체의 모양을 정의하는 요소다. 24칸 기준표는 얇은 상자형 `<geom type="box">` 24개를 가로 6칸·세로 4칸으로 배치하면 된다. LIBERO가 조립한 장면의 MJCF에 이를 추가한 뒤 시뮬레이터에 불러온다.
+
+아래는 두 칸만 표시한 색 지정 예시다. `material`은 기존 `<asset>` 안에, `body`는 기존 `<worldbody>` 안에 추가한다. 재질에는 텍스처를 지정하지 않고 광택을 0으로 둔다.
+
+```xml
+<!-- 기존 <asset> 안 -->
+<material name="checker_matte" rgba="1 1 1 1"
+          specular="0" shininess="0" />
+
+<!-- 기존 <worldbody> 안 -->
+<body name="colorchecker" pos="0 0 0.91">
+  <geom name="checker_back" type="box" size="0.11 0.075 0.001"
+        material="checker_matte" rgba="0.05 0.05 0.05 1" />
+  <geom name="patch_01" type="box" pos="-0.0875 0.0525 0.002"
+        size="0.015 0.015 0.001" material="checker_matte"
+        rgba="0.8 0.2 0.2 1" />
+  <geom name="patch_02" type="box" pos="-0.0525 0.0525 0.002"
+        size="0.015 0.015 0.001" material="checker_matte"
+        rgba="0.2 0.8 0.2 1" />
+</body>
+```
+
+`patch_01`의 `rgba`는 R=0.8·G=0.2·B=0.2·A=1인 빨간 계열, `patch_02`는 초록 계열이다. **각 칸의 `rgba`를 따로 지정하면 서로 다른 색이 된다.** `geom`의 `pos`는 기준표 내부의 상대 위치이며, `body`의 `pos`로 표 전체를 옮긴다. 상자의 `size`는 각 방향 길이의 절반이므로 위 색 조각은 가로·세로 3cm, 두께 2mm다. 표 전체의 위치와 방향은 작업대와 카메라 구도에 맞게 조정한다. [MuJoCo 물체·색·크기 정의](https://mujoco.readthedocs.io/en/2.3.7/XMLreference.html#body-geom)
+
+**위 색 숫자는 문법 설명용 예시이며 ColorChecker의 공식 기준색이 아니다.** 실제 비교에는 사용하는 기준표 모델의 칸 순서와 기준색을 맞춰 지정한다. 기준 RGB를 0–1로 바꾸어 입력해도 물체의 실제 반사 특성이나 최종 촬영색이 그대로 재현되는 것은 아니다. 렌더링 후 각 칸의 RGB를 읽어 D405에서 촬영한 같은 칸과 대응시킨다.
 
 CCM은 R·G·B를 섞는 계수를 모은 표다. 계수는 여러 색 조각에서 보정 후 RGB와 기준 RGB의 차이가 작아지도록 구한다. 계산 방법은 다음 절에 정리했다.
 
