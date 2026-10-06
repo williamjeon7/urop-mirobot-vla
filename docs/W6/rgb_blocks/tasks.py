@@ -1,4 +1,4 @@
-"""Select the RGB scene or a colour-specific instruction without pickup actions."""
+"""Select the RGB scene or a colour-specific pick up task."""
 
 from pathlib import Path
 
@@ -8,7 +8,7 @@ TASK_NAMES = ("scene", "red", "green", "blue")
 
 
 def task_spec(task="scene"):
-    """Return task metadata; every BDDL goal checks initial placement only."""
+    """Return task metadata. scene checks placement; colour tasks check Up (z >= 1.0 m)."""
     if task not in TASK_NAMES:
         raise ValueError("Unknown RGB task {!r}; choose from {}.".format(task, TASK_NAMES))
     if task == "scene":
@@ -24,6 +24,6 @@ def task_spec(task="scene"):
         "bddl_file": bddl_file,
         "language": language,
         "target_object": target_object,
-        "pickup_implemented": False,
-        "goal_kind": "placement",
+        "pickup_implemented": task != "scene",
+        "goal_kind": "placement" if task == "scene" else "pickup",
     }

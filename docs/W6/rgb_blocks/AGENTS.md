@@ -13,10 +13,15 @@
 - 블록은 Red/Green/Blue 정육면체이며 크기는 `objects.py`의 `BLOCK_SIZE_MM`으로 조절한다.
 - 기본 모드는 `--task scene`이다. `--task red|green|blue`는 RGB 세 블록을 유지하며
   해당 블록을 관심 대상으로 지정한다. 색상별 BDDL과 선택 정보는 `tasks/`와 `tasks.py`에 둔다.
-  현재 범위에서는 `Pick up` 동작과 집기 성공 Predicate를 구현하지 않으며 Goal은 배치 확인용이다.
+- `scene` Goal은 배치 확인용이다. 색상 Task Goal은 LIBERO `Up`(z ≥ 1.0 m)이다.
+  배치는 BDDL `:init` 조건으로 판정하고 Goal로 판정하지 않는다.
+- Pick up은 `pickup.py`의 `run_pickup`이 수행한다. OSC_POSE `env.step(action)`만 사용하고
+  물체 상태를 직접 바꾸지 않는다. 성공 조건은 `Up` Goal, `_check_grasp`, 다른 블록 `On` 유지다.
+  뷰어는 `--pickup`일 때 이 함수를 `on_step`으로 연결한다. 결정과 검증 기록은 `PICKUP.md`에 남긴다.
 - 사용자가 별도로 요청하지 않으면 이미지·GIF·영상·결과 JSON 파일을 저장하지 않는다.
 - Windows는 W5에서 작동한 `libero` 환경과 WGL/DLL 설정을 사용한다.
   OASYS SSH에 `DISPLAY`가 없으면 OpenCV 창이 열리는 것처럼 설명하지 않는다.
 - 환경 확인은 `test_rgb_blocks.py --headless --steps 60 --size 512 --seed 0`으로 수행한다.
   색상별 확인에는 `--task red`, `--task green`, `--task blue`를 추가한다.
-  BDDL 초기 배치 확인과 실제 Panda 작업 수행은 구분한다. 초기 Goal `True`는 정상이다.
+  BDDL 초기 배치 확인과 실제 Panda 작업 수행은 구분한다. `scene`의 초기 Goal은 `True`가 정상이고,
+  색상 Task의 초기 Goal은 `False`가 정상이다. Panda 작업은 `pickup.py --task <color> --seed <n>`으로 확인한다.

@@ -1,7 +1,7 @@
 # RGB 정육면체 시뮬레이터
 
 > **절차** · 확인 2026-10-06
-> RGB 블록 장면과 색상별 Task를 선택해 localhost에서 초기 배치를 확인한다.
+> RGB 블록 장면과 색상별 Task를 선택해 localhost에서 초기 배치와 Panda pick up을 확인한다.
 
 ## 1. 실행
 
@@ -23,8 +23,19 @@ bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task blue
 ```
 
 각 색상 모드에서도 Red/Green/Blue 블록이 모두 테이블에 존재하며 선택한 블록을 관심 대상으로 지정한다.
-BDDL에는 색상별 `Pick up` 지시문을 넣지만 집기 동작과 집기 성공 Predicate는 아직 구현하지 않았다.
-현재 Goal은 초기 배치 확인용이므로 초기 `goal=True`는 정상이다.
+`--pickup`을 붙이지 않으면 Panda는 움직이지 않는다. 이 화면은 배치를 확인하는 용도다.
+`scene`의 Goal은 배치 조건이므로 시작부터 `True`다. 색상 Task의 Goal은 `(Up <color>_block_1)`이므로
+블록을 들어 올리기 전에는 `False`가 정상이다.
+
+Panda가 지시한 색 블록을 집는 장면을 보려면 `--pickup`을 추가한다.
+
+```bash
+bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task red --pickup
+```
+
+seed 0부터 1씩 올리며 블록 위치를 바꿔 pick up을 반복한다. 각 결과는 3초 동안 보여준다.
+화면 아래에 단계(phase), goal, 누적 성공 수가 표시된다.
+설계와 검증 기록은 [PICKUP.md](./PICKUP.md)에 있다.
 
 ### 1.2. 로컬 노트북 모니터에서 실행 (Windows)
 
@@ -59,7 +70,8 @@ RGB 세 블록이 OpenCV 창에 표시되며, 창을 클릭한 뒤 `q`, `Q`, `Es
 ```
 
 색상별 Task는 아래 명령 중 하나로 실행한다. 다른 Task를 열기 전에 기존 창을 종료한다.
-로컬에서도 세 블록이 모두 표시되며 Goal은 집기 성공이 아닌 초기 배치 확인용이다.
+로컬에서도 세 블록이 모두 표시된다. 이 실행기는 Panda를 움직이지 않는 배치 확인 화면이며,
+색상 Task의 Goal은 `Up`이므로 화면의 goal이 `False`인 것이 정상이다.
 
 ```powershell
 .\docs\W6\rgb_blocks\run_local.cmd -Task red
@@ -124,7 +136,8 @@ conda deactivate
 | --- | --- |
 | [objects.py](./objects.py), [assets/](./assets/) | RGB 정육면체 모델과 크기·등록 |
 | [tabletop.bddl](./tabletop.bddl) | 기본 `scene`의 물체·초기 배치·배치 Goal |
-| [tasks.py](./tasks.py), [tasks/](./tasks/) | 색상별 Task 선택과 BDDL 지시문·관심 대상 |
+| [tasks.py](./tasks.py), [tasks/](./tasks/) | 색상별 Task 선택과 BDDL 지시문·관심 대상·`Up` Goal |
+| [pickup.py](./pickup.py), [PICKUP.md](./PICKUP.md) | Panda OSC_POSE pick up action과 성공 판정, 진행 기록 |
 | [browser_viewer.py](./browser_viewer.py), [run_browser.sh](./run_browser.sh) | localhost 실시간 화면과 Bash 실행 진입점 |
 | [run_local.cmd](./run_local.cmd), [run_local.ps1](./run_local.ps1) | Windows 노트북 초기 설정·OpenCV/브라우저 실행 |
 | [test_rgb_blocks.py](./test_rgb_blocks.py) | 환경 초기화·배치·크기·관측 확인 |
@@ -149,4 +162,11 @@ conda deactivate
 ```
 
 이 검증은 초기 조건과 RGB 세 블록의 크기·관측을 확인하고 이동 없는 Action으로 60 step 진행한다.
+색상 Task에서는 시작 Goal이 `False`인지도 확인한다.
+
+Panda pick up은 창 없이 다음처럼 확인한다. 성공하면 exit 0으로 끝난다.
+
+```bash
+python -B ~/UROP/docs/W6/rgb_blocks/pickup.py --task red --seed 0
+```
 `--size`는 카메라 해상도이며 블록 크기는 `BLOCK_SIZE_MM`으로 조절한다.

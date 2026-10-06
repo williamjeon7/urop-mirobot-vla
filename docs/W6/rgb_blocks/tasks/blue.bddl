@@ -1,4 +1,4 @@
-; The goal checks block placement only. Pick up is not implemented.
+; Goal: the blue block is lifted to z >= 1.0 m (LIBERO Up predicate).
 (define (problem LIBERO_Tabletop_Manipulation)
   (:domain robosuite)
   (:language Pick up the blue block on the table)
@@ -32,9 +32,7 @@
   )
   (:goal
     (And
-      (On red_block_1 main_table_red_region)
-      (On green_block_1 main_table_green_region)
-      (On blue_block_1 main_table_blue_region)
+      (Up blue_block_1)
     )
   )
 )

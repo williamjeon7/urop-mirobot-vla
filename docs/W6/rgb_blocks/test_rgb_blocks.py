@@ -51,9 +51,10 @@ def make_env(seed=SEED, size=CAMERA_SIZE, task="scene"):
     return create_env(resolution=size, seed=seed, ignore_done=True, task=task)
 
 
-def frame_from(obs, step, goal):
+def frame_from(obs, step, goal, caption=None):
     frame = cv2.cvtColor(obs["agentview_image"][::-1], cv2.COLOR_RGB2BGR)
-    caption = "RGB cubes {:g} mm | step {} | placement={}".format(BLOCK_SIZE_MM, step, goal)
+    if caption is None:
+        caption = "RGB cubes {:g} mm | step {} | goal={}".format(BLOCK_SIZE_MM, step, goal)
     cv2.putText(frame, caption, (8, 25), cv2.FONT_HERSHEY_SIMPLEX,
                 0.48, (255, 255, 255), 1, cv2.LINE_AA)
     return frame
@@ -75,7 +76,9 @@ def monitor(env, steps=MONITORING_STEPS, headless=False):
         scene_state(env)
         print("Environment reset success", flush=True)
         print("Task:", env.rgb_task["name"], "|", env.rgb_task["language"], flush=True)
-        print("Initial placement goal:", initial_goal, "(pickup is not implemented)", flush=True)
+        print("Initial goal ({}):".format(env.rgb_task["goal_kind"]), initial_goal, flush=True)
+        if env.rgb_task["goal_kind"] == "pickup" and initial_goal:
+            raise RuntimeError("The pick up goal must be False before the Panda acts.")
         print("Initial checks:", checks, flush=True)
         if not headless:
             cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
@@ -90,7 +93,7 @@ def monitor(env, steps=MONITORING_STEPS, headless=False):
             obs, reward, done, info = env.step(action)
             step += 1
             goal = bool(env.check_success())
-            if not goal:
+            if not all(init_checks(env).values()):
                 raise RuntimeError("The RGB blocks left their initial table regions.")
             if not headless:
                 cv2.imshow(WINDOW_NAME, frame_from(obs, step, goal))
@@ -123,7 +126,7 @@ def main():
     parser.add_argument("--size", type=int, default=CAMERA_SIZE, help="Camera resolution, not block size.")
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--task", choices=TASK_NAMES, default="scene",
-                        help="Prepare the scene for this target; does not execute pickup.")
+                        help="Prepare the scene for this target; run pickup.py for the Panda action.")
     args = parser.parse_args()
     if args.steps < 1 or args.size < 128:
         parser.error("steps must be positive and size must be at least 128")

@@ -430,7 +430,7 @@ class ExistingViewerTests(unittest.TestCase):
                 self.assertIsNone(self.probe_status(status)[0])
         for field, value in (
             ("state", "unknown"), ("step", -1), ("step", True), ("step", 7.0),
-            ("zero_actions_only", 1), ("zero_actions_only", False),
+            ("zero_actions_only", 1), ("zero_actions_only", None),
             ("saved_files", 0), ("saved_files", True),
         ):
             with self.subTest(field=field, value=value):
@@ -499,6 +499,31 @@ class ExistingViewerTests(unittest.TestCase):
         self.assertEqual(stdout.getvalue(), "")
         self.assertIn("green", stderr.getvalue())
         self.assertIn("--task red", stderr.getvalue())
+
+    def test_pickup_server_is_recognized_but_not_reused_for_other_mode(self):
+        status = dict(self.status, zero_actions_only=False, pickup=True, task="red")
+        self.assertIsNotNone(self.probe_status(status)[0])
+        for running_pickup, requested_pickup in ((True, False), (False, True)):
+            with self.subTest(running=running_pickup, requested=requested_pickup):
+                stdout, stderr = io.StringIO(), io.StringIO()
+                current = dict(status, pickup=running_pickup)
+                with mock.patch.object(browser_viewer, "follow_existing_viewer") as follow, \
+                        redirect_stdout(stdout), redirect_stderr(stderr):
+                    result = browser_viewer.reuse_existing_viewer(
+                        current, 12345, requested_task="red", requested_pickup=requested_pickup)
+                self.assertEqual(result, 1)
+                follow.assert_not_called()
+                self.assertIn("--stop", stderr.getvalue())
+
+    def test_pickup_option_requires_a_colour_task(self):
+        with self.assertRaises(ValueError):
+            browser_viewer.LiveSimulation(task="scene", pickup=True)
+        stderr = io.StringIO()
+        with mock.patch.object(sys, "argv", ["browser_viewer.py", "--pickup"]), \
+                mock.patch.object(browser_viewer, "LiveSimulation") as simulation, \
+                redirect_stderr(stderr), self.assertRaises(SystemExit):
+            browser_viewer.main()
+        simulation.assert_not_called()
 
     def test_error_and_stopped_servers_are_not_announced_as_live(self):
         for status in (

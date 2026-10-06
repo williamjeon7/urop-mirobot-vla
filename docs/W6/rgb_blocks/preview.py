@@ -61,7 +61,8 @@ def create_env(size_mm=None, resolution=RESOLUTION, seed=SEED,
 def scene_state(env, size_mm=None, require_contact=False):
     """Check the prepared scene and report current world poses in memory.
 
-    The BDDL goal checks placement only; it does not evaluate a pickup.
+    Placement is judged by the BDDL :init checks. Only the scene goal equals placement;
+    colour tasks use a pick up goal (Up) that is False while the block rests.
     """
     if size_mm is None:
         size_mm = env.rgb_size_mm
@@ -77,7 +78,8 @@ def scene_state(env, size_mm=None, require_contact=False):
         raise RuntimeError("The BDDL instruction does not match the selected task.")
     checks = {"({})".format(" ".join(state)): bool(scene._eval_predicate(state))
               for state in scene.parsed_problem["initial_state"]}
-    if not checks or not all(checks.values()) or not env.check_success():
+    if (not checks or not all(checks.values())
+            or (spec["goal_kind"] == "placement" and not env.check_success())):
         raise RuntimeError("The RGB blocks must remain in their initial table regions.")
     rows = {}
     table_geom = env.sim.model.geom_name2id("table_collision")
@@ -110,7 +112,7 @@ def scene_state(env, size_mm=None, require_contact=False):
         "task": spec["name"], "instruction": spec["language"],
         "target_object": spec["target_object"],
         "bddl": str(spec["bddl_file"].relative_to(ROOT)),
-        "pickup_implemented": False, "goal_kind": "placement",
+        "pickup_implemented": spec["pickup_implemented"], "goal_kind": spec["goal_kind"],
         "placement_ok": True, "initial_checks": checks,
         "table_top_z_m": float(scene.table_offset[2]), "blocks": rows,
     }

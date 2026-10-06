@@ -23,6 +23,8 @@ PORT = 8766
 CAMERA_SIZE = 512
 SEED = 0
 FPS = 20.0
+# --pickup: seconds to keep showing the result before the next seed.
+RESULT_HOLD_SECONDS = 3.0
 VIEWER_ID = "libero-rgb-blocks-v1"
 
 PAGE = """<!doctype html>
@@ -36,7 +38,7 @@ main { max-width: 780px; margin: 32px auto; padding: 0 20px; }
 h1 { font-size: 24px; } a { color: #93c5fd; }
 #screen { background: #030712; border-radius: 12px; overflow: hidden; }
 img { display: block; width: 100%; height: auto; min-height: 300px; object-fit: contain; }
-#status { min-height: 48px; line-height: 1.6; }
+#status { min-height: 48px; line-height: 1.6; white-space: pre-line; }
 </style>
 <main>
 <h1>LIBERO Tabletop · Red / Green / Blue</h1>
@@ -54,13 +56,23 @@ async function update() {
     const response = await fetch('/status', {cache: 'no-store'});
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const info = await response.json();
-    instruction.textContent = info.target_object
-      ? '초기 환경 · ' + info.instruction : 'RGB 블록 초기 배치';
+    instruction.textContent = info.pickup ? 'Pick up 실행 · ' + info.instruction
+      : info.target_object ? '초기 환경 · ' + info.instruction : 'RGB 블록 초기 배치';
     video.style.display = '';
     if (info.error) status.textContent = '오류: ' + info.error;
-    else if (info.state === 'running') {
+    else if (info.state === 'running' && info.pickup) {
+      const last = info.last_result;
+      status.textContent = 'LIVE · episode ' + info.episode + ' (seed ' + info.seed + ') · '
+        + info.phase + ' · step ' + info.step + ' · goal ' + info.goal
+        + ' · ' + info.fps.toFixed(1) + ' FPS'
+        + (info.frame_age_seconds > 3 ? ' · 화면 갱신 지연' : '')
+        + '\n성공 ' + info.successes + ' / ' + info.completed
+        + (last ? ' · 직전 seed ' + last.seed + ': ' + (last.success
+            ? '성공 (' + last.steps + ' step, ' + last.lift_height_m + ' m 상승)'
+            : '실패 · ' + last.reason) : '');
+    } else if (info.state === 'running') {
       status.textContent = 'LIVE · 한 변 ' + info.block_size_mm + ' mm · step ' + info.step
-        + (info.goal ? ' · 배치 정상' : ' · 배치 확인 필요')
+        + (info.placement_ok ? ' · 배치 정상' : ' · 배치 확인 필요')
         + ' · ' + info.fps.toFixed(1) + ' FPS'
         + (info.frame_age_seconds > 3 ? ' · 화면 갱신 지연' : '');
     } else status.textContent = info.state === 'stopped' ? '종료' : '시뮬레이터 준비 중…';
@@ -78,11 +90,14 @@ update(); setInterval(update, 1000);
 class LiveSimulation:
     """Own MuJoCo and its GL context in one thread; share only JPEG bytes."""
 
-    def __init__(self, resolution=CAMERA_SIZE, seed=SEED, fps=FPS, task="scene"):
+    def __init__(self, resolution=CAMERA_SIZE, seed=SEED, fps=FPS, task="scene", pickup=False):
         self.resolution = resolution
         self.seed = seed
         self.fps = fps
         self.task = task_spec(task)
+        if pickup and not self.task["pickup_implemented"]:
+            raise ValueError("--pickup needs --task red, green or blue.")
+        self.pickup = pickup
         self.stop_event = threading.Event()
         self.condition = threading.Condition()
         self.thread = None
@@ -90,11 +105,15 @@ class LiveSimulation:
         self.frame_time = None
         self.status = {"viewer_id": VIEWER_ID, "state": "starting", "step": 0, "goal": None,
                        "block_size_mm": None, "fps": 0.0, "error": None,
-                       "zero_actions_only": True, "saved_files": False,
+                       "zero_actions_only": not pickup, "saved_files": False,
                        "task": self.task["name"], "instruction": self.task["language"],
                        "target_object": self.task["target_object"],
-                       "pickup_implemented": False, "goal_kind": "placement",
-                       "placement_ok": None}
+                       "pickup_implemented": self.task["pickup_implemented"],
+                       "goal_kind": self.task["goal_kind"],
+                       "placement_ok": None, "pickup": pickup, "seed": seed}
+        if pickup:
+            self.status.update(phase=None, episode=0, completed=0, successes=0,
+                               last_result=None)
 
     def start(self):
         self.thread = threading.Thread(target=self._run, name="rgb-simulation", daemon=True)
@@ -140,6 +159,71 @@ class LiveSimulation:
             self.status.update(scene_info)
             self.condition.notify_all()
 
+    def _run_pickup(self, env, cv2, np, block_size_mm, frame_from, scene_state):
+        """Repeat pickup.py on seed, seed+1, ... and stream every Panda step."""
+        if __package__:
+            from .pickup import pickup_success, run_pickup
+        else:
+            from pickup import pickup_success, run_pickup
+
+        class Stopped(Exception):
+            pass
+
+        target = self.task["target_object"]
+        clock = {"last": time.monotonic()}
+
+        def show(obs, step, goal, phase, extra):
+            # Pace to the requested FPS so the motion is watchable in real time.
+            self.stop_event.wait(max(0, 1.0 / self.fps - (time.monotonic() - clock["last"])))
+            if self.stop_event.is_set():
+                raise Stopped
+            now = time.monotonic()
+            actual_fps = 1.0 / max(now - clock["last"], 0.000001)
+            clock["last"] = now
+            caption = "{} | seed {} | {} | step {} | goal={}".format(
+                self.task["name"], extra["seed"], phase, step, goal)
+            self._publish(obs, step, goal, block_size_mm,
+                          lambda o, s, g: frame_from(o, s, g, caption=caption),
+                          cv2, actual_fps, dict(extra, phase=phase))
+
+        seed = self.seed
+        episode = 0
+        try:
+            while not self.stop_event.is_set():
+                episode += 1
+                env.seed(seed)
+                obs = env.reset()
+                extra = dict(scene_state(env), seed=seed, episode=episode)
+                show(obs, 0, bool(env.check_success()), "reset", extra)
+                try:
+                    obs, result = run_pickup(
+                        env, obs, target,
+                        on_step=lambda o, s, p, g: show(o, s, g, p, extra))
+                    success = pickup_success(result)
+                    outcome = {"seed": seed, "success": success, "steps": result["steps"],
+                               "lift_height_m": result["lift_height_m"],
+                               "reason": None if success else "판정 조건 불충족"}
+                    held = result["still_grasped"]
+                except RuntimeError as error:
+                    outcome = {"seed": seed, "success": False, "steps": None,
+                               "lift_height_m": None, "reason": str(error)}
+                    held = False
+                print("seed {}: {}".format(seed, json.dumps(outcome, ensure_ascii=False)), flush=True)
+                with self.condition:
+                    self.status["completed"] += 1
+                    self.status["successes"] += int(outcome["success"])
+                    self.status["last_result"] = outcome
+                # Keep the final pose on screen: zero OSC delta, gripper as it ended.
+                hold = np.zeros(7, dtype=np.float32)
+                hold[6] = 1.0 if held else -1.0
+                for step in range(1, int(RESULT_HOLD_SECONDS * self.fps) + 1):
+                    obs, _, _, _ = env.step(hold)
+                    show(obs, step, bool(env.check_success()),
+                         "result " + ("success" if outcome["success"] else "fail"), extra)
+                seed += 1
+        except Stopped:
+            pass
+
     def _run(self):
         env = None
         try:
@@ -150,6 +234,9 @@ class LiveSimulation:
             else:
                 from test_rgb_blocks import BLOCK_SIZE_MM, frame_from, make_env, scene_state
             env = make_env(seed=self.seed, size=self.resolution, task=self.task["name"])
+            if self.pickup:
+                self._run_pickup(env, cv2, np, BLOCK_SIZE_MM, frame_from, scene_state)
+                return
             obs = env.reset()
             scene_info = scene_state(env)
             self._publish(obs, 0, bool(env.check_success()), BLOCK_SIZE_MM, frame_from,
@@ -282,7 +369,8 @@ def probe_existing_viewer(port, timeout=2.0):
             return None
         if (status["state"] not in ("starting", "running", "error", "stopped")
                 or type(status["step"]) is not int or status["step"] < 0
-                or status["zero_actions_only"] is not True or status["saved_files"] is not False):
+                or type(status["zero_actions_only"]) is not bool
+                or status["saved_files"] is not False):
             return None
         if status.get("viewer_id") == VIEWER_ID:
             return status
@@ -368,8 +456,12 @@ def follow_existing_viewer(port, token):
         return stop_existing_viewer(port, status={"shutdown_token": token})
 
 
-def reuse_existing_viewer(status, port, requested_task="scene"):
+def reuse_existing_viewer(status, port, requested_task="scene", requested_pickup=False):
     """Report existing settings honestly; failed or stale workers are not LIVE."""
+    if bool(status.get("pickup", False)) != requested_pickup:
+        print("기존 RGB 서버는 {} 모드입니다. --stop으로 종료한 뒤 다시 실행하세요.".format(
+            "--pickup" if status.get("pickup") else "배치 확인"), file=sys.stderr)
+        return 1
     if status.get("task", "scene") != requested_task:
         print("기존 RGB 서버의 Task는 {}입니다. --stop으로 종료한 뒤 "
               "--task {}로 다시 실행하세요.".format(status.get("task", "scene"), requested_task),
@@ -401,7 +493,9 @@ def main():
     parser.add_argument("--size", type=int, default=CAMERA_SIZE, help="Camera resolution, not cube size.")
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--task", choices=TASK_NAMES, default="scene",
-                        help="Select the prepared task target; does not execute pickup.")
+                        help="Select the prepared task target.")
+    parser.add_argument("--pickup", action="store_true",
+                        help="Run pickup.py on seed, seed+1, ... and stream the Panda (colour tasks).")
     parser.add_argument("--fps", type=float, default=FPS)
     parser.add_argument("--stop", action="store_true", help="Stop the RGB server on this port.")
     args = parser.parse_args()
@@ -409,16 +503,20 @@ def main():
         parser.error("port must be 1..65535 and size must be 128..2048")
     if not math.isfinite(args.fps) or not 0 < args.fps <= 60:
         parser.error("fps must be finite and in (0, 60]")
+    if args.pickup and args.task == "scene":
+        parser.error("--pickup needs --task red, green or blue")
     if args.stop:
         return stop_existing_viewer(args.port)
-    simulation = LiveSimulation(resolution=args.size, seed=args.seed, fps=args.fps, task=args.task)
+    simulation = LiveSimulation(resolution=args.size, seed=args.seed, fps=args.fps,
+                                task=args.task, pickup=args.pickup)
     try:
         server = make_server(simulation, port=args.port)
     except OSError as error:
         if error.errno == errno.EADDRINUSE:
             existing = probe_existing_viewer(args.port)
             if existing is not None:
-                return reuse_existing_viewer(existing, args.port, requested_task=args.task)
+                return reuse_existing_viewer(existing, args.port, requested_task=args.task,
+                                             requested_pickup=args.pickup)
         print("Cannot start localhost viewer: {}. Try --port with an unused port.".format(error),
               file=sys.stderr)
         return 1
