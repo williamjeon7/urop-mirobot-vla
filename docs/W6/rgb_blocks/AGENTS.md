@@ -6,7 +6,8 @@
   `agentview_image` → `cv2.imshow()` → `env.check_success()` 반복이다.
   다른 표시 방식은 사용자가 요청했을 때만 도입한다.
 - 사용자가 localhost 표시를 요청한 현재 기본 뷰어는 `browser_viewer.py`다.
-  Bash 실행 진입점은 `run_browser.sh`이며 Windows 실행기를 기본 안내로 제시하지 않는다.
+  OASYS의 Bash 실행 진입점은 `run_browser.sh`다. 사용자가 요청한 Windows 노트북 실행은
+  `run_local.cmd -Setup`으로 경로를 한 번 저장하고 이후 `run_local.cmd`로 실행한다.
   W5의 reset/step/관측/Goal 검사를 재사용하고 OpenCV JPEG를 메모리에서 MJPEG로 전송한다.
   `127.0.0.1`에만 바인딩하고 VS Code Remote 포트 전달로 로컬 브라우저에서 확인한다.
 - 블록은 Red/Green/Blue 정육면체이며 크기는 `objects.py`의 `BLOCK_SIZE_MM`으로 조절한다.
