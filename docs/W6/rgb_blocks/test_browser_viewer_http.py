@@ -488,6 +488,18 @@ class ExistingViewerTests(unittest.TestCase):
         self.assertIn("Ctrl+C로 종료", stdout)
         self.assertEqual(stderr, "")
 
+    def test_different_task_server_is_not_silently_reused(self):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        status = dict(self.status, task="green")
+        with mock.patch.object(browser_viewer, "follow_existing_viewer") as follow, \
+                redirect_stdout(stdout), redirect_stderr(stderr):
+            result = browser_viewer.reuse_existing_viewer(status, 12345, requested_task="red")
+        self.assertEqual(result, 1)
+        follow.assert_not_called()
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertIn("green", stderr.getvalue())
+        self.assertIn("--task red", stderr.getvalue())
+
     def test_error_and_stopped_servers_are_not_announced_as_live(self):
         for status in (
             dict(self.status, state="error", error="MuJoCo initialization failed"),

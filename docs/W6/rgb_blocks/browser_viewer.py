@@ -14,6 +14,11 @@ import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
+if __package__:
+    from .tasks import TASK_NAMES, task_spec
+else:
+    from tasks import TASK_NAMES, task_spec
+
 PORT = 8766
 CAMERA_SIZE = 512
 SEED = 0
@@ -35,11 +40,13 @@ img { display: block; width: 100%; height: auto; min-height: 300px; object-fit: 
 </style>
 <main>
 <h1>LIBERO Tabletop · Red / Green / Blue</h1>
+<p id="instruction">RGB 블록 초기 배치</p>
 <p id="status">시뮬레이터 준비 중…</p>
 <div id="screen"><img id="video" src="/stream.mjpg" alt="LIBERO 실시간 화면"></div>
 </main>
 <script>
 const status = document.getElementById('status');
+const instruction = document.getElementById('instruction');
 const video = document.getElementById('video');
 video.onerror = () => setTimeout(() => { video.src = '/stream.mjpg?t=' + Date.now(); }, 2000);
 async function update() {
@@ -47,11 +54,14 @@ async function update() {
     const response = await fetch('/status', {cache: 'no-store'});
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const info = await response.json();
+    instruction.textContent = info.target_object
+      ? '초기 환경 · ' + info.instruction : 'RGB 블록 초기 배치';
     video.style.display = '';
     if (info.error) status.textContent = '오류: ' + info.error;
     else if (info.state === 'running') {
       status.textContent = 'LIVE · 한 변 ' + info.block_size_mm + ' mm · step ' + info.step
-        + ' · goal=' + info.goal + ' · ' + info.fps.toFixed(1) + ' FPS'
+        + (info.goal ? ' · 배치 정상' : ' · 배치 확인 필요')
+        + ' · ' + info.fps.toFixed(1) + ' FPS'
         + (info.frame_age_seconds > 3 ? ' · 화면 갱신 지연' : '');
     } else status.textContent = info.state === 'stopped' ? '종료' : '시뮬레이터 준비 중…';
   } catch (_) {
@@ -68,10 +78,11 @@ update(); setInterval(update, 1000);
 class LiveSimulation:
     """Own MuJoCo and its GL context in one thread; share only JPEG bytes."""
 
-    def __init__(self, resolution=CAMERA_SIZE, seed=SEED, fps=FPS):
+    def __init__(self, resolution=CAMERA_SIZE, seed=SEED, fps=FPS, task="scene"):
         self.resolution = resolution
         self.seed = seed
         self.fps = fps
+        self.task = task_spec(task)
         self.stop_event = threading.Event()
         self.condition = threading.Condition()
         self.thread = None
@@ -79,7 +90,11 @@ class LiveSimulation:
         self.frame_time = None
         self.status = {"viewer_id": VIEWER_ID, "state": "starting", "step": 0, "goal": None,
                        "block_size_mm": None, "fps": 0.0, "error": None,
-                       "zero_actions_only": True, "saved_files": False}
+                       "zero_actions_only": True, "saved_files": False,
+                       "task": self.task["name"], "instruction": self.task["language"],
+                       "target_object": self.task["target_object"],
+                       "pickup_implemented": False, "goal_kind": "placement",
+                       "placement_ok": None}
 
     def start(self):
         self.thread = threading.Thread(target=self._run, name="rgb-simulation", daemon=True)
@@ -111,7 +126,8 @@ class LiveSimulation:
                 return None
             return self.jpeg, self.status["step"]
 
-    def _publish(self, obs, step, goal, block_size_mm, frame_from, cv2, actual_fps):
+    def _publish(self, obs, step, goal, block_size_mm, frame_from, cv2, actual_fps,
+                 scene_info):
         ok, encoded = cv2.imencode(".jpg", frame_from(obs, step, goal),
                                   [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not ok:
@@ -121,6 +137,7 @@ class LiveSimulation:
             self.frame_time = time.monotonic()
             self.status.update(state="running", step=step, goal=goal,
                                block_size_mm=block_size_mm, fps=actual_fps)
+            self.status.update(scene_info)
             self.condition.notify_all()
 
     def _run(self):
@@ -129,25 +146,16 @@ class LiveSimulation:
             import cv2
             import numpy as np
             if __package__:
-                from .test_rgb_blocks import BLOCK_SIZE_MM, frame_from, init_checks, make_env
+                from .test_rgb_blocks import BLOCK_SIZE_MM, frame_from, make_env, scene_state
             else:
-                from test_rgb_blocks import BLOCK_SIZE_MM, frame_from, init_checks, make_env
-            env = make_env(seed=self.seed, size=self.resolution)
+                from test_rgb_blocks import BLOCK_SIZE_MM, frame_from, make_env, scene_state
+            env = make_env(seed=self.seed, size=self.resolution, task=self.task["name"])
             obs = env.reset()
-            checks = init_checks(env)
-            scene = env.env
-            expected = {color + "_block_1" for color in ("red", "green", "blue")}
-            if set(scene.objects_dict) != expected or scene.fixtures_dict:
-                raise RuntimeError("Expected only the three RGB cubes on the tabletop.")
-            if not all(checks.values()):
-                raise RuntimeError("The BDDL initial placement conditions failed.")
-            for obj in scene.objects_dict.values():
-                collision = env.sim.model.geom_name2id(obj.contact_geoms[0])
-                if not np.allclose(env.sim.model.geom_size[collision], BLOCK_SIZE_MM / 2000):
-                    raise RuntimeError("Cube dimensions do not match BLOCK_SIZE_MM.")
-            self._publish(obs, 0, bool(env.check_success()), BLOCK_SIZE_MM, frame_from, cv2, 0.0)
+            scene_info = scene_state(env)
+            self._publish(obs, 0, bool(env.check_success()), BLOCK_SIZE_MM, frame_from,
+                          cv2, 0.0, scene_info)
             print("RGB simulation ready: {} mm cubes; initial checks {}".format(
-                BLOCK_SIZE_MM, checks), flush=True)
+                BLOCK_SIZE_MM, scene_info["initial_checks"]), flush=True)
             action = np.zeros(7, dtype=np.float32)
             step = 0
             previous_frame = time.monotonic()
@@ -158,8 +166,9 @@ class LiveSimulation:
                 now = time.monotonic()
                 actual_fps = 1.0 / max(now - previous_frame, 0.000001)
                 previous_frame = now
+                scene_info = scene_state(env, require_contact=step >= 20)
                 self._publish(obs, step, bool(env.check_success()), BLOCK_SIZE_MM,
-                              frame_from, cv2, actual_fps)
+                              frame_from, cv2, actual_fps, scene_info)
                 self.stop_event.wait(max(0, 1.0 / self.fps - (time.monotonic() - started)))
         except Exception as error:
             with self.condition:
@@ -359,8 +368,13 @@ def follow_existing_viewer(port, token):
         return stop_existing_viewer(port, status={"shutdown_token": token})
 
 
-def reuse_existing_viewer(status, port):
+def reuse_existing_viewer(status, port, requested_task="scene"):
     """Report existing settings honestly; failed or stale workers are not LIVE."""
+    if status.get("task", "scene") != requested_task:
+        print("기존 RGB 서버의 Task는 {}입니다. --stop으로 종료한 뒤 "
+              "--task {}로 다시 실행하세요.".format(status.get("task", "scene"), requested_task),
+              file=sys.stderr)
+        return 1
     if status["error"] is not None or status["state"] not in ("starting", "running"):
         print("기존 RGB 서버가 있지만 정상 실행 상태가 아닙니다: {}. "
               "서버를 시작한 터미널에서 종료한 뒤 다시 실행하세요.".format(
@@ -386,6 +400,8 @@ def main():
     parser.add_argument("--port", type=int, default=PORT)
     parser.add_argument("--size", type=int, default=CAMERA_SIZE, help="Camera resolution, not cube size.")
     parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument("--task", choices=TASK_NAMES, default="scene",
+                        help="Select the prepared task target; does not execute pickup.")
     parser.add_argument("--fps", type=float, default=FPS)
     parser.add_argument("--stop", action="store_true", help="Stop the RGB server on this port.")
     args = parser.parse_args()
@@ -395,14 +411,14 @@ def main():
         parser.error("fps must be finite and in (0, 60]")
     if args.stop:
         return stop_existing_viewer(args.port)
-    simulation = LiveSimulation(resolution=args.size, seed=args.seed, fps=args.fps)
+    simulation = LiveSimulation(resolution=args.size, seed=args.seed, fps=args.fps, task=args.task)
     try:
         server = make_server(simulation, port=args.port)
     except OSError as error:
         if error.errno == errno.EADDRINUSE:
             existing = probe_existing_viewer(args.port)
             if existing is not None:
-                return reuse_existing_viewer(existing, args.port)
+                return reuse_existing_viewer(existing, args.port, requested_task=args.task)
         print("Cannot start localhost viewer: {}. Try --port with an unused port.".format(error),
               file=sys.stderr)
         return 1

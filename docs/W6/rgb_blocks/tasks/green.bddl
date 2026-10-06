@@ -1,0 +1,40 @@
+; The goal checks block placement only. Pick up is not implemented.
+(define (problem LIBERO_Tabletop_Manipulation)
+  (:domain robosuite)
+  (:language Pick up the green block on the table)
+
+  (:regions
+    (red_region
+      (:target main_table)
+      (:ranges ((-0.25 -0.37 0.05 -0.17)))
+    )
+    (green_region
+      (:target main_table)
+      (:ranges ((-0.25 -0.10 0.05 0.10)))
+    )
+    (blue_region
+      (:target main_table)
+      (:ranges ((-0.25 0.17 0.05 0.37)))
+    )
+  )
+
+  (:fixtures main_table - table)
+  (:objects
+    red_block_1 - red_block
+    green_block_1 - green_block
+    blue_block_1 - blue_block
+  )
+  (:obj_of_interest green_block_1)
+  (:init
+    (On red_block_1 main_table_red_region)
+    (On green_block_1 main_table_green_region)
+    (On blue_block_1 main_table_blue_region)
+  )
+  (:goal
+    (And
+      (On red_block_1 main_table_red_region)
+      (On green_block_1 main_table_green_region)
+      (On blue_block_1 main_table_blue_region)
+    )
+  )
+)
