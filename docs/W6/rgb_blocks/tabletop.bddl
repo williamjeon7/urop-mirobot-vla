@@ -1,5 +1,6 @@
 ; Regions: Mirobot grip X240 Y-60 / X200 Y0 / X240 Y+60 mm (Zt measured spots, W5 CHECKLIST 9)
-;   mapped at scale 0.663 (docs/W5/TABLE_ALIGNMENT.md 5). Half-width 0.030 m keeps a 40 mm cube within ~1.7 mm.
+;   mapped at scale 0.663 (docs/W5/TABLE_ALIGNMENT.md 5). Half-width 0.0434 m places a 40 mm cube
+;   within +-15.1 mm of the centre (Mirobot +-10 mm); LIBERO subtracts the cube radius.
 (define (problem LIBERO_Tabletop_Manipulation)
   (:domain robosuite)
   (:language Display the red green and blue cubes on the table)
@@ -7,15 +8,15 @@
   (:regions
     (red_region
       (:target main_table)
-      (:ranges ((-0.1762 -0.1205 -0.1162 -0.0605)))
+      (:ranges ((-0.1896 -0.1339 -0.1028 -0.0471)))
     )
     (green_region
       (:target main_table)
-      (:ranges ((-0.2365 -0.0300 -0.1765 0.0300)))
+      (:ranges ((-0.2499 -0.0434 -0.1631 0.0434)))
     )
     (blue_region
       (:target main_table)
-      (:ranges ((-0.1762 0.0605 -0.1162 0.1205)))
+      (:ranges ((-0.1896 0.0471 -0.1028 0.1339)))
     )
   )
 
