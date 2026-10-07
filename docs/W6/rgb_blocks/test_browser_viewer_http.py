@@ -573,42 +573,53 @@ class ExistingViewerTests(unittest.TestCase):
         self.assertIn("Ctrl+C로 종료", stdout)
         self.assertEqual(stderr, "")
 
-    def test_different_task_server_is_not_silently_reused(self):
-        stdout, stderr = io.StringIO(), io.StringIO()
-        status = dict(self.status, task="green")
-        with mock.patch.object(browser_viewer, "follow_existing_viewer") as follow, \
-                redirect_stdout(stdout), redirect_stderr(stderr):
-            result = browser_viewer.reuse_existing_viewer(status, 12345, requested_task="red")
-        self.assertEqual(result, 1)
-        follow.assert_not_called()
-        self.assertEqual(stdout.getvalue(), "")
-        self.assertIn("green", stderr.getvalue())
-        self.assertIn("--task red", stderr.getvalue())
-
-    def test_pickup_server_is_recognized_but_not_reused_for_other_mode(self):
-        status = dict(self.status, zero_actions_only=False, pickup=True, task="red")
-        self.assertIsNotNone(self.probe_status(status)[0])
-        for running_pickup, requested_pickup in ((True, False), (False, True)):
-            with self.subTest(running=running_pickup, requested=requested_pickup):
+    def test_other_settings_reuse_the_server_and_point_to_the_browser(self):
+        # Settings now switch in the browser, so a healthy server is reused and the
+        # terminal says which settings are running instead of refusing (10/7).
+        cases = [
+            (dict(task="green"), dict(requested_task="red"), "task green"),
+            (dict(task="red", mode="pickup", pickup=True, zero_actions_only=False),
+             dict(requested_task="red"), "pickup"),
+            (dict(task="red", mode="view"), dict(requested_task="red", requested_pickup=True), "view"),
+            (dict(task="red", mode="pickup", pickup=True, scenario="sandwich"),
+             dict(requested_task="red", requested_mode="pickup"), "sandwich"),
+        ]
+        for running, requested, mentioned in cases:
+            with self.subTest(running=running, requested=requested):
+                status = dict(self.status, **running)
+                self.assertIsNotNone(self.probe_status(status)[0])
                 stdout, stderr = io.StringIO(), io.StringIO()
-                current = dict(status, pickup=running_pickup)
-                with mock.patch.object(browser_viewer, "follow_existing_viewer") as follow, \
+                with mock.patch.object(browser_viewer, "follow_existing_viewer",
+                                       return_value=0) as follow, \
                         redirect_stdout(stdout), redirect_stderr(stderr):
-                    result = browser_viewer.reuse_existing_viewer(
-                        current, 12345, requested_task="red", requested_pickup=requested_pickup)
-                self.assertEqual(result, 1)
-                follow.assert_not_called()
-                self.assertIn("--stop", stderr.getvalue())
+                    result = browser_viewer.reuse_existing_viewer(status, 12345, **requested)
+                self.assertEqual(result, 0)
+                follow.assert_called_once_with(12345, status["shutdown_token"])
+                self.assertIn(mentioned, stdout.getvalue())
+                self.assertIn("브라우저", stdout.getvalue())
+                self.assertEqual(stderr.getvalue(), "")
+
+    def test_same_settings_reuse_without_a_settings_notice(self):
+        status = dict(self.status, task="red", mode="pickup", pickup=True)
+        stdout = io.StringIO()
+        with mock.patch.object(browser_viewer, "follow_existing_viewer", return_value=0), \
+                redirect_stdout(stdout), redirect_stderr(io.StringIO()):
+            browser_viewer.reuse_existing_viewer(status, 12345, requested_task="red",
+                                                 requested_mode="pickup")
+        self.assertNotIn("브라우저", stdout.getvalue())
 
     def test_pickup_option_requires_a_colour_task(self):
         with self.assertRaises(ValueError):
             browser_viewer.LiveSimulation(task="scene", pickup=True)
-        stderr = io.StringIO()
-        with mock.patch.object(sys, "argv", ["browser_viewer.py", "--pickup"]), \
-                mock.patch.object(browser_viewer, "LiveSimulation") as simulation, \
-                redirect_stderr(stderr), self.assertRaises(SystemExit):
-            browser_viewer.main()
-        simulation.assert_not_called()
+        bad_argv = (["--pickup"], ["--mode", "reach"], ["--task", "red", "--scenario", "adjacent"],
+                    ["--task", "red", "--pickup", "--mode", "reach"])
+        for argv in bad_argv:
+            with self.subTest(argv=argv):
+                with mock.patch.object(sys, "argv", ["browser_viewer.py"] + argv), \
+                        mock.patch.object(browser_viewer, "LiveSimulation") as simulation, \
+                        redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    browser_viewer.main()
+                simulation.assert_not_called()
 
     def test_error_and_stopped_servers_are_not_announced_as_live(self):
         for status in (
@@ -816,8 +827,7 @@ class PlaybackControlTests(unittest.TestCase):
     """The --pickup frame buffer and controls, without a simulator."""
 
     def setUp(self):
-        self.sim = browser_viewer.LiveSimulation(task="red", pickup=True)
-        self.sim.status["seed"] = 4
+        self.sim = browser_viewer.LiveSimulation(task="red", pickup=True, seed=4)
 
     def add(self, count):
         with self.sim.condition:
@@ -863,9 +873,10 @@ class PlaybackControlTests(unittest.TestCase):
 
     def test_seed_requests_and_auto(self):
         self.sim.control({"action": "run_seed", "seed": 17})
-        self.assertEqual(self.sim.request, {"seed": 17})
+        self.assertEqual(self.sim.request,
+                         {"task": "red", "mode": "pickup", "scenario": "none", "seed": 17})
         self.sim.control({"action": "next"})
-        self.assertEqual(self.sim.request, {"seed": 5})
+        self.assertEqual(self.sim.request["seed"], 5)
         for bad in (-1, 2 ** 31, 1.5, True, "3"):
             with self.subTest(seed=bad):
                 with self.assertRaises(ValueError):
@@ -885,9 +896,31 @@ class PlaybackControlTests(unittest.TestCase):
         self.sim.control({"action": "seek", "index": 0})
         self.assertEqual(self.sim.wait_for_frame(version, timeout=0)[0], b"frame0")
 
-    def test_controls_need_pickup(self):
-        with self.assertRaises(ValueError):
-            browser_viewer.LiveSimulation(task="red").control({"action": "pause"})
+    def test_controls_work_in_every_mode(self):
+        for task, mode in (("scene", "view"), ("red", "view"), ("blue", "reach")):
+            with self.subTest(task=task, mode=mode):
+                sim = browser_viewer.LiveSimulation(task=task, mode=mode)
+                self.assertTrue(sim.control({"action": "pause"})["paused"])
+                self.assertEqual(sim.status["zero_actions_only"], mode == "view")
+
+    def test_load_validates_the_whole_configuration(self):
+        self.sim.control({"action": "load", "task": "blue", "mode": "reach",
+                          "scenario": "none", "seed": 9})
+        self.assertEqual(self.sim.request,
+                         {"task": "blue", "mode": "reach", "scenario": "none", "seed": 9})
+        bad = [
+            {"task": "purple", "mode": "view", "scenario": "none", "seed": 0},
+            {"task": "scene", "mode": "pickup", "scenario": "none", "seed": 0},
+            {"task": "red", "mode": "reach", "scenario": "adjacent", "seed": 0},
+            {"task": "red", "mode": "pickup", "scenario": "upside-down", "seed": 0},
+            {"task": "red", "mode": "fly", "scenario": "none", "seed": 0},
+            {"task": "red", "mode": "view", "scenario": "none", "seed": -3},
+            {"task": "red", "mode": "view", "scenario": "none"},
+        ]
+        for config in bad:
+            with self.subTest(config=config):
+                with self.assertRaises(ValueError):
+                    self.sim.control(dict(config, action="load"))
 
 
 if __name__ == "__main__":

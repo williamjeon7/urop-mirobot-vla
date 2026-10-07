@@ -19,8 +19,9 @@
   물체 상태를 직접 바꾸지 않는다. 성공 조건은 `Up` Goal, `_check_grasp`, 다른 블록이 1 cm 넘게 움직이지 않음,
   그리고 `--scenario none`이면 다른 블록 `On` 유지다.
   `scenarios.py`는 reset 직후 한 번만 이웃 블록 위치를 바꾸는 장면 준비다. 동작 중에는 물체를 옮기지 않는다.
-  뷰어는 `--pickup`일 때 이 함수를 `on_step`으로 연결한다. 지금 episode의 장면을 메모리에 두고
-  `/control`(per-instance 토큰, localhost Host, same-origin)로 일시정지·되돌리기·seed 선택을 받는다.
+  뷰어는 설정 하나(task·mode view|pickup|reach·scenario·seed)를 episode 하나로 돌린다. 설정은 브라우저에서
+  `/control` `load`로 바꾸고(per-instance 토큰, localhost Host, same-origin), task가 바뀔 때만 환경을 새로 만든다.
+  지금 episode의 장면을 메모리에 두고 일시정지·되돌리기·다음 seed를 받는다. 명령어 옵션은 처음 설정이다.
   결정과 검증 기록은 `PICKUP.md`에 남긴다.
 - 사용자가 별도로 요청하지 않으면 이미지·GIF·영상·결과 JSON 파일을 저장하지 않는다.
   예외(10/7 허락): `pickup.py --log`는 번역기 입력용 JSONL을 `data/pickup/`(git 제외)에 남긴다.

@@ -23,8 +23,12 @@ PORT = 8766
 CAMERA_SIZE = 512
 SEED = 0
 FPS = 20.0
-# --pickup: seconds of hold frames after the result, before the episode waits.
+# pickup/reach: seconds of hold frames after the result, before the episode waits.
 RESULT_HOLD_SECONDS = 2.0
+# view (placement check, zero actions): episode length, as test_rgb_blocks --steps 60.
+VIEW_STEPS = 60
+MODES = ("view", "pickup", "reach")
+SCENARIO_NAMES = ("none", "adjacent", "sandwich")   # scenarios.SCENARIOS, without importing numpy
 MAX_SEED = 2 ** 31 - 1
 CONTROL_BODY_LIMIT = 1024
 VIEWER_ID = "libero-rgb-blocks-v1"
@@ -55,14 +59,30 @@ img { display: block; width: 100%; height: auto; min-height: 300px; object-fit: 
 button { background: #1f2937; color: #e5e7eb; border: 1px solid #374151; border-radius: 8px;
          padding: 6px 12px; font: inherit; cursor: pointer; }
 button:hover { background: #374151; }
-input[type=number] { width: 6em; background: #030712; color: #e5e7eb; border: 1px solid #374151;
-                     border-radius: 8px; padding: 6px 8px; font: inherit; }
+input[type=number], select { background: #030712; color: #e5e7eb; border: 1px solid #374151;
+                              border-radius: 8px; padding: 6px 8px; font: inherit; }
+input[type=number] { width: 6em; }
+select:disabled { opacity: .5; }
+#setup { border: 1px solid #374151; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
 #timeline { flex: 1; min-width: 160px; }
 #position { font-variant-numeric: tabular-nums; min-width: 7em; }
 #hint { color: #9ca3af; font-size: 14px; }
 </style>
 <main>
 <h1>LIBERO Tabletop · Red / Green / Blue</h1>
+<div id="setup" class="row">
+  <label>task <select id="task">
+    <option value="scene">scene (세 블록)</option><option value="red">red</option>
+    <option value="green">green</option><option value="blue">blue</option></select></label>
+  <label>동작 <select id="mode">
+    <option value="view">배치 확인</option><option value="pickup">pick up</option>
+    <option value="reach">손 뻗기</option></select></label>
+  <label>시나리오 <select id="scenario">
+    <option value="none">none</option><option value="adjacent">adjacent</option>
+    <option value="sandwich">sandwich</option></select></label>
+  <label>seed <input id="seed" type="number" min="0" step="1" value="0"></label>
+  <button id="load">불러오기</button>
+</div>
 <p id="instruction">RGB 블록 초기 배치</p>
 <p id="status">시뮬레이터 준비 중…</p>
 <div id="screen"><img id="video" src="/stream.mjpg" alt="LIBERO 실시간 화면"></div>
@@ -77,12 +97,10 @@ input[type=number] { width: 6em; background: #030712; color: #e5e7eb; border: 1p
     <span id="position">0 / 0</span>
   </div>
   <div class="row">
-    <label>seed <input id="seed" type="number" min="0" step="1" value="0"></label>
-    <button id="run">이 seed 실행</button>
     <button id="next">다음 seed</button>
     <label><input id="auto" type="checkbox"> 끝나면 자동으로 다음 seed</label>
   </div>
-  <div id="hint">Space 재생/일시정지 · ← → 한 step · 일시정지하면 시뮬레이션도 멈춘다 · 지나간 장면은 슬라이더로 다시 본다</div>
+  <div id="hint">Space 재생/일시정지 · ← → 한 step · 일시정지하면 시뮬레이션도 멈춘다 · 지나간 장면은 슬라이더로 다시 본다 · task를 바꾸면 환경을 새로 만든다(약 1초)</div>
 </div>
 </main>
 <script>
@@ -94,8 +112,11 @@ const play = document.getElementById('play');
 const timeline = document.getElementById('timeline');
 const position = document.getElementById('position');
 const seedInput = document.getElementById('seed');
+const taskSelect = document.getElementById('task');
+const modeSelect = document.getElementById('mode');
+const scenarioSelect = document.getElementById('scenario');
 const auto = document.getElementById('auto');
-let info = null, dragging = false, seedEdited = false, timer = null;
+let info = null, dragging = false, formEdited = false, timer = null;
 video.onerror = () => setTimeout(() => { video.src = '/stream.mjpg?t=' + Date.now(); }, 2000);
 
 async function control(body) {
@@ -114,36 +135,52 @@ document.querySelectorAll('[data-action]').forEach(button => button.onclick = ()
   else control({action: action});
 });
 play.onclick = () => control({action: 'toggle'});
-document.getElementById('run').onclick = () => {
+function constrain() {
+  // scene has no target block: only the placement check. Scenarios are for pick up.
+  const scene = taskSelect.value === 'scene';
+  for (const option of modeSelect.options) option.disabled = scene && option.value !== 'view';
+  if (scene) modeSelect.value = 'view';
+  scenarioSelect.disabled = modeSelect.value !== 'pickup';
+  if (scenarioSelect.disabled) scenarioSelect.value = 'none';
+}
+[taskSelect, modeSelect, scenarioSelect].forEach(select => select.onchange = () => {
+  formEdited = true; constrain();
+});
+seedInput.oninput = () => { formEdited = true; };
+document.getElementById('load').onclick = () => {
   const seed = Number(seedInput.value);
-  if (Number.isInteger(seed) && seed >= 0) { seedEdited = false; control({action: 'run_seed', seed: seed}); }
+  if (!Number.isInteger(seed) || seed < 0) return;
+  formEdited = false;
+  control({action: 'load', task: taskSelect.value, mode: modeSelect.value,
+           scenario: scenarioSelect.value, seed: seed});
 };
-document.getElementById('next').onclick = () => { seedEdited = false; control({action: 'next'}); };
+document.getElementById('next').onclick = () => { formEdited = false; control({action: 'next'}); };
 auto.onchange = () => control({action: 'auto', on: auto.checked});
-seedInput.oninput = () => { seedEdited = true; };
 timeline.onpointerdown = () => { dragging = true; };
 timeline.onpointerup = () => { dragging = false; };
 timeline.oninput = () => control({action: 'seek', index: Number(timeline.value)});
 document.addEventListener('keydown', event => {
-  if (controls.hidden || event.target.tagName === 'INPUT') return;
+  if (controls.hidden || ['INPUT', 'SELECT'].includes(event.target.tagName)) return;
   if (event.code === 'Space') { event.preventDefault(); control({action: 'toggle'}); }
   else if (event.key === 'ArrowLeft') control({action: 'step', delta: -1});
   else if (event.key === 'ArrowRight') control({action: 'step', delta: 1});
 });
 
-function pickupText(info) {
+const MODE_NAMES = {view: '배치 확인', pickup: 'Pick up', reach: '손 뻗기'};
+function episodeText(info) {
   const last = info.last_result;
   const atEnd = info.cursor >= info.frames - 1;
-  const mode = info.paused ? '일시정지' : !atEnd ? '다시보기' : info.episode_done ? '끝 · 다음 seed 대기' : 'LIVE';
-  return mode + ' · ' + (info.scenario && info.scenario !== 'none' ? info.scenario + ' · ' : '')
-    + 'episode ' + info.episode + ' (seed ' + info.seed + ') · '
+  const state = info.paused ? '일시정지' : !atEnd ? '다시보기' : info.episode_done ? '끝 · 다음 seed 대기' : 'LIVE';
+  return state + ' · ' + info.task + ' · ' + MODE_NAMES[info.mode]
+    + (info.scenario !== 'none' ? ' · ' + info.scenario : '')
+    + ' · episode ' + info.episode + ' (seed ' + info.seed + ') · '
     + info.phase + ' · step ' + info.step + ' · goal ' + info.goal
+    + (info.mode === 'view' ? (info.placement_ok ? ' · 배치 정상' : ' · 배치 확인 필요') : '')
     + ' · ' + info.fps.toFixed(1) + ' FPS'
     + (info.frame_age_seconds > 3 ? ' · 화면 갱신 지연' : '')
     + '\\n성공 ' + info.successes + ' / ' + info.completed
     + (last ? ' · 직전 seed ' + last.seed + ': ' + (last.success
-        ? '성공 (' + last.steps + ' step, ' + last.lift_height_m + ' m 상승)'
-        : '실패 · ' + last.reason) : '');
+        ? '성공 (' + last.summary + ')' : '실패 · ' + last.reason) : '');
 }
 
 async function update() {
@@ -151,32 +188,31 @@ async function update() {
     const response = await fetch('/status', {cache: 'no-store'});
     if (!response.ok) throw new Error('HTTP ' + response.status);
     info = await response.json();
-    instruction.textContent = info.pickup ? 'Pick up 실행 · ' + info.instruction
-      : info.target_object ? '초기 환경 · ' + info.instruction : 'RGB 블록 초기 배치';
+    instruction.textContent = info.task === 'scene' ? 'RGB 블록 초기 배치'
+      : MODE_NAMES[info.mode] + ' · ' + info.instruction
+        + (info.mode === 'reach' ? ' (손끝이 Mirobot 기준 작업대 위 30 mm에서 멈춤)' : '');
     video.style.display = '';
-    controls.hidden = !info.pickup;
-    if (info.pickup) {
-      play.textContent = info.paused ? '▶ 재생' : '⏸ 일시정지';
-      timeline.max = Math.max(0, info.frames - 1);
-      if (!dragging) timeline.value = Math.max(0, info.cursor);
-      position.textContent = (info.frames ? info.cursor + 1 : 0) + ' / ' + info.frames;
-      auto.checked = info.auto_advance;
-      if (!seedEdited && document.activeElement !== seedInput) seedInput.value = info.seed;
+    controls.hidden = false;
+    play.textContent = info.paused ? '▶ 재생' : '⏸ 일시정지';
+    timeline.max = Math.max(0, info.frames - 1);
+    if (!dragging) timeline.value = Math.max(0, info.cursor);
+    position.textContent = (info.frames ? info.cursor + 1 : 0) + ' / ' + info.frames;
+    auto.checked = info.auto_advance;
+    if (!formEdited && !['INPUT', 'SELECT'].includes(document.activeElement.tagName)) {
+      taskSelect.value = info.task; modeSelect.value = info.mode;
+      scenarioSelect.value = info.scenario; seedInput.value = info.seed;
+      constrain();
     }
     if (info.error) status.textContent = '오류: ' + info.error;
-    else if (info.state === 'running' && info.pickup) status.textContent = pickupText(info);
-    else if (info.state === 'running') {
-      status.textContent = 'LIVE · 한 변 ' + info.block_size_mm + ' mm · step ' + info.step
-        + (info.placement_ok ? ' · 배치 정상' : ' · 배치 확인 필요')
-        + ' · ' + info.fps.toFixed(1) + ' FPS'
-        + (info.frame_age_seconds > 3 ? ' · 화면 갱신 지연' : '');
-    } else status.textContent = info.state === 'stopped' ? '종료' : '시뮬레이터 준비 중…';
+    else if (info.loading) status.textContent = '불러오는 중… ' + info.task + ' (task를 바꾸면 약 1초)';
+    else if (info.state === 'running') status.textContent = episodeText(info);
+    else status.textContent = info.state === 'stopped' ? '종료' : '시뮬레이터 준비 중…';
   } catch (_) {
     status.textContent = '연결 끊김';
     video.style.display = 'none';
   }
   clearTimeout(timer);
-  timer = setTimeout(update, info && info.pickup ? 250 : 1000);
+  timer = setTimeout(update, 250);
 }
 update();
 </script>
@@ -184,21 +220,41 @@ update();
 """.encode("utf-8")
 
 
+def checked_config(config):
+    """Validate a task/mode/scenario/seed combination. Raises ValueError."""
+    task, mode = config.get("task"), config.get("mode")
+    scenario, seed = config.get("scenario"), config.get("seed")
+    if task not in TASK_NAMES:
+        raise ValueError("task must be one of {}".format(", ".join(TASK_NAMES)))
+    if mode not in MODES:
+        raise ValueError("mode must be one of {}".format(", ".join(MODES)))
+    if mode != "view" and not task_spec(task)["pickup_implemented"]:
+        raise ValueError("{} needs task red, green or blue".format(mode))
+    if scenario not in SCENARIO_NAMES:
+        raise ValueError("scenario must be one of {}".format(", ".join(SCENARIO_NAMES)))
+    if scenario != "none" and mode != "pickup":
+        raise ValueError("scenario needs mode pickup")
+    if type(seed) is not int or not 0 <= seed <= MAX_SEED:
+        raise ValueError("seed must be an integer in 0..{}".format(MAX_SEED))
+    return {"task": task, "mode": mode, "scenario": scenario, "seed": seed}
+
+
 class LiveSimulation:
-    """Own MuJoCo and its GL context in one thread; share only JPEG bytes."""
+    """Own MuJoCo and its GL context in one thread; share only JPEG bytes.
+
+    One configuration — task (BDDL), mode, scenario, seed — runs one episode. Every frame
+    of the current episode stays in memory for playback. The browser loads another
+    configuration through `control`; only a task change rebuilds the environment.
+    """
 
     def __init__(self, resolution=CAMERA_SIZE, seed=SEED, fps=FPS, task="scene", pickup=False,
-                 scenario="none"):
+                 scenario="none", mode=None):
         self.resolution = resolution
-        self.seed = seed
         self.fps = fps
-        self.task = task_spec(task)
-        if pickup and not self.task["pickup_implemented"]:
-            raise ValueError("--pickup needs --task red, green or blue.")
-        if scenario != "none" and not pickup:
-            raise ValueError("--scenario needs --pickup.")
-        self.pickup = pickup
-        self.scenario = scenario
+        if mode is None:
+            mode = "pickup" if pickup else "view"
+        self.config = checked_config({"task": task, "mode": mode,
+                                            "scenario": scenario, "seed": seed})
         self.stop_event = threading.Event()
         self.condition = threading.Condition()
         self.thread = None
@@ -206,7 +262,7 @@ class LiveSimulation:
         self.frame_time = None
         # Every displayed-frame change bumps the version; the MJPEG stream waits on it.
         self.version = 0
-        # --pickup playback: frames of the current episode, the displayed index and controls.
+        # Playback: frames of the current episode, the displayed index and controls.
         self.frames = []
         self.cursor = -1
         self.paused = False
@@ -215,17 +271,22 @@ class LiveSimulation:
         self.step_once = False
         self.request = None
         self.status = {"viewer_id": VIEWER_ID, "state": "starting", "step": 0, "goal": None,
-                       "block_size_mm": None, "fps": 0.0, "error": None,
-                       "zero_actions_only": not pickup, "saved_files": False,
-                       "task": self.task["name"], "instruction": self.task["language"],
-                       "target_object": self.task["target_object"],
-                       "pickup_implemented": self.task["pickup_implemented"],
-                       "goal_kind": self.task["goal_kind"],
-                       "placement_ok": None, "pickup": pickup, "seed": seed, "scenario": scenario}
-        if pickup:
-            self.status.update(phase=None, episode=0, completed=0, successes=0,
-                               last_result=None, cursor=-1, frames=0, paused=False,
-                               auto_advance=False, episode_done=False)
+                       "block_size_mm": None, "fps": 0.0, "error": None, "saved_files": False,
+                       "placement_ok": None, "phase": None, "episode": 0, "completed": 0,
+                       "successes": 0, "last_result": None, "cursor": -1, "frames": 0,
+                       "paused": False, "auto_advance": False, "episode_done": False,
+                       "loading": True}
+        self._describe(self.config)
+
+    def _describe(self, config):
+        """Copy the configuration into the status (call with the condition held or before start)."""
+        spec = task_spec(config["task"])
+        self.status.update(task=config["task"], mode=config["mode"], scenario=config["scenario"],
+                           seed=config["seed"], instruction=spec["language"],
+                           target_object=spec["target_object"],
+                           pickup_implemented=spec["pickup_implemented"],
+                           goal_kind=spec["goal_kind"], pickup=config["mode"] == "pickup",
+                           zero_actions_only=config["mode"] == "view")
 
     def start(self):
         self.thread = threading.Thread(target=self._run, name="rgb-simulation", daemon=True)
@@ -257,22 +318,7 @@ class LiveSimulation:
                 return None
             return self.jpeg, self.version
 
-    def _publish(self, obs, step, goal, block_size_mm, frame_from, cv2, actual_fps,
-                 scene_info):
-        ok, encoded = cv2.imencode(".jpg", frame_from(obs, step, goal),
-                                  [cv2.IMWRITE_JPEG_QUALITY, 85])
-        if not ok:
-            raise RuntimeError("OpenCV could not encode the simulation frame.")
-        with self.condition:
-            self.jpeg = encoded.tobytes()
-            self.version += 1
-            self.frame_time = time.monotonic()
-            self.status.update(state="running", step=step, goal=goal,
-                               block_size_mm=block_size_mm, fps=actual_fps)
-            self.status.update(scene_info)
-            self.condition.notify_all()
-
-    # ── --pickup playback (call with self.condition held) ───────────
+    # ── playback (call with self.condition held) ────────────────────
     def _show_frame(self, index):
         frame = self.frames[index]
         self.cursor = index
@@ -295,8 +341,6 @@ class LiveSimulation:
 
     def control(self, command):
         """Apply one browser control. Raises ValueError for a bad command."""
-        if not self.pickup:
-            raise ValueError("controls need --pickup")
         action = command.get("action")
         with self.condition:
             last = len(self.frames) - 1
@@ -324,10 +368,11 @@ class LiveSimulation:
                 if last >= 0:
                     self._show_frame(min(max(index, 0), last))
             elif action in ("run_seed", "next"):
-                seed = command.get("seed") if action == "run_seed" else self.status["seed"] + 1
-                if type(seed) is not int or not 0 <= seed <= MAX_SEED:
-                    raise ValueError("seed must be an integer in 0..{}".format(MAX_SEED))
-                self.request = {"seed": seed}
+                seed = command.get("seed") if action == "run_seed" else self.config["seed"] + 1
+                self.request = checked_config(dict(self.config, seed=seed))
+            elif action == "load":
+                self.request = checked_config(
+                    {key: command.get(key) for key in ("task", "mode", "scenario", "seed")})
             elif action == "auto":
                 on = command.get("on")
                 if type(on) is not bool:
@@ -362,7 +407,7 @@ class LiveSimulation:
                     return
                 if self.paused or (not compute and self.cursor >= last):
                     if not compute and not self.paused and self.auto_advance:
-                        self.request = {"seed": self.status["seed"] + 1}
+                        self.request = dict(self.config, seed=min(self.config["seed"] + 1, MAX_SEED))
                         continue
                     # Alive but idle: keep frame_age small so the page does not report a stall.
                     self.frame_time = now
@@ -380,27 +425,20 @@ class LiveSimulation:
                     continue
                 return
 
-    def _run_pickup(self, env, cv2, np, block_size_mm, frame_from, scene_state):
-        """Run pickup.py episodes and keep every frame of the current one for playback.
-
-        An episode starts with --seed, then with the seed the browser asks for. At the end it
-        waits on the last frame unless "auto" is on, then it moves to the next seed.
-        """
-        if __package__:
-            from .pickup import pickup_success, run_pickup
-            from .scenarios import apply_scenario
-        else:
-            from pickup import pickup_success, run_pickup
-            from scenarios import apply_scenario
-
-        target = self.task["target_object"]
+    def _run_episode(self, env, config, episode, tools):
+        """Run one configuration, keep its frames, then wait. Leaves only by raising."""
+        cv2, np, frame_from, scene_state, block_size_mm = (
+            tools["cv2"], tools["np"], tools["frame_from"], tools["scene_state"],
+            tools["block_size_mm"])
+        task, mode, scenario, seed = (config["task"], config["mode"], config["scenario"],
+                                      config["seed"])
+        target = task_spec(task)["target_object"]
         clock = {"last": time.monotonic()}
+        label = "{} {}{}".format(task, mode, "" if scenario == "none" else " " + scenario)
 
-        def show(obs, step, goal, phase, seed):
+        def show(obs, step, goal, phase):
             self._wait_turn(clock)
-            caption = "{}{} | seed {} | {} | step {} | goal={}".format(
-                self.task["name"], "" if self.scenario == "none" else " " + self.scenario,
-                seed, phase, step, goal)
+            caption = "{} | seed {} | {} | step {} | goal={}".format(label, seed, phase, step, goal)
             ok, encoded = cv2.imencode(".jpg", frame_from(obs, step, goal, caption=caption),
                                        [cv2.IMWRITE_JPEG_QUALITY, 85])
             if not ok:
@@ -408,62 +446,72 @@ class LiveSimulation:
             with self.condition:
                 self._append_frame(encoded.tobytes(), step, phase, goal)
 
-        seed = self.seed
-        episode = 0
-        while True:
-            episode += 1
-            with self.condition:
-                self.frames, self.cursor = [], -1
-                self.paused = self.episode_done = self.step_once = False
-                self.request = None
-                self.status.update(seed=seed, episode=episode, phase="reset", step=0, goal=None,
-                                   cursor=-1, frames=0, paused=False, episode_done=False,
-                                   block_size_mm=block_size_mm)
-            try:
-                env.seed(seed)
-                obs = env.reset()
-                scene_info = scene_state(env)
-                # Scenario layouts move neighbours once after the BDDL placement check.
-                apply_scenario(env, self.scenario, target)
-                with self.condition:
-                    self.status.update(scene_info)
-                show(env.env._get_observations(force_update=True), 0,
-                     bool(env.check_success()), "reset", seed)
-                try:
-                    obs, result = run_pickup(
-                        env, obs, target,
-                        on_step=lambda o, s, p, g: show(o, s, g, p, seed),
-                        check_regions=self.scenario == "none")
-                    success = pickup_success(result)
-                    outcome = {"seed": seed, "success": success, "steps": result["steps"],
-                               "lift_height_m": result["lift_height_m"],
-                               "reason": None if success else "판정 조건 불충족"}
-                    held = result["still_grasped"]
-                except RuntimeError as error:
-                    outcome = {"seed": seed, "success": False, "steps": None,
-                               "lift_height_m": None, "reason": str(error)}
-                    held = False
-                print("seed {}: {}".format(seed, json.dumps(outcome, ensure_ascii=False)), flush=True)
-                with self.condition:
-                    self.status["completed"] += 1
-                    self.status["successes"] += int(outcome["success"])
-                    self.status["last_result"] = outcome
-                # A short hold shows whether the result is stable: zero OSC delta, gripper as it ended.
-                hold = np.zeros(7, dtype=np.float32)
-                hold[6] = 1.0 if held else -1.0
-                phase = "result " + ("success" if outcome["success"] else "fail")
-                for step in range(1, int(RESULT_HOLD_SECONDS * self.fps) + 1):
-                    obs, _, _, _ = env.step(hold)
-                    show(obs, step, bool(env.check_success()), phase, seed)
-                with self.condition:
-                    self.episode_done = True
-                    self.status["episode_done"] = True
-                self._wait_turn(clock, compute=False)   # returns only by raising
-            except _Restart:
-                with self.condition:
-                    seed = self.request["seed"]
-            except _Stopped:
-                return
+        with self.condition:
+            self.frames, self.cursor = [], -1
+            self.paused = self.episode_done = self.step_once = False
+            self.request = None
+            self._describe(config)
+            self.status.update(episode=episode, phase="reset", step=0, goal=None, cursor=-1,
+                               frames=0, paused=False, episode_done=False, loading=False,
+                               block_size_mm=block_size_mm)
+        env.seed(seed)
+        obs = env.reset()
+        scene_info = scene_state(env)
+        if mode == "pickup":
+            # Scenario layouts move neighbours once after the BDDL placement check.
+            tools["apply_scenario"](env, scenario, target)
+        with self.condition:
+            self.status.update(scene_info)
+        show(env.env._get_observations(force_update=True), 0, bool(env.check_success()), "reset")
+        held = None
+        try:
+            if mode == "view":
+                zero = np.zeros(7, dtype=np.float32)
+                for step in range(1, VIEW_STEPS + 1):
+                    obs, _, _, _ = env.step(zero)
+                    placement = scene_state(env, require_contact=step >= 20)
+                    with self.condition:
+                        self.status.update(placement_ok=placement["placement_ok"])
+                    show(obs, step, bool(env.check_success()), "view")
+                outcome = {"success": True, "steps": VIEW_STEPS,
+                           "summary": "{} step 동안 배치 유지".format(VIEW_STEPS)}
+            elif mode == "pickup":
+                obs, result = tools["run_pickup"](
+                    env, obs, target, on_step=lambda o, s, p, g: show(o, s, g, p),
+                    check_regions=scenario == "none")
+                held = result["still_grasped"]
+                outcome = {"success": tools["pickup_success"](result), "steps": result["steps"],
+                           "summary": "{} step, {} m 상승".format(result["steps"],
+                                                                result["lift_height_m"])}
+            else:
+                obs, result = tools["run_reach"](
+                    env, obs, target, on_step=lambda o, s, p, g: show(o, s, g, p))
+                held = False
+                outcome = {"success": tools["reach_success"](result), "steps": result["steps"],
+                           "summary": "{} step, 수평 오차 {:.1f} mm, 손끝 Mirobot {} mm".format(
+                               result["steps"], result["hover_xy_error_m"] * 1000,
+                               result["hover_tip_on_mirobot_mm"])}
+            outcome["reason"] = None if outcome["success"] else "판정 조건 불충족"
+        except RuntimeError as error:
+            outcome = {"success": False, "steps": None, "summary": None, "reason": str(error)}
+        outcome["seed"] = seed
+        print("{} seed {}: {}".format(label, seed, json.dumps(outcome, ensure_ascii=False)), flush=True)
+        with self.condition:
+            self.status["completed"] += 1
+            self.status["successes"] += int(outcome["success"])
+            self.status["last_result"] = outcome
+        if held is not None:
+            # A short hold shows whether the result is stable: zero OSC delta, gripper as it ended.
+            hold = np.zeros(7, dtype=np.float32)
+            hold[6] = 1.0 if held else -1.0
+            phase = "result " + ("success" if outcome["success"] else "fail")
+            for step in range(1, int(RESULT_HOLD_SECONDS * self.fps) + 1):
+                obs, _, _, _ = env.step(hold)
+                show(obs, step, bool(env.check_success()), phase)
+        with self.condition:
+            self.episode_done = True
+            self.status["episode_done"] = True
+        self._wait_turn(clock, compute=False)   # returns only by raising
 
     def _run(self):
         env = None
@@ -472,32 +520,43 @@ class LiveSimulation:
             import numpy as np
             if __package__:
                 from .test_rgb_blocks import BLOCK_SIZE_MM, frame_from, make_env, scene_state
+                from .pickup import pickup_success, reach_success, run_pickup, run_reach
+                from .scenarios import apply_scenario
             else:
                 from test_rgb_blocks import BLOCK_SIZE_MM, frame_from, make_env, scene_state
-            env = make_env(seed=self.seed, size=self.resolution, task=self.task["name"])
-            if self.pickup:
-                self._run_pickup(env, cv2, np, BLOCK_SIZE_MM, frame_from, scene_state)
-                return
-            obs = env.reset()
-            scene_info = scene_state(env)
-            self._publish(obs, 0, bool(env.check_success()), BLOCK_SIZE_MM, frame_from,
-                          cv2, 0.0, scene_info)
-            print("RGB simulation ready: {} mm cubes; initial checks {}".format(
-                BLOCK_SIZE_MM, scene_info["initial_checks"]), flush=True)
-            action = np.zeros(7, dtype=np.float32)
-            step = 0
-            previous_frame = time.monotonic()
-            while not self.stop_event.is_set():
-                started = time.monotonic()
-                obs, _, _, _ = env.step(action)
-                step += 1
-                now = time.monotonic()
-                actual_fps = 1.0 / max(now - previous_frame, 0.000001)
-                previous_frame = now
-                scene_info = scene_state(env, require_contact=step >= 20)
-                self._publish(obs, step, bool(env.check_success()), BLOCK_SIZE_MM,
-                              frame_from, cv2, actual_fps, scene_info)
-                self.stop_event.wait(max(0, 1.0 / self.fps - (time.monotonic() - started)))
+                from pickup import pickup_success, reach_success, run_pickup, run_reach
+                from scenarios import apply_scenario
+            tools = {"cv2": cv2, "np": np, "frame_from": frame_from, "scene_state": scene_state,
+                     "block_size_mm": BLOCK_SIZE_MM, "run_pickup": run_pickup,
+                     "run_reach": run_reach, "pickup_success": pickup_success,
+                     "reach_success": reach_success, "apply_scenario": apply_scenario}
+            config, env_task, episode = dict(self.config), None, 0
+            while True:
+                if env_task != config["task"]:
+                    # A new BDDL needs a new environment; build it in this (the GL) thread.
+                    with self.condition:
+                        self._describe(config)
+                        self.status.update(state="starting", loading=True)
+                        self.condition.notify_all()
+                    if env is not None:
+                        env.close()
+                        env = None
+                    env = make_env(seed=config["seed"], size=self.resolution, task=config["task"])
+                    env_task = config["task"]
+                    print("RGB simulation ready: task {}".format(env_task), flush=True)
+                episode += 1
+                try:
+                    self._run_episode(env, config, episode, tools)
+                except _Restart:
+                    with self.condition:
+                        new = self.request
+                        if {k: v for k, v in new.items() if k != "seed"} != \
+                                {k: v for k, v in config.items() if k != "seed"}:
+                            # Counters describe one task/mode/scenario; start them again.
+                            self.status.update(completed=0, successes=0, last_result=None)
+                        config = self.config = dict(new)
+                except _Stopped:
+                    return
         except Exception as error:
             with self.condition:
                 self.status.update(state="error", error="{}: {}".format(type(error).__name__, error))
@@ -752,22 +811,16 @@ def follow_existing_viewer(port, token):
         return stop_existing_viewer(port, status={"shutdown_token": token})
 
 
+def describe_config(task, mode, scenario):
+    return "task {} · 동작 {}{}".format(task, mode, "" if scenario == "none" else " · 시나리오 " + scenario)
+
+
 def reuse_existing_viewer(status, port, requested_task="scene", requested_pickup=False,
-                          requested_scenario="none"):
-    """Report existing settings honestly; failed or stale workers are not LIVE."""
-    if status.get("scenario", "none") != requested_scenario:
-        print("기존 RGB 서버의 scenario는 {}입니다. --stop으로 종료한 뒤 다시 실행하세요.".format(
-            status.get("scenario", "none")), file=sys.stderr)
-        return 1
-    if bool(status.get("pickup", False)) != requested_pickup:
-        print("기존 RGB 서버는 {} 모드입니다. --stop으로 종료한 뒤 다시 실행하세요.".format(
-            "--pickup" if status.get("pickup") else "배치 확인"), file=sys.stderr)
-        return 1
-    if status.get("task", "scene") != requested_task:
-        print("기존 RGB 서버의 Task는 {}입니다. --stop으로 종료한 뒤 "
-              "--task {}로 다시 실행하세요.".format(status.get("task", "scene"), requested_task),
-              file=sys.stderr)
-        return 1
+                          requested_scenario="none", requested_mode=None):
+    """Report existing settings honestly; failed or stale workers are not LIVE.
+
+    A healthy server is reused even with other settings: the browser switches them.
+    """
     if status["error"] is not None or status["state"] not in ("starting", "running"):
         print("기존 RGB 서버가 있지만 정상 실행 상태가 아닙니다: {}. "
               "서버를 시작한 터미널에서 종료한 뒤 다시 실행하세요.".format(
@@ -785,6 +838,14 @@ def reuse_existing_viewer(status, port, requested_task="scene", requested_pickup
         return 1
     print_viewer_address(port)
     print("기존 서버 연결 · Ctrl+C로 종료", flush=True)
+    current_mode = status.get("mode") or ("pickup" if status.get("pickup") else "view")
+    current = describe_config(status.get("task", "scene"), current_mode, status.get("scenario", "none"))
+    requested = describe_config(requested_task,
+                                requested_mode or ("pickup" if requested_pickup else "view"),
+                                requested_scenario)
+    if current != requested:
+        print("지금 서버는 {}입니다. 요청한 {}(으)로는 브라우저 위쪽 설정에서 바꾼다.".format(
+            current, requested), flush=True)
     return follow_existing_viewer(port, token)
 
 
@@ -794,11 +855,12 @@ def main():
     parser.add_argument("--size", type=int, default=CAMERA_SIZE, help="Camera resolution, not cube size.")
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--task", choices=TASK_NAMES, default="scene",
-                        help="Select the prepared task target.")
-    parser.add_argument("--pickup", action="store_true",
-                        help="Run pickup.py on seed, seed+1, ... and stream the Panda (colour tasks).")
-    parser.add_argument("--scenario", choices=("none", "adjacent", "sandwich"), default="none",
-                        help="With --pickup: start with neighbours next to the target (scenarios.py).")
+                        help="Task (BDDL) shown first; the browser can switch it.")
+    parser.add_argument("--mode", choices=MODES,
+                        help="First mode: view (placement check), pickup or reach. Default view.")
+    parser.add_argument("--pickup", action="store_true", help="Same as --mode pickup.")
+    parser.add_argument("--scenario", choices=SCENARIO_NAMES, default="none",
+                        help="With pickup: start with neighbours next to the target (scenarios.py).")
     parser.add_argument("--fps", type=float, default=FPS)
     parser.add_argument("--stop", action="store_true", help="Stop the RGB server on this port.")
     args = parser.parse_args()
@@ -806,14 +868,17 @@ def main():
         parser.error("port must be 1..65535 and size must be 128..2048")
     if not math.isfinite(args.fps) or not 0 < args.fps <= 60:
         parser.error("fps must be finite and in (0, 60]")
-    if args.pickup and args.task == "scene":
-        parser.error("--pickup needs --task red, green or blue")
-    if args.scenario != "none" and not args.pickup:
-        parser.error("--scenario needs --pickup")
+    if args.pickup and args.mode not in (None, "pickup"):
+        parser.error("--pickup conflicts with --mode {}".format(args.mode))
+    mode = "pickup" if args.pickup else (args.mode or "view")
+    try:
+        checked_config({"task": args.task, "mode": mode, "scenario": args.scenario, "seed": args.seed})
+    except ValueError as error:
+        parser.error(str(error))
     if args.stop:
         return stop_existing_viewer(args.port)
     simulation = LiveSimulation(resolution=args.size, seed=args.seed, fps=args.fps,
-                                task=args.task, pickup=args.pickup, scenario=args.scenario)
+                                task=args.task, scenario=args.scenario, mode=mode)
     try:
         server = make_server(simulation, port=args.port)
     except OSError as error:
@@ -821,8 +886,8 @@ def main():
             existing = probe_existing_viewer(args.port)
             if existing is not None:
                 return reuse_existing_viewer(existing, args.port, requested_task=args.task,
-                                             requested_pickup=args.pickup,
-                                             requested_scenario=args.scenario)
+                                             requested_scenario=args.scenario,
+                                             requested_mode=mode)
         print("Cannot start localhost viewer: {}. Try --port with an unused port.".format(error),
               file=sys.stderr)
         return 1

@@ -13,42 +13,35 @@ OASYS의 Bash 터미널에서 실행한다:
 bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh
 ```
 
-기본 모드는 `scene`이며 RGB 세 블록을 모두 표시한다. 색상별 Task는 다음처럼 선택한다.
-다른 모드로 바꿀 때는 먼저 실행 중인 서버를 종료한 뒤 다시 실행한다.
+서버는 옵션 없이 한 번만 실행한다. 무엇을 볼지는 **브라우저 위쪽 설정 줄**에서 고르고 "불러오기"를 누른다.
 
-```bash
-bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task red
-bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task green
-bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task blue
-```
+| 설정 | 선택 |
+| --- | --- |
+| task | `scene`(세 블록), `red`, `green`, `blue` — 어떤 BDDL을 쓸지 정한다 |
+| 동작 | 배치 확인(Panda 정지, 60 step) · pick up · 손 뻗기(블록 위, 손끝이 Mirobot 기준 작업대 위 30 mm) |
+| 시나리오 | pick up일 때만. `adjacent`는 한쪽, `sandwich`는 양쪽에 이웃 블록을 면 사이 20 mm로 붙인다([scenarios.py](./scenarios.py)) |
+| seed | 블록 배치. 같은 seed는 같은 장면이다 |
 
-각 색상 모드에서도 Red/Green/Blue 블록이 모두 테이블에 존재하며 선택한 블록을 관심 대상으로 지정한다.
-`--pickup`을 붙이지 않으면 Panda는 움직이지 않는다. 이 화면은 배치를 확인하는 용도다.
-`scene`의 Goal은 배치 조건이므로 시작부터 `True`다. 색상 Task의 Goal은 `(Up <color>_block_1)`이므로
+`scene`은 지정한 블록이 없어서 배치 확인만 할 수 있다. task를 바꾸면 환경을 새로 만든다(약 1초).
+색상 Task에서도 Red/Green/Blue 블록이 모두 테이블에 있고, 선택한 블록이 관심 대상이다.
+`scene`의 Goal은 배치 조건이라 시작부터 `True`다. 색상 Task의 Goal은 `(Up <color>_block_1)`이라
 블록을 들어 올리기 전에는 `False`가 정상이다.
 
-Panda가 지시한 색 블록을 집는 장면을 보려면 `--pickup`을 추가한다.
-
-```bash
-bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task red --pickup
-```
-
-`--seed`(기본 0)로 시작한다. episode가 끝나면 마지막 장면에서 멈추고 다음 seed를 기다린다.
-영상 아래 조작판에서 다음을 할 수 있다.
+episode가 끝나면 마지막 장면에서 멈추고 기다린다. 영상 아래 조작판에서 다음을 할 수 있다.
 
 | 조작 | 동작 |
 | --- | --- |
 | ⏸ / ▶ (Space) | 일시정지·재생. 일시정지하면 시뮬레이션도 멈춘다(계산 중이던 한 step은 끝까지 진행된다) |
 | ◀ 1 / 1 ▶ (← →) | 한 step 뒤로·앞으로. 가장 최근 장면에서 앞으로 가면 시뮬레이션이 한 step 진행한다 |
 | 슬라이더, ⏮ ⏭ | 지금 episode의 지나간 장면을 다시 본다. 재생하면 그 지점부터 이어서 보여 준다 |
-| seed 입력 + "이 seed 실행" / "다음 seed" | 지금 episode를 멈추고 그 seed로 다시 시작한다 |
+| "다음 seed" | 같은 설정으로 seed만 1 올려 다시 시작한다 |
 | "끝나면 자동으로 다음 seed" | 켜면 episode가 끝날 때마다 다음 seed로 넘어간다 |
 
 지나간 장면은 지금 episode의 것만 메모리에 둔다. 파일로 저장하지 않는다.
-조작 요청에는 서버를 실행할 때마다 새로 만드는 토큰이 필요하다. 다른 웹사이트에서는 조작할 수 없다.
+설정·조작 요청에는 서버를 실행할 때마다 새로 만드는 토큰이 필요하다. 다른 웹사이트에서는 조작할 수 없다.
 
-블록이 가까이 붙어 그리퍼를 그대로 내리면 막히는 상황은 `--scenario`로 본다.
-`adjacent`는 한쪽, `sandwich`는 양쪽에 이웃 블록을 면 사이 20 mm로 붙인다([scenarios.py](./scenarios.py)).
+명령어 옵션(`--task`, `--mode view|pickup|reach`, `--pickup`, `--scenario`, `--seed`)은 **처음 열 때의 설정**으로 남아 있다.
+서버가 이미 떠 있으면 다른 옵션으로 실행해도 그 서버에 연결하고, 설정은 브라우저에서 바꾸라고 안내한다.
 
 ```bash
 bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task green --pickup --scenario sandwich
