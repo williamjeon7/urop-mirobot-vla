@@ -35,9 +35,10 @@ def create_env(size_mm=None, resolution=RESOLUTION, seed=SEED,
     """Construct the same RGB scene for a still preview or live viewer."""
     if size_mm is None:
         size_mm = BLOCK_SIZE_MM
-    # These fixed BDDL regions allow at most 120 mm cubes with separation.
-    if not np.isfinite(size_mm) or not 0 < size_mm <= 120:
-        raise ValueError("This tabletop layout supports 0 < BLOCK_SIZE_MM <= 120.")
+    # The Mirobot-reachable layout puts cube centres 0.109 m apart (red/blue to green).
+    # LIBERO keeps sampled cubes sqrt(2) * edge apart, so larger cubes may fail to place.
+    if not np.isfinite(size_mm) or not 0 < size_mm <= 60:
+        raise ValueError("This tabletop layout supports 0 < BLOCK_SIZE_MM <= 60.")
     if resolution < 1:
         raise ValueError("RESOLUTION must be positive.")
     edge_m = size_mm / 1000

@@ -23,6 +23,9 @@
 
 ### 2.1 블록 배치 조정 범위 (2026-10-06 확인)
 
+> **10/7 배치 변경**: 블록 자리를 Mirobot이 닿는 세 점으로 옮겼다. 영역 반폭이 30 mm라 위치는 사실상 고정이다.
+> 아래 seed 표는 **변경 전 배치**의 값이다. 새 배치와 재검증은 [../CHECKLIST.md](../CHECKLIST.md) 2절에 있다.
+
 - 좌표: 테이블 중심이 (0, 0), 윗면 z = 0.90 m, 테이블 크기 x −0.5~0.5, y −0.6~0.6.
   Panda base는 (−0.66, 0, 0.912)이므로 x가 클수록 로봇에서 멀어진다.
 - BDDL `:ranges (x1 y1 x2 y2)`는 **놓일 영역**이다. 영역 안 위치는 seed로 무작위 결정된다.
@@ -170,6 +173,8 @@ bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task red --pickup
 | 다른 블록 배치 유지 | 모두 `True` |
 | 총 step | 146–185 (20 Hz 기준 약 7–9초) |
 
+**10/7 재검증 (새 배치)**: red / green / blue × seed 0–4, **15/15 성공**. 모두 146 step이고, 들어 올린 높이는 0.146–0.147 m다.
+
 red seed 0 단계별 EEF (`xyz_m`, `rxyz_deg`):
 
 | phase | step | EEF xyz (m) | Rx, Ry, Rz (deg) | 블록 z (m) | goal |
@@ -204,6 +209,5 @@ red seed 0 단계별 EEF (`xyz_m`, `rxyz_deg`):
       - 블록 회전(yaw) — 지금은 0°로 고정, 그리퍼 방향도 고정
       - 블록끼리 가까운 배치
       - 시뮬레이터 정답 좌표 대신 실제 단계에서 블록 위치를 얻는 방법
-- [ ] Mirobot 변환 담당과 넘겨줄 값과 각도 규약 맞추기
-      (EEF 위치/자세를 넘길지, 블록 위치를 넘길지 / Euler 순서)
+- [ ] 좌표·자세 획득 → Mirobot 변환 → 실물: 이번 주 진행은 [../CHECKLIST.md](../CHECKLIST.md) 3–5절에서 관리한다
 - [ ] 이해 높이기: ③ LIBERO Tabletop, ④ Simulator 작동, 7차원 action 구조 설명

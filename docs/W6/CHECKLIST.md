@@ -1,0 +1,161 @@
+# W6 — 작업 목록
+
+> **절차** · 확인 2026-10-07 · 기준 10/5 action plan, `dd9c28c`
+> Mirobot을 촬영할 카메라가 아직 도착하지 않았다. 그래서 이번 주는 **Panda(시뮬레이션) 정보만으로 할 수 있는 일**로 범위를 정했다.
+> `→` 뒤 빈칸은 **미리 채우지 않는다**.
+
+계획 원문: [../meetings/2026-10-05.md](../meetings/2026-10-05.md).
+W5에서 넘어온 것: [../W5/CHECKLIST.md](../W5/CHECKLIST.md) 4-3절(색 블록 장면), 9절(다음 action plan).
+pick up 구현의 결정과 결과: [rgb_blocks/PICKUP.md](rgb_blocks/PICKUP.md).
+
+## 0. 이번 주 목표
+
+**시뮬레이션에서 잘 되는 pick up을 Mirobot 명령으로 바꿔 보냈을 때도 같은 동작이 나오는지 확인한다.**
+10/5 파이프라인의 마지막 칸인 "실제 로봇 명령"까지 Panda 정보만으로 잇는다.
+시뮬레이션 Panda가 pick up을 수행하고, 그 결과를 좌표·자세 → Mirobot 좌표 → G-code(`--dry-run`) → 실물 순서로 넘긴다.
+
+**실물 확인은 세 단계로 나눈다 (10/7 정함).** 카메라가 없으므로 W5 9-③처럼 종이 표시와 자로 확인한다.
+
+| 단계 | 확인 | 필요한 것 |
+| --- | --- | --- |
+| 1 | 손끝이 블록 자리 위로 정확히 가는가 (mm) | 좌표 변환, 배율 0.663 |
+| 2 | 작업대에 부딪히지 않고 잡을 높이까지 내려가는가 | Z 하한 66~71 mm |
+| 3 | 실제로 집어 드는가 | **그리퍼 명령**(번역기에 없음), 실물 블록 크기 |
+
+1·2단계는 W5 4-3에서 정한 "손 뻗기"와 같은 범위다. 손 뻗기로 좌표 변환을 먼저 확인하고, 그다음 그리퍼를 더해 pick up으로 넘어간다.
+
+### 지금 상태 (10/7)
+
+| 파이프라인 단계 | 상태 | 어디 |
+| --- | --- | --- |
+| MuJoCo Object XML | 완료 (동료) | [rgb_blocks/objects.py](rgb_blocks/objects.py), `assets/` |
+| BDDL | 완료 (동료). 색상 task Goal을 `Up`으로 바꿨다 (10/6). **블록 자리를 Mirobot 범위로 옮겼다 (10/7)** | `rgb_blocks/tasks/*.bddl` |
+| LIBERO Tabletop · Simulator 작동 | 완료 (동료) | `preview.py`, `browser_viewer.py` |
+| **LIBERO / Panda Action 수행** | **완료 (10/6)** — red/green/blue × seed 0–4, 15/15 성공. 새 자리에서도 15/15 (10/7) | [rgb_blocks/pickup.py](rgb_blocks/pickup.py), PICKUP.md |
+| 좌표·자세 획득 | 단계별 EEF xyz와 Rx Ry Rz를 **stdout에만** 출력한다. 관절값은 아직 없다 | 3절 |
+| Mirobot 좌표계로 변환 | 도구는 있다. W5 번역기 `tools/action_to_gcode.py`와 `common/workspace.py`. 우리 장면에는 아직 연결되지 않았다 | 4절 |
+| 실제 로봇 명령 | 도구는 있다(`tools/run_gcode.py`). 카메라 없이도 할 수 있다 | 5절 |
+
+**범위 밖 (카메라 도착 후)** — 6절
+- 영상만으로 하는 pick up과 VLA 학습 데이터 수집
+- D405 색·화각 보정을 이 장면에 적용 ([../W5/D405_LIBERO_CAMERA.md](../W5/D405_LIBERO_CAMERA.md), 동료)
+
+## 1. 순서
+
+```
+2. 먼저 맞출 것 — W5 결정과 10/5 action plan이 다른 점
+        ▼
+3. 좌표·자세 획득 ── pickup.py가 기록을 남기게 한다
+        ▼
+4. Mirobot 변환 ──── 번역기를 우리 장면에 연결 → G-code → run_gcode --dry-run
+        ▼
+5. 실물 ─────────── 로봇 노트북에서 종이 표시와 자로 확인 (카메라 불필요)
+```
+
+## 2. 먼저 맞출 것 — W5 결정과 10/5 action plan이 다른 점
+
+W5 CHECKLIST 4-3절은 10/5 커밋 `209ed24`로, 10/5 action plan보다 먼저 또는 같은 날 정해졌다.
+두 문서가 서로 다르게 말하는 곳이 있다. 3–5절을 진행하기 전에 정한다.
+
+| | W5 CHECKLIST (10/5) | 10/5 action plan · W6 구현 |
+| --- | --- | --- |
+| 과제 | **손 뻗기만** — "빨간 블록으로 움직여". 그리퍼 문제(proprio 2칸 vs 1칸, `L`)를 피하려고 정함 | **Pick up** — 집어 들기. 구현 완료 |
+| 성공 판정 | 손끝–대상 수평 거리 ≤ 몇 cm인 새 predicate (4-3 G) | `Up`(z ≥ 1.0 m) + `_check_grasp` + 다른 블록 `On` 유지 |
+| 블록 배치 | Mirobot이 닿는 곳에서 거꾸로 계산 → 탁상 **x −0.282~−0.116, y ±0.151 m** (4-3 D, [TABLE_ALIGNMENT.md](../W5/TABLE_ALIGNMENT.md) 5절) | 현재 region x −0.25~0.05. red y −0.37~−0.17, green y −0.10~0.10, blue y 0.17~0.37 → **red·blue는 범위 밖, green은 x 일부만 겹친다** |
+| 블록 크기 | 실물 크기 ÷ s (s = 0.663) | 40 mm. 실물 블록 크기는 아직 미정 |
+| LIBERO 환경 용도 | **(a) 실물 배치 기준**. 카메라 색·화각 보정은 지금 하지 않는다. (b) 시뮬 데이터 · (c) 시뮬 평가 의도가 있었는지 교수님께 여쭐 예정 (W5 8절) | 시뮬+실제 데이터를 섞어 학습한다는 이해 (10/7 대화). 근거는 동료의 D405 보정 작업 |
+
+- [ ] **과제** — pick up인가, 손 뻗기인가. 10/5 action plan이 W5 4-3을 대체한 것인지 확인한다
+  → **둘 다 단계로 간다 (10/7).** 실물은 손 뻗기(0장 1·2단계)로 좌표 변환을 먼저 확인하고, 그리퍼를 더해 pick up(3단계)으로 간다.
+  시뮬 pick up은 그대로 둔다. 10/5 action plan이 W5 4-3을 대체했는지는 미팅에서 확인한다 (8절)
+- [ ] **LIBERO 환경 용도** — (a)/(b)/(c) 중 무엇인가. W5 8절 질문의 답을 받았는지 확인한다
+  →
+- [ ] **블록 region을 Mirobot 범위(4-3 D)로 옮길지** — 옮기면 BDDL 4개를 고치고 pick up을 다시 검증한다.
+  W5 9절이 제안한 블록 자리는 Mirobot X200 Y0, X240 Y±60이다. 시뮬 좌표로는 약 (−0.206, 0), (−0.146, ±0.090) m다.
+  이 시뮬 좌표는 TABLE_ALIGNMENT 5절 표에서 선형으로 계산한 값이며, 아직 검산하지 않았다
+  → **옮겼다 (10/7).** `common/workspace.py`의 `mirobot_to_libero_xyz_m`로 다시 계산했고, 선형 근사와 같았다.
+  짝은 Panda 시작 파지점 (−0.2085, 0) ↔ Mirobot 홈 파지점이고, s = 0.663이다.
+
+  | 색 | Mirobot 파지점 (mm) | 시뮬 중심 (m) | BDDL `:ranges` |
+  | --- | --- | --- | --- |
+  | red | X240 Y−60 | (−0.1462, −0.0905) | (−0.1762 −0.1205 −0.1162 −0.0605) |
+  | green | X200 Y0 | (−0.2065, 0.0000) | (−0.2365 −0.0300 −0.1765 0.0300) |
+  | blue | X240 Y+60 | (−0.1462, +0.0905) | (−0.1762 0.0605 −0.1162 0.1205) |
+
+  - LIBERO는 영역에서 블록 반경(40 mm 블록이면 28.3 mm)을 뺀 범위에 블록을 놓는다.
+    그래서 반폭을 30 mm로 잡으면 seed마다 축별로 ±1.7 mm 안에 놓여 사실상 고정이다(Mirobot 기준 약 ±1.1 mm).
+    seed 0–2에서 놓인 위치가 1 mm 단위 출력으로 목표와 1–2 mm 안에 있음을 확인했다
+  - 같은 영역을 BDDL 4개(`tabletop.bddl`, `tasks/*.bddl`)에 똑같이 적었다
+  - 블록 사이 간격이 0.109 m로 좁아져서 블록 크기 상한을 120 mm에서 **60 mm**로 내렸다 (`preview.py`)
+  - 재검증: `test_rgb_blocks` scene/red/green/blue 통과, `pickup.py` 15/15 (모두 146 step, 들어 올린 높이 0.146–0.147 m), 뷰어 테스트 47 OK
+  - 대가: 위치 다양성이 없어진다. 시뮬 데이터 수집(6절)에서 다양한 위치가 필요해지면 그때 영역을 넓힌다
+- [ ] **실물 블록 크기** — 시뮬 크기 = 실물 ÷ 0.663
+  →
+
+## 3. 좌표·자세 획득 — Panda 정보
+
+`pickup.py`가 지금은 단계별 EEF `xyz_m`와 `rxyz_deg`(scipy extrinsic xyz, 도)를 stdout에만 출력한다.
+이 각도 규약은 Mirobot `RxRyRz`(extrinsic XYZ, 9/13)와 같다. EEF는 `grip_site`(파지점)이고, 변환기 기본값 `DEFAULT_POINT = "grip"`과 맞다.
+
+- [ ] **무엇을 기록하나** — 번역기 입력에 맞추면 **매 step action**이 필요하다. 사람이 확인할 값으로는 단계별 keyframe을 쓴다
+  →
+- [ ] **관절값 추가** — Panda 7관절과 그리퍼. 10/5 회의 노트에 들어 있다.
+  Mirobot은 6관절이라 관절값을 그대로 옮기지는 않고, 기록만 해 둔다
+  →
+- [ ] **파일 저장 허락** — `data/`(git 제외)에 JSONL로 저장한다. rgb_blocks AGENTS.md는 요청 없이 결과 파일을 저장하지 않는 기준이다
+  →
+
+## 4. Mirobot 좌표 변환 — W5 번역기 연결
+
+W5에서 **action 번역**으로 정했다 (9/30).
+번역기 `tools/action_to_gcode.py`는 action을 시뮬 Panda에 넣고, 나온 손 자세를 `common/workspace.py`로 Mirobot G0 절대 좌표로 바꾼다.
+`pickup.py`의 action도 같은 OSC_POSE 7차원이다.
+
+- [ ] **번역기를 우리 장면에서 돌게 하기** — 지금은 LIBERO suite 장면만 받는다(`--suite`, `--task-name`).
+  W5 9-①은 "빈 탁상 + 고정 시작 자세"를 제안했다. RGB 블록 BDDL을 쓰는 방법을 정한다
+  →
+- [ ] **기본 짝·배율을 홈 · 0.663으로** — W5 9-①. 지금 `common/workspace.py`는 `DEFAULT_MAPPING = "home"`, 배율 1.0 그대로다
+  →
+- [ ] **그리퍼** — 번역기와 G-code는 위치·자세(G0)만 다루고 그리퍼 개폐 명령은 없다.
+  pick up이면 필요하다(`common/servo.py` 확인). 손 뻗기로 정하면 필요 없다
+  →
+- [ ] **`run_gcode --dry-run`** — 도달 범위(수평 280 mm), 각도 30°, Z 하한(66 막기 · 71 경고) 경고가 있는지 확인한다
+  →
+
+## 5. 실물 — 로봇 노트북 (카메라 불필요)
+
+W5 9-③: 블록 자리에 종이로 표시하고, 손끝의 위치·높이를 자로 잰다. 처음에는 `--auto`로 한 줄씩 실행한다.
+
+- [ ] 작업대 높이에서 안쪽 한계(X 150~170) 확인 (W5 9절)
+  →
+- [ ] G-code 실행과 손끝 오차 측정
+  →
+
+## 6. 카메라 도착 후 — 이번 주 범위 밖
+
+- [ ] D405 색·화각·해상도 보정을 RGB 블록 장면에 적용 (동료 [D405_LIBERO_CAMERA.md](../W5/D405_LIBERO_CAMERA.md)). 지금 장면은 LIBERO 기본 `agentview` 512×512다
+- [ ] 영상만으로 색과 좌표를 판단하는 pick up — 지금은 정답 좌표와 대상 이름을 쓴다 (PICKUP.md 7장)
+- [ ] VLA 학습 데이터 — episode마다 영상·지시문·action·proprio. 계획서 6장 로깅 스키마와 같은 형식으로
+- [ ] pick up이 확인하지 않은 범위 — region 밖, 블록 회전(yaw), 가까운 배치 (PICKUP.md 8장)
+
+## 7. 끝난 것
+
+- [x] **Panda pick up과 `Up` Goal** (10/6) — 15/15 성공, 브라우저 `--pickup`으로 세 색 화면 확인, `dd9c28c` push
+- [x] **동료 README 문장 정정** — "로컬 Goal은 배치 확인용"을 "색상 task goal False가 정상"으로 고쳤다 (10/6, 같은 커밋)
+- [x] **블록 자리를 Mirobot 범위로** (10/7) — 2절. 새 자리에서 pick up 15/15
+
+## 8. 다음 미팅에 가져갈 질문
+
+- [ ] 첫 과제는 pick up인가, 손 뻗기인가 (2절)
+- [ ] LIBERO 환경 용도 — 배치 기준 / 시뮬 데이터(실제 데이터와 혼합) / 시뮬 평가 (2절, W5 8절)
+
+## 관련 문서
+
+- [../meetings/2026-10-05.md](../meetings/2026-10-05.md) — 이번 주 action plan과 파이프라인
+- [rgb_blocks/PICKUP.md](rgb_blocks/PICKUP.md) — pick up 결정·구현·결과
+- [rgb_blocks/README.md](rgb_blocks/README.md) — RGB 블록 장면 실행법
+- [../W5/CHECKLIST.md](../W5/CHECKLIST.md) — 4-3 색 블록 장면 결정, 8 미팅 질문, 9 다음 action plan
+- [../W5/PIPELINE.md](../W5/PIPELINE.md) — 번역기 `action_to_gcode.py` 기록
+- [../W5/TABLE_ALIGNMENT.md](../W5/TABLE_ALIGNMENT.md) — 좌표 맞추기, 배율 0.663, 블록 자리 계산
+- [../W5/D405_LIBERO_CAMERA.md](../W5/D405_LIBERO_CAMERA.md) — D405와 LIBERO 영상 보정 (동료)
+- [../plan/UROP_프로젝트_계획.md](../plan/UROP_프로젝트_계획.md) — 6장 스크립트 궤적 생성, 로깅 스키마, 액션 표현
