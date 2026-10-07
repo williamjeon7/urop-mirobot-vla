@@ -1,23 +1,16 @@
-; Regions: Mirobot grip X240 Y-60 / X200 Y0 / X240 Y+60 mm (Zt measured spots, W5 CHECKLIST 9)
-;   mapped at scale 0.663 (docs/W5/TABLE_ALIGNMENT.md 5). Half-width 0.0434 m places a 40 mm cube
-;   within +-15.1 mm of the centre (Mirobot +-10 mm); LIBERO subtracts the cube radius.
+; Region: all three cubes share the Mirobot work area, grip X150-260 Y-100..+100 mm
+;   (W5 CHECKLIST 4-3 D), mapped at scale 0.663 (docs/W5/TABLE_ALIGNMENT.md 5).
+;   Cube centres span x -0.2819..-0.1160, y -0.1508..+0.1508 m; the range adds the
+;   40 mm cube radius 0.0283 m that LIBERO subtracts. Colour order is random per seed.
 ; Goal: the green block is lifted to z >= 1.0 m (LIBERO Up predicate).
 (define (problem LIBERO_Tabletop_Manipulation)
   (:domain robosuite)
   (:language Pick up the green block on the table)
 
   (:regions
-    (red_region
+    (work_region
       (:target main_table)
-      (:ranges ((-0.1896 -0.1339 -0.1028 -0.0471)))
-    )
-    (green_region
-      (:target main_table)
-      (:ranges ((-0.2499 -0.0434 -0.1631 0.0434)))
-    )
-    (blue_region
-      (:target main_table)
-      (:ranges ((-0.1896 0.0471 -0.1028 0.1339)))
+      (:ranges ((-0.3102 -0.1791 -0.0877 0.1791)))
     )
   )
 
@@ -29,9 +22,9 @@
   )
   (:obj_of_interest green_block_1)
   (:init
-    (On red_block_1 main_table_red_region)
-    (On green_block_1 main_table_green_region)
-    (On blue_block_1 main_table_blue_region)
+    (On red_block_1 main_table_work_region)
+    (On green_block_1 main_table_work_region)
+    (On blue_block_1 main_table_work_region)
   )
   (:goal
     (And

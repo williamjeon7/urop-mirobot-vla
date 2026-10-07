@@ -12,10 +12,12 @@ import numpy as np
 
 SCENARIOS = ("none", "adjacent", "sandwich")
 DEFAULT_GAP_MM = 20.0   # face-to-face gap; the open fingers reach past it
+CLEARANCE_M = 0.005     # a moved neighbour must stay this far (face to face) from the third cube
 # Neighbours are placed along world y, the axis the top-down fingers open along (pickup.TOP_DOWN).
-ADJACENT_NEIGHBOUR = {"red_block_1": ("green_block_1", +1),
-                      "green_block_1": ("red_block_1", -1),
-                      "blue_block_1": ("green_block_1", -1)}
+
+
+def _xy(env, name):
+    return env.env.object_states_dict[name].get_geom_state()["pos"][:2].copy()
 
 
 def _place(env, name, xy):
@@ -35,10 +37,23 @@ def apply_scenario(env, scenario, target, gap_mm=DEFAULT_GAP_MM):
         return {}
     edge = env.rgb_size_mm / 1000
     pitch = edge + gap_mm / 1000
-    centre = env.env.object_states_dict[target].get_geom_state()["pos"][:2].copy()
+    centre = _xy(env, target)
     if scenario == "adjacent":
-        name, side = ADJACENT_NEIGHBOUR[target]
-        layout = {name: centre + [0.0, side * pitch]}
+        # The nearest other cube slides next to the target, on its own side of y when that
+        # spot is clear of the third cube, otherwise on the other side. Never overlap.
+        others = sorted((n for n in env.env.objects_dict if n != target),
+                        key=lambda n: float(np.linalg.norm(_xy(env, n) - centre)))
+        name, third = others
+        first = 1.0 if _xy(env, name)[1] >= centre[1] else -1.0
+        layout = None
+        for side in (first, -first):
+            spot = centre + [0.0, side * pitch]
+            if np.max(np.abs(_xy(env, third) - spot)) >= edge + CLEARANCE_M:
+                layout = {name: spot}
+                break
+        if layout is None:
+            raise RuntimeError("scenario adjacent: both sides of {} are blocked by {}".format(
+                target, third))
     else:
         # Keep the neighbours' left/right order (lower y goes to the -y side).
         others = sorted((n for n in env.env.objects_dict if n != target),

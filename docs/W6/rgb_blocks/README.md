@@ -141,7 +141,8 @@ conda deactivate
 
 [objects.py](./objects.py)의 `BLOCK_SIZE_MM = 40.0` 값을 수정한다(mm).
 서버를 종료하고 다시 실행해야 적용된다.
-블록 자리는 Mirobot이 닿는 세 점이다([../CHECKLIST.md](../CHECKLIST.md) 2절). 블록끼리 간격이 좁아서 최대 60 mm까지만 쓸 수 있다.
+세 블록은 Mirobot 작업 영역(파지점 X 150~260, Y ±100 mm)을 시뮬로 옮긴 영역 하나에 무작위로 놓이고, 색 순서도 seed마다 바뀐다
+([../CHECKLIST.md](../CHECKLIST.md) 2절). 이 영역에는 최대 60 mm까지 쓸 수 있다.
 
 ## 5. 파일
 

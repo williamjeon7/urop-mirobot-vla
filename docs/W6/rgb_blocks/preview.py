@@ -35,8 +35,8 @@ def create_env(size_mm=None, resolution=RESOLUTION, seed=SEED,
     """Construct the same RGB scene for a still preview or live viewer."""
     if size_mm is None:
         size_mm = BLOCK_SIZE_MM
-    # The Mirobot-reachable layout puts cube centres 0.109 m apart (red/blue to green).
-    # LIBERO keeps sampled cubes sqrt(2) * edge apart, so larger cubes may fail to place.
+    # All three cubes share the Mirobot work area (about 0.166 x 0.302 m of centres) and
+    # LIBERO keeps them sqrt(2) * edge apart; 60 mm cubes still fit with room to vary.
     if not np.isfinite(size_mm) or not 0 < size_mm <= 60:
         raise ValueError("This tabletop layout supports 0 < BLOCK_SIZE_MM <= 60.")
     if resolution < 1:

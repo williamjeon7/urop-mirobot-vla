@@ -457,14 +457,20 @@ class LiveSimulation:
         env.seed(seed)
         obs = env.reset()
         scene_info = scene_state(env)
+        scenario_error = None
         if mode == "pickup":
             # Scenario layouts move neighbours once after the BDDL placement check.
-            tools["apply_scenario"](env, scenario, target)
+            try:
+                tools["apply_scenario"](env, scenario, target)
+            except RuntimeError as error:   # e.g. no free side: report it as this episode's result
+                scenario_error = str(error)
         with self.condition:
             self.status.update(scene_info)
         show(env.env._get_observations(force_update=True), 0, bool(env.check_success()), "reset")
         held = None
         try:
+            if scenario_error:
+                raise RuntimeError(scenario_error)
             if mode == "view":
                 zero = np.zeros(7, dtype=np.float32)
                 for step in range(1, VIEW_STEPS + 1):
