@@ -152,23 +152,108 @@ class BrowserViewerHTTPTests(unittest.TestCase):
         self.assertEqual(headers["Content-Length"], str(len(body)))
         status = json.loads(body.decode("utf-8"))
         token = status.pop("shutdown_token")
-        self.assertIsInstance(token, str)
-        self.assertGreaterEqual(len(token), 32)
-        self.assertTrue(token.isascii())
+        control_token = status.pop("control_token")
+        for value in (token, control_token):
+            self.assertIsInstance(value, str)
+            self.assertGreaterEqual(len(value), 32)
+            self.assertTrue(value.isascii())
+        self.assertNotEqual(token, control_token)
         self.assertEqual(status, self.simulation.get_status())
         self.assertNotIn("shutdown_token", self.simulation.get_status())
+
+    def control_request(self, body, token=None, host=None, origin=None, raw=None):
+        token = self.status()["control_token"] if token is None else token
+        payload = raw if raw is not None else json.dumps(body).encode("utf-8")
+        headers = {"X-RGB-Control-Token": token, "Content-Type": "application/json",
+                   "Host": host or "localhost:{}".format(self.port)}
+        if origin is not None:
+            headers["Origin"] = origin
+        connection = http.client.HTTPConnection(self.address, self.port, timeout=3)
+        try:
+            connection.putrequest("POST", "/control", skip_host=True)
+            for name, value in headers.items():
+                connection.putheader(name, value)
+            connection.putheader("Content-Length", str(len(payload)))
+            connection.endheaders(payload)
+            response = connection.getresponse()
+            return response.status, response.read()
+        finally:
+            connection.close()
+
+    def status(self):
+        return json.loads(self.request("/status")[2].decode("utf-8"))
+
+    def test_control_forwards_same_origin_commands_with_token(self):
+        received = []
+        self.simulation.control = lambda command: received.append(command) or {"ok": True}
+        origin = "http://localhost:{}".format(self.port)
+        code, body = self.control_request({"action": "pause"}, origin=origin)
+        self.assertEqual(code, 200)
+        self.assertEqual(json.loads(body), {"ok": True})
+        code, _ = self.control_request({"action": "play"})   # terminal clients send no Origin
+        self.assertEqual(code, 200)
+        code, _ = self.control_request({"action": "play"}, host="127.0.0.1:{}".format(self.port))
+        self.assertEqual(code, 200)
+        self.assertEqual(received, [{"action": "pause"}, {"action": "play"}, {"action": "play"}])
+
+    def test_control_rejects_wrong_token_host_or_origin(self):
+        received = []
+        self.simulation.control = lambda command: received.append(command) or {"ok": True}
+        own = "http://localhost:{}".format(self.port)
+        cases = [
+            dict(token="wrong-token"),
+            dict(token=self.status()["shutdown_token"]),
+            dict(token="\u00e9"),
+            dict(origin="http://untrusted.example"),
+            dict(origin="http://localhost:{}".format(self.port + 1)),
+            dict(host="attacker.example:{}".format(self.port),
+                 origin="http://attacker.example:{}".format(self.port)),
+        ]
+        for case in cases:
+            with self.subTest(case=case):
+                kwargs = dict(origin=own)
+                kwargs.update(case)
+                code, _ = self.control_request({"action": "pause"}, **kwargs)
+                self.assertEqual(code, 403)
+        self.assertEqual(received, [])
+        self.assertFalse(self.simulation.stop_event.is_set())
+
+    def test_control_rejects_bad_bodies_and_reports_missing_controls(self):
+        code, _ = self.control_request({"action": "pause"})
+        self.assertEqual(code, 409)   # FakeSimulation has no controls
+        self.simulation.control = lambda command: {"ok": True}
+        self.assertEqual(self.control_request(None, raw=b"not json")[0], 400)
+        self.assertEqual(self.control_request(["pause"])[0], 400)
+        self.assertEqual(self.control_request(None, raw=b"{" + b" " * 2000 + b"}")[0], 413)
+
+        def reject(command):
+            raise ValueError("unknown action")
+        self.simulation.control = reject
+        code, body = self.control_request({"action": "dance"})
+        self.assertEqual(code, 400)
+        self.assertIn("unknown action", json.loads(body)["error"])
+
+    def test_page_script_strings_do_not_span_lines(self):
+        # A raw newline inside a quoted JS string is a syntax error that silently kills
+        # the whole status script (10/6 bug). Every line must close its quotes.
+        script = PAGE.decode("utf-8").split("<script>", 1)[1].split("</script>", 1)[0]
+        for number, line in enumerate(script.splitlines(), 1):
+            with self.subTest(line=number):
+                self.assertEqual(line.replace("\\'", "").count("'") % 2, 0, line)
 
     def test_existing_legacy_viewer_is_recognized_over_http(self):
         # Keep this FakeSimulation without viewer_id to cover a server that was
         # already running before the duplicate-launch fix was installed.
         status = browser_viewer.probe_existing_viewer(self.port)
         self.assertTrue(status.pop("shutdown_token"))
+        self.assertTrue(status.pop("control_token"))
         self.assertEqual(status, self.simulation.get_status())
 
     def test_existing_identified_viewer_is_recognized_over_http(self):
         self.simulation.status["viewer_id"] = browser_viewer.VIEWER_ID
         status = browser_viewer.probe_existing_viewer(self.port)
         self.assertTrue(status.pop("shutdown_token"))
+        self.assertTrue(status.pop("control_token"))
         self.assertEqual(status, self.simulation.get_status())
 
     def shutdown_token(self):
@@ -725,6 +810,84 @@ class ExistingViewerTests(unittest.TestCase):
         simulation.start.assert_called_once_with()
         simulation.stop.assert_called_once_with()
         server.server_close.assert_called_once_with()
+
+
+class PlaybackControlTests(unittest.TestCase):
+    """The --pickup frame buffer and controls, without a simulator."""
+
+    def setUp(self):
+        self.sim = browser_viewer.LiveSimulation(task="red", pickup=True)
+        self.sim.status["seed"] = 4
+
+    def add(self, count):
+        with self.sim.condition:
+            for _ in range(count):
+                n = len(self.sim.frames)
+                self.sim._append_frame(b"frame%d" % n, n, "approach", False)
+
+    def test_new_frames_follow_until_the_viewer_steps_back(self):
+        self.add(3)
+        self.assertEqual((self.sim.cursor, self.sim.jpeg), (2, b"frame2"))
+        self.sim.control({"action": "step", "delta": -1})
+        self.assertTrue(self.sim.paused)
+        self.add(2)
+        self.assertEqual((self.sim.cursor, self.sim.jpeg), (1, b"frame1"))
+        self.assertEqual(self.sim.status["frames"], 5)
+
+    def test_seek_first_last_and_bounds(self):
+        self.add(5)
+        self.sim.control({"action": "seek", "index": 2})
+        self.assertEqual(self.sim.status["step"], 2)
+        self.sim.control({"action": "seek", "index": 99})
+        self.assertEqual(self.sim.cursor, 4)
+        self.sim.control({"action": "first"})
+        self.assertEqual(self.sim.cursor, 0)
+        self.sim.control({"action": "step", "delta": -1})
+        self.assertEqual(self.sim.cursor, 0)
+        self.sim.control({"action": "last"})
+        self.assertEqual(self.sim.cursor, 4)
+        for bad in ({"action": "seek", "index": True}, {"action": "seek", "index": "1"},
+                    {"action": "step", "delta": 2}, {"action": "step", "delta": False}):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    self.sim.control(bad)
+
+    def test_step_forward_at_newest_frame_asks_for_one_simulation_step(self):
+        self.add(2)
+        self.sim.control({"action": "step", "delta": 1})
+        self.assertTrue(self.sim.step_once)
+        self.sim.step_once = False
+        self.sim.episode_done = True
+        self.sim.control({"action": "step", "delta": 1})
+        self.assertFalse(self.sim.step_once)
+
+    def test_seed_requests_and_auto(self):
+        self.sim.control({"action": "run_seed", "seed": 17})
+        self.assertEqual(self.sim.request, {"seed": 17})
+        self.sim.control({"action": "next"})
+        self.assertEqual(self.sim.request, {"seed": 5})
+        for bad in (-1, 2 ** 31, 1.5, True, "3"):
+            with self.subTest(seed=bad):
+                with self.assertRaises(ValueError):
+                    self.sim.control({"action": "run_seed", "seed": bad})
+        self.sim.control({"action": "auto", "on": True})
+        self.assertTrue(self.sim.status["auto_advance"])
+        with self.assertRaises(ValueError):
+            self.sim.control({"action": "auto", "on": 1})
+        with self.assertRaises(ValueError):
+            self.sim.control({"action": "rewind-time"})
+
+    def test_display_changes_wake_the_stream(self):
+        self.add(3)
+        jpeg, version = self.sim.wait_for_frame(-1, timeout=0)
+        self.assertEqual(jpeg, b"frame2")
+        self.assertIsNone(self.sim.wait_for_frame(version, timeout=0))
+        self.sim.control({"action": "seek", "index": 0})
+        self.assertEqual(self.sim.wait_for_frame(version, timeout=0)[0], b"frame0")
+
+    def test_controls_need_pickup(self):
+        with self.assertRaises(ValueError):
+            browser_viewer.LiveSimulation(task="red").control({"action": "pause"})
 
 
 if __name__ == "__main__":

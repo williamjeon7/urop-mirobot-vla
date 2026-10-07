@@ -16,8 +16,12 @@
 - `scene` Goal은 배치 확인용이다. 색상 Task Goal은 LIBERO `Up`(z ≥ 1.0 m)이다.
   배치는 BDDL `:init` 조건으로 판정하고 Goal로 판정하지 않는다.
 - Pick up은 `pickup.py`의 `run_pickup`이 수행한다. OSC_POSE `env.step(action)`만 사용하고
-  물체 상태를 직접 바꾸지 않는다. 성공 조건은 `Up` Goal, `_check_grasp`, 다른 블록 `On` 유지다.
-  뷰어는 `--pickup`일 때 이 함수를 `on_step`으로 연결한다. 결정과 검증 기록은 `PICKUP.md`에 남긴다.
+  물체 상태를 직접 바꾸지 않는다. 성공 조건은 `Up` Goal, `_check_grasp`, 다른 블록이 1 cm 넘게 움직이지 않음,
+  그리고 `--scenario none`이면 다른 블록 `On` 유지다.
+  `scenarios.py`는 reset 직후 한 번만 이웃 블록 위치를 바꾸는 장면 준비다. 동작 중에는 물체를 옮기지 않는다.
+  뷰어는 `--pickup`일 때 이 함수를 `on_step`으로 연결한다. 지금 episode의 장면을 메모리에 두고
+  `/control`(per-instance 토큰, localhost Host, same-origin)로 일시정지·되돌리기·seed 선택을 받는다.
+  결정과 검증 기록은 `PICKUP.md`에 남긴다.
 - 사용자가 별도로 요청하지 않으면 이미지·GIF·영상·결과 JSON 파일을 저장하지 않는다.
   예외(10/7 허락): `pickup.py --log`는 번역기 입력용 JSONL을 `data/pickup/`(git 제외)에 남긴다.
   번역기(`tools/action_to_gcode.py`)가 만든 G-code는 `trajectories/`에 둔다.

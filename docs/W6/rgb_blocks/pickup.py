@@ -24,8 +24,10 @@ from scipy.spatial.transform import Rotation
 
 if __package__:
     from .preview import create_env
+    from .scenarios import SCENARIOS, apply_scenario
 else:
     from preview import create_env
+    from scenarios import SCENARIOS, apply_scenario
 
 REPO = Path(__file__).resolve().parents[3]
 # Top-down grasp: gripper z points down, fingers open along world y.
@@ -123,17 +125,33 @@ class PandaMover:
         print(json.dumps(row), flush=True)
 
 
+OTHERS_MOVE_LIMIT_M = 0.01
+
+
 def others_in_place(env, target):
     return all(bool(env.env._eval_predicate(s))
                for s in env.env.parsed_problem["initial_state"] if s[1] != target)
 
 
-def run_pickup(env, obs, target, on_step=None, record=None):
-    """Pick up `target` (e.g. "red_block_1") from a fresh reset and keep holding it."""
+def others_positions(env, target):
+    return {n: block_pos(env, n) for n in env.env.objects_dict if n != target}
+
+
+def others_max_move(env, start):
+    return max(float(np.linalg.norm(block_pos(env, n) - p)) for n, p in start.items())
+
+
+def run_pickup(env, obs, target, on_step=None, record=None, check_regions=True):
+    """Pick up `target` (e.g. "red_block_1") from a fresh reset and keep holding it.
+
+    Other blocks must not move more than 1 cm. `check_regions=False` skips their BDDL
+    `On region` check, for scenarios that start neighbours outside their regions.
+    """
     mover = PandaMover(env, obs, target, on_step, record)
     obj = env.env.objects_dict[target]
     initial_goal = bool(env.check_success())
     mover.move_to(mover.obs["robot0_eef_pos"].copy(), -1., "settle", limit=20, hold=True)
+    others_start = others_positions(env, target)
     start_block = block_pos(env, target)
     grasp = start_block.copy()
     mover.move_to(grasp + [0., 0., APPROACH_HEIGHT_M], -1., "approach")
@@ -152,7 +170,9 @@ def run_pickup(env, obs, target, on_step=None, record=None):
         "lift_height_m": round(float(block_pos(env, target)[2] - start_block[2]), 4),
         "goal_true_throughout_verify": bool(mover.verify_goals) and all(mover.verify_goals),
         "final_goal": bool(env.check_success()),
-        "other_blocks_in_place": others_in_place(env, target),
+        "others_max_move_m": round(others_max_move(env, others_start), 4),
+        "other_blocks_in_place": (others_max_move(env, others_start) < OTHERS_MOVE_LIMIT_M
+                                  and (not check_regions or others_in_place(env, target))),
         "phases": mover.phases,
     }
 
@@ -228,17 +248,30 @@ def main():
     parser.add_argument("--task", choices=("red", "green", "blue"), default="red")
     parser.add_argument("--mode", choices=("pickup", "reach"), default="pickup")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--scenario", choices=SCENARIOS, default="none",
+                        help="Start layout: neighbours close to the target along y (pickup mode only).")
+    parser.add_argument("--gap-mm", type=float, default=20.0,
+                        help="Face-to-face gap between the target and its neighbours for --scenario.")
     parser.add_argument("--size", type=int, default=128, help="Camera resolution only.")
     parser.add_argument("--log", nargs="?", const="auto", type=str,
                         help="Write a JSONL log (default path data/pickup/<time>-<mode>-<task>-s<seed>.jsonl).")
     args = parser.parse_args()
+    if args.scenario != "none" and args.mode != "pickup":
+        parser.error("--scenario is for --mode pickup")
     env = create_env(resolution=args.size, seed=args.seed, ignore_done=True, task=args.task)
     record = [] if args.log else None
     try:
         obs = env.reset()
         print("Task:", env.rgb_task["language"], "| mode:", args.mode, flush=True)
-        run = run_pickup if args.mode == "pickup" else run_reach
-        _, result = run(env, obs, env.rgb_task["target_object"], record=record)
+        target = env.rgb_task["target_object"]
+        if args.mode == "pickup":
+            moved = apply_scenario(env, args.scenario, target, args.gap_mm)
+            if moved:
+                print("Scenario", args.scenario, "moved", moved, flush=True)
+            _, result = run_pickup(env, obs, target, record=record,
+                                   check_regions=args.scenario == "none")
+        else:
+            _, result = run_reach(env, obs, target, record=record)
         if args.log:
             path = (REPO / "data" / "pickup" / "{}-{}-{}-s{}.jsonl".format(
                         time.strftime("%Y_%m_%d-%H_%M_%S"), args.mode, args.task, args.seed)

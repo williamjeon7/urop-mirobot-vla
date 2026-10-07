@@ -33,8 +33,27 @@ Panda가 지시한 색 블록을 집는 장면을 보려면 `--pickup`을 추가
 bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task red --pickup
 ```
 
-seed 0부터 1씩 올리며 블록 위치를 바꿔 pick up을 반복한다. 각 결과는 3초 동안 보여준다.
-화면 아래에 단계(phase), goal, 누적 성공 수가 표시된다.
+`--seed`(기본 0)로 시작한다. episode가 끝나면 마지막 장면에서 멈추고 다음 seed를 기다린다.
+영상 아래 조작판에서 다음을 할 수 있다.
+
+| 조작 | 동작 |
+| --- | --- |
+| ⏸ / ▶ (Space) | 일시정지·재생. 일시정지하면 시뮬레이션도 멈춘다(계산 중이던 한 step은 끝까지 진행된다) |
+| ◀ 1 / 1 ▶ (← →) | 한 step 뒤로·앞으로. 가장 최근 장면에서 앞으로 가면 시뮬레이션이 한 step 진행한다 |
+| 슬라이더, ⏮ ⏭ | 지금 episode의 지나간 장면을 다시 본다. 재생하면 그 지점부터 이어서 보여 준다 |
+| seed 입력 + "이 seed 실행" / "다음 seed" | 지금 episode를 멈추고 그 seed로 다시 시작한다 |
+| "끝나면 자동으로 다음 seed" | 켜면 episode가 끝날 때마다 다음 seed로 넘어간다 |
+
+지나간 장면은 지금 episode의 것만 메모리에 둔다. 파일로 저장하지 않는다.
+조작 요청에는 서버를 실행할 때마다 새로 만드는 토큰이 필요하다. 다른 웹사이트에서는 조작할 수 없다.
+
+블록이 가까이 붙어 그리퍼를 그대로 내리면 막히는 상황은 `--scenario`로 본다.
+`adjacent`는 한쪽, `sandwich`는 양쪽에 이웃 블록을 면 사이 20 mm로 붙인다([scenarios.py](./scenarios.py)).
+
+```bash
+bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task green --pickup --scenario sandwich
+```
+
 설계와 검증 기록은 [PICKUP.md](./PICKUP.md)에 있다.
 
 ### 1.2. 로컬 노트북 모니터에서 실행 (Windows)
@@ -139,6 +158,7 @@ conda deactivate
 | [tabletop.bddl](./tabletop.bddl) | 기본 `scene`의 물체·초기 배치·배치 Goal |
 | [tasks.py](./tasks.py), [tasks/](./tasks/) | 색상별 Task 선택과 BDDL 지시문·관심 대상·`Up` Goal |
 | [pickup.py](./pickup.py), [PICKUP.md](./PICKUP.md) | Panda OSC_POSE pick up action과 성공 판정, 진행 기록 |
+| [scenarios.py](./scenarios.py) | 블록이 가까이 붙은 시작 배치 (`--scenario`) |
 | [browser_viewer.py](./browser_viewer.py), [run_browser.sh](./run_browser.sh) | localhost 실시간 화면과 Bash 실행 진입점 |
 | [run_local.cmd](./run_local.cmd), [run_local.ps1](./run_local.ps1) | Windows 노트북 초기 설정·OpenCV/브라우저 실행 |
 | [test_rgb_blocks.py](./test_rgb_blocks.py) | 환경 초기화·배치·크기·관측 확인 |
