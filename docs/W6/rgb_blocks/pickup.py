@@ -1,13 +1,17 @@
-"""Panda pick up of one RGB block with OSC_POSE actions only; nothing is saved.
+"""Panda pick up (or reach) of one RGB block with OSC_POSE actions only.
 
 Phases follow W5 custom_task_validation task B (milk): approach -> lower ->
 grasp -> lift, then hold the block in the air while the BDDL goal (Up) is checked.
+`--mode reach` stops above the block instead (Mirobot check steps 1-2, W6 CHECKLIST 0).
+Nothing is saved unless `--log` is given; the log feeds tools/action_to_gcode.py.
 """
 
 import argparse
 import json
 import os
 import sys
+import time
+from pathlib import Path
 
 if sys.platform == "win32":
     os.environ["MUJOCO_GL"] = "wgl"
@@ -23,12 +27,22 @@ if __package__:
 else:
     from preview import create_env
 
+REPO = Path(__file__).resolve().parents[3]
 # Top-down grasp: gripper z points down, fingers open along world y.
 # This is close to the Panda's reset orientation, so no large wrist turn is needed.
 TOP_DOWN = np.array([[0., 1., 0.], [1., 0., 0.], [0., 0., -1.]])
 APPROACH_HEIGHT_M = 0.15   # above the block centre before lowering
 LIFT_HEIGHT_M = 0.15       # Up needs block z >= 1.0 m; the block rests near 0.92 m
 VERIFY_STEPS = 30
+# Reach mode hovers so the Mirobot fingertips stay 30 mm above its table (W5 CHECKLIST 9).
+# Vertical alignment (docs/W5/TABLE_ALIGNMENT.md 4): fingertip height on Mirobot =
+# s * (Panda grip z - touch point), touch point 0.9092 m, s 0.663.
+PANDA_TOUCH_Z_M = 0.9092
+MIROBOT_SCALE = 0.663
+HOVER_TIP_MM = 30.0
+HOVER_GRIP_Z_M = PANDA_TOUCH_Z_M + HOVER_TIP_MM / 1000 / MIROBOT_SCALE
+HOVER_STEPS = 20
+REACH_XY_TOLERANCE_M = 0.005
 
 
 def block_pos(env, name):
@@ -44,74 +58,132 @@ def eef_pose(env, obs):
                          for v in Rotation.from_matrix(rotation).as_euler("xyz", degrees=True)]}
 
 
-def run_pickup(env, obs, target, on_step=None):
-    """Pick up `target` (e.g. "red_block_1") from a fresh reset and keep holding it."""
-    robot = env.env.robots[0]
-    obj = env.env.objects_dict[target]
-    others = [state for state in env.env.parsed_problem["initial_state"] if state[1] != target]
-    steps = 0
-    phases = []
-    verify_goals = []
+class PandaMover:
+    """Feedback OSC_POSE steps toward a top-down target; optional per-step record."""
 
-    def rotation_error():
-        current = env.sim.data.site_xmat[robot.eef_site_id].reshape(3, 3)
+    def __init__(self, env, obs, target, on_step=None, record=None):
+        self.env, self.obs, self.target = env, obs, target
+        self.robot = env.env.robots[0]
+        self.on_step, self.record = on_step, record
+        self.steps = 0
+        self.phases = []
+        self.verify_goals = []
+        self.touched = set()
+
+    def rotation_error(self):
+        current = self.env.sim.data.site_xmat[self.robot.eef_site_id].reshape(3, 3)
         return Rotation.from_matrix(TOP_DOWN @ current.T).as_rotvec()
 
-    def step_toward(goal_pos, gripper, phase):
-        nonlocal obs, steps
+    def step_toward(self, goal_pos, gripper, phase):
+        env = self.env
         action = np.zeros(7, dtype=np.float32)
         # OSC_POSE scales inputs in [-1, 1] to 0.05 m and 0.5 rad per step.
-        action[:3] = np.clip((goal_pos - obs["robot0_eef_pos"]) / 0.05, -0.5, 0.5)
-        action[3:6] = np.clip(rotation_error() / 0.5, -0.5, 0.5)
+        action[:3] = np.clip((goal_pos - self.obs["robot0_eef_pos"]) / 0.05, -0.5, 0.5)
+        action[3:6] = np.clip(self.rotation_error() / 0.5, -0.5, 0.5)
         action[6] = gripper
-        obs, _, _, _ = env.step(action)
-        steps += 1
+        self.obs, _, _, _ = env.step(action)
+        self.steps += 1
         goal = bool(env.check_success())
         if phase == "verify":
-            verify_goals.append(goal)
-        if on_step is not None:
-            on_step(obs, steps, phase, goal)
+            self.verify_goals.append(goal)
+        for name, obj in env.env.objects_dict.items():
+            if env.env.check_contact(self.robot.gripper, obj):
+                self.touched.add(name)
+        if self.record is not None:
+            pose = eef_pose(env, self.obs)
+            self.record.append({
+                "step": self.steps, "phase": phase,
+                "action": [float(v) for v in action],
+                "eef_pos": [float(v) for v in self.obs["robot0_eef_pos"]],
+                "eef_quat_xyzw": [float(v) for v in self.obs["robot0_eef_quat"]],
+                "eef_rxyz_deg": pose["rxyz_deg"],
+                "joint_pos": [float(env.sim.data.qpos[i]) for i in self.robot._ref_joint_pos_indexes],
+                "gripper_qpos": [float(v) for v in self.obs["robot0_gripper_qpos"]],
+                "goal": goal,
+            })
+        if self.on_step is not None:
+            self.on_step(self.obs, self.steps, phase, goal)
 
-    def move_to(goal_pos, gripper, phase, limit=200, tolerance=0.006, hold=False):
+    def move_to(self, goal_pos, gripper, phase, limit=200, tolerance=0.006, hold=False):
         goal_pos = np.asarray(goal_pos, dtype=float)
-        start = steps
+        start = self.steps
         for _ in range(limit):
-            step_toward(goal_pos, gripper, phase)
-            error = np.linalg.norm(goal_pos - obs["robot0_eef_pos"])
-            if not hold and error < tolerance and np.linalg.norm(rotation_error()) < 0.08:
+            self.step_toward(goal_pos, gripper, phase)
+            error = np.linalg.norm(goal_pos - self.obs["robot0_eef_pos"])
+            if not hold and error < tolerance and np.linalg.norm(self.rotation_error()) < 0.08:
                 break
         else:
             if not hold:
                 raise RuntimeError("{}: EEF did not reach target (error {:.4f} m)".format(phase, error))
-        row = {"phase": phase, "steps": steps - start, "eef": eef_pose(env, obs),
-               "block_xyz_m": [round(float(v), 4) for v in block_pos(env, target)],
-               "gripper_qpos": [round(float(v), 4) for v in obs["robot0_gripper_qpos"]],
-               "goal": bool(env.check_success())}
-        phases.append(row)
+        row = {"phase": phase, "steps": self.steps - start, "eef": eef_pose(self.env, self.obs),
+               "block_xyz_m": [round(float(v), 4) for v in block_pos(self.env, self.target)],
+               "gripper_qpos": [round(float(v), 4) for v in self.obs["robot0_gripper_qpos"]],
+               "goal": bool(self.env.check_success())}
+        self.phases.append(row)
         print(json.dumps(row), flush=True)
 
+
+def others_in_place(env, target):
+    return all(bool(env.env._eval_predicate(s))
+               for s in env.env.parsed_problem["initial_state"] if s[1] != target)
+
+
+def run_pickup(env, obs, target, on_step=None, record=None):
+    """Pick up `target` (e.g. "red_block_1") from a fresh reset and keep holding it."""
+    mover = PandaMover(env, obs, target, on_step, record)
+    obj = env.env.objects_dict[target]
     initial_goal = bool(env.check_success())
-    move_to(obs["robot0_eef_pos"].copy(), -1., "settle", limit=20, hold=True)
+    mover.move_to(mover.obs["robot0_eef_pos"].copy(), -1., "settle", limit=20, hold=True)
     start_block = block_pos(env, target)
     grasp = start_block.copy()
-    move_to(grasp + [0., 0., APPROACH_HEIGHT_M], -1., "approach")
-    move_to(grasp, -1., "lower")
-    move_to(grasp, 1., "grasp", limit=30, hold=True)
-    grasped = bool(env.env._check_grasp(robot.gripper, obj))
+    mover.move_to(grasp + [0., 0., APPROACH_HEIGHT_M], -1., "approach")
+    mover.move_to(grasp, -1., "lower")
+    mover.move_to(grasp, 1., "grasp", limit=30, hold=True)
+    grasped = bool(env.env._check_grasp(mover.robot.gripper, obj))
     if not grasped:
         raise RuntimeError("grasp: both finger pads are not in contact with " + target)
-    move_to(grasp + [0., 0., LIFT_HEIGHT_M], 1., "lift")
-    move_to(obs["robot0_eef_pos"].copy(), 1., "verify", limit=VERIFY_STEPS, hold=True)
-    return obs, {
-        "target": target, "steps": steps,
+    mover.move_to(grasp + [0., 0., LIFT_HEIGHT_M], 1., "lift")
+    mover.move_to(mover.obs["robot0_eef_pos"].copy(), 1., "verify", limit=VERIFY_STEPS, hold=True)
+    return mover.obs, {
+        "mode": "pickup", "target": target, "steps": mover.steps,
         "initial_goal": initial_goal,
         "grasp_confirmed": grasped,
-        "still_grasped": bool(env.env._check_grasp(robot.gripper, obj)),
+        "still_grasped": bool(env.env._check_grasp(mover.robot.gripper, obj)),
         "lift_height_m": round(float(block_pos(env, target)[2] - start_block[2]), 4),
-        "goal_true_throughout_verify": bool(verify_goals) and all(verify_goals),
+        "goal_true_throughout_verify": bool(mover.verify_goals) and all(mover.verify_goals),
         "final_goal": bool(env.check_success()),
-        "other_blocks_in_place": all(bool(env.env._eval_predicate(s)) for s in others),
-        "phases": phases,
+        "other_blocks_in_place": others_in_place(env, target),
+        "phases": mover.phases,
+    }
+
+
+def run_reach(env, obs, target, on_step=None, record=None):
+    """Hover over `target` without touching any block, then return to the start pose."""
+    mover = PandaMover(env, obs, target, on_step, record)
+    initial_goal = bool(env.check_success())
+    mover.move_to(mover.obs["robot0_eef_pos"].copy(), -1., "settle", limit=20, hold=True)
+    start_eef = mover.obs["robot0_eef_pos"].copy()
+    block = block_pos(env, target)
+    hover = np.array([block[0], block[1], HOVER_GRIP_Z_M])
+    mover.move_to(block + [0., 0., APPROACH_HEIGHT_M], -1., "approach")
+    mover.move_to(hover, -1., "hover")
+    mover.move_to(hover, -1., "hover_hold", limit=HOVER_STEPS, hold=True)
+    hover_eef = mover.obs["robot0_eef_pos"].copy()
+    mover.move_to(block + [0., 0., APPROACH_HEIGHT_M], -1., "rise")
+    mover.move_to(start_eef, -1., "return")
+    return mover.obs, {
+        "mode": "reach", "target": target, "steps": mover.steps,
+        "initial_goal": initial_goal,
+        "hover_xy_error_m": round(float(np.linalg.norm(hover_eef[:2] - block[:2])), 4),
+        "hover_grip_z_m": round(float(hover_eef[2]), 4),
+        "hover_tip_on_mirobot_mm": round((float(hover_eef[2]) - PANDA_TOUCH_Z_M) * 1000 * MIROBOT_SCALE, 1),
+        "touched_blocks": sorted(mover.touched),
+        "return_error_m": round(float(np.linalg.norm(mover.obs["robot0_eef_pos"] - start_eef)), 4),
+        "final_goal": bool(env.check_success()),
+        "other_blocks_in_place": others_in_place(env, target),
+        "target_in_place": all(bool(env.env._eval_predicate(s))
+                               for s in env.env.parsed_problem["initial_state"] if s[1] == target),
+        "phases": mover.phases,
     }
 
 
@@ -121,17 +193,57 @@ def pickup_success(result):
             and result["goal_true_throughout_verify"] and result["other_blocks_in_place"])
 
 
+def reach_success(result):
+    """Hovered over the target without touching any block, and came back."""
+    return (not result["initial_goal"] and result["hover_xy_error_m"] < REACH_XY_TOLERANCE_M
+            and not result["touched_blocks"] and result["other_blocks_in_place"]
+            and result["target_in_place"] and not result["final_goal"])
+
+
+def write_log(path, env, args, result, record):
+    """JSONL for tools/action_to_gcode.py: a meta line, then one line per step with `action`."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    spec = env.rgb_task
+    meta = {
+        "source": "docs/W6/rgb_blocks/pickup.py", "mode": args.mode, "task": spec["name"],
+        "instruction": spec["language"], "target": spec["target_object"], "seed": args.seed,
+        "bddl": str(Path(spec["bddl_file"]).resolve().relative_to(REPO)),
+        "register": "docs/W6/rgb_blocks/objects.py:register_blocks",
+        "block_size_mm": env.rgb_size_mm,
+        # The settle phase is already in the actions, so the translator adds no dummy steps.
+        "settle": 0, "pos_unit": "m, world", "quat_order_raw": "xyzw",
+        "point": "grip (robot0_eef_pos)", "rxyz": "scipy extrinsic xyz, deg, LIBERO frame",
+        "joint_pos": "Panda 7 joints, rad (sim.data.qpos)",
+    }
+    with path.open("w", encoding="utf-8") as out:
+        out.write(json.dumps({"meta": meta}, ensure_ascii=False) + "\n")
+        for row in record:
+            out.write(json.dumps(row) + "\n")
+        summary = {k: v for k, v in result.items() if k != "phases"}
+        out.write(json.dumps({"result": summary}, ensure_ascii=False) + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", choices=("red", "green", "blue"), default="red")
+    parser.add_argument("--mode", choices=("pickup", "reach"), default="pickup")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--size", type=int, default=128, help="Camera resolution only.")
+    parser.add_argument("--log", nargs="?", const="auto", type=str,
+                        help="Write a JSONL log (default path data/pickup/<time>-<mode>-<task>-s<seed>.jsonl).")
     args = parser.parse_args()
     env = create_env(resolution=args.size, seed=args.seed, ignore_done=True, task=args.task)
+    record = [] if args.log else None
     try:
         obs = env.reset()
-        print("Task:", env.rgb_task["language"], flush=True)
-        _, result = run_pickup(env, obs, env.rgb_task["target_object"])
+        print("Task:", env.rgb_task["language"], "| mode:", args.mode, flush=True)
+        run = run_pickup if args.mode == "pickup" else run_reach
+        _, result = run(env, obs, env.rgb_task["target_object"], record=record)
+        if args.log:
+            path = (REPO / "data" / "pickup" / "{}-{}-{}-s{}.jsonl".format(
+                        time.strftime("%Y_%m_%d-%H_%M_%S"), args.mode, args.task, args.seed)
+                    if args.log == "auto" else Path(args.log))
+            write_log(path, env, args, result, record)
     except RuntimeError as error:
         print(str(error), file=sys.stderr)
         return 1
@@ -139,7 +251,10 @@ def main():
         env.close()
     summary = {k: v for k, v in result.items() if k != "phases"}
     print(json.dumps(summary, indent=2))
-    return 0 if pickup_success(result) else 1
+    if args.log:
+        print("saved", path)
+    ok = pickup_success(result) if args.mode == "pickup" else reach_success(result)
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

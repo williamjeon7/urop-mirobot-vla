@@ -170,4 +170,15 @@ Panda pick up은 창 없이 다음처럼 확인한다. 성공하면 exit 0으로
 ```bash
 python -B ~/UROP/docs/W6/rgb_blocks/pickup.py --task red --seed 0
 ```
+
+`--mode reach`는 블록을 집지 않고 블록 위에서 멈춘다. 이때 손끝은 Mirobot 기준 작업대 위 30 mm에 온다.
+`--log`를 주면 Mirobot 변환용 기록을 `data/pickup/`에 남긴다.
+변환과 검사는 저장소 루트에서 `cosmos-policy/.venv`로 실행한다([../CHECKLIST.md](../CHECKLIST.md) 4절).
+
+```bash
+python -B ~/UROP/docs/W6/rgb_blocks/pickup.py --task green --mode reach --seed 0 --log
+cd ~/UROP
+cosmos-policy/.venv/bin/python -m tools.action_to_gcode --log data/pickup/<기록>.jsonl --scale 0.663 --out trajectories/<이름>.gcode
+cosmos-policy/.venv/bin/python -m tools.run_gcode trajectories/<이름>.gcode --dry-run
+```
 `--size`는 카메라 해상도이며 블록 크기는 `BLOCK_SIZE_MM`으로 조절한다.

@@ -32,8 +32,8 @@ pick up 구현의 결정과 결과: [rgb_blocks/PICKUP.md](rgb_blocks/PICKUP.md)
 | BDDL | 완료 (동료). 색상 task Goal을 `Up`으로 바꿨다 (10/6). **블록 자리를 Mirobot 범위로 옮겼다 (10/7)** | `rgb_blocks/tasks/*.bddl` |
 | LIBERO Tabletop · Simulator 작동 | 완료 (동료) | `preview.py`, `browser_viewer.py` |
 | **LIBERO / Panda Action 수행** | **완료 (10/6)** — red/green/blue × seed 0–4, 15/15 성공. 새 자리에서도 15/15 (10/7) | [rgb_blocks/pickup.py](rgb_blocks/pickup.py), PICKUP.md |
-| 좌표·자세 획득 | 단계별 EEF xyz와 Rx Ry Rz를 **stdout에만** 출력한다. 관절값은 아직 없다 | 3절 |
-| Mirobot 좌표계로 변환 | 도구는 있다. W5 번역기 `tools/action_to_gcode.py`와 `common/workspace.py`. 우리 장면에는 아직 연결되지 않았다 | 4절 |
+| 좌표·자세 획득 | **완료 (10/7)** — `pickup.py --log`가 매 step action·EEF·관절값을 JSONL로 남긴다 | 3절 |
+| Mirobot 좌표계로 변환 | **손 뻗기 완료 (10/7)** — 번역기가 우리 장면에서 돌고, G-code 3개가 `--dry-run`을 경고 없이 통과했다. pick up은 Z 하한에 걸린다 | 4절 |
 | 실제 로봇 명령 | 도구는 있다(`tools/run_gcode.py`). 카메라 없이도 할 수 있다 | 5절 |
 
 **범위 밖 (카메라 도착 후)** — 6절
@@ -98,12 +98,14 @@ W5 CHECKLIST 4-3절은 10/5 커밋 `209ed24`로, 10/5 action plan보다 먼저 �
 이 각도 규약은 Mirobot `RxRyRz`(extrinsic XYZ, 9/13)와 같다. EEF는 `grip_site`(파지점)이고, 변환기 기본값 `DEFAULT_POINT = "grip"`과 맞다.
 
 - [ ] **무엇을 기록하나** — 번역기 입력에 맞추면 **매 step action**이 필요하다. 사람이 확인할 값으로는 단계별 keyframe을 쓴다
-  →
+  → **매 step 기록 (10/7).** `pickup.py --log`가 `data/pickup/<시각>-<mode>-<task>-s<seed>.jsonl`을 남긴다.
+  첫 줄 `meta`에는 bddl, register, seed, `settle 0`이 들어가고, step마다 `action`, `eef_pos`, `eef_quat_xyzw`,
+  `eef_rxyz_deg`, `joint_pos`(7), `gripper_qpos`, `goal`이 들어간다. 마지막 줄은 `result`다. 단계별 keyframe은 지금처럼 stdout에 출력한다
 - [ ] **관절값 추가** — Panda 7관절과 그리퍼. 10/5 회의 노트에 들어 있다.
   Mirobot은 6관절이라 관절값을 그대로 옮기지는 않고, 기록만 해 둔다
-  →
+  → `joint_pos`로 기록한다 (10/7). 관측에는 꺼져 있어서 `sim.data.qpos`에서 읽는다
 - [ ] **파일 저장 허락** — `data/`(git 제외)에 JSONL로 저장한다. rgb_blocks AGENTS.md는 요청 없이 결과 파일을 저장하지 않는 기준이다
-  →
+  → **허락 (10/7).** `--log`를 줄 때만 저장한다. G-code는 기존 관례대로 `trajectories/`(git 포함)에 둔다
 
 ## 4. Mirobot 좌표 변환 — W5 번역기 연결
 
@@ -113,18 +115,36 @@ W5에서 **action 번역**으로 정했다 (9/30).
 
 - [ ] **번역기를 우리 장면에서 돌게 하기** — 지금은 LIBERO suite 장면만 받는다(`--suite`, `--task-name`).
   W5 9-①은 "빈 탁상 + 고정 시작 자세"를 제안했다. RGB 블록 BDDL을 쓰는 방법을 정한다
-  →
+  → **된다 (10/7).** `--bddl`, `--register 파일.py:함수`, `--seed`를 추가했고, 주지 않으면 기록 meta의 값을 쓴다. 기존 suite 사용법은 그대로다.
+  초기 자세 노이즈는 LIBERO 기본값이 `None`이라 시작 자세가 같다.
+  **재현 확인** — 번역기는 `cosmos-policy/.venv`(LIBERO site-packages)에서, pickup은 conda `libero`(W6 LIBERO)에서 돈다.
+  그래도 step마다 손 위치 차이가 손 뻗기는 최대 1.2e-15 m, pick up은 1.2e-6 m였다. pick up의 Goal도 같은 step 105에서 처음 뜬다
 - [ ] **기본 짝·배율을 홈 · 0.663으로** — W5 9-①. 지금 `common/workspace.py`는 `DEFAULT_MAPPING = "home"`, 배율 1.0 그대로다
-  →
+  → 기본값은 바꾸지 않았다. 이번에는 `--scale 0.663`을 직접 줬다. 기본값 변경은 다른 도구에도 영향을 주므로 W5 9-① 항목으로 남긴다
 - [ ] **그리퍼** — 번역기와 G-code는 위치·자세(G0)만 다루고 그리퍼 개폐 명령은 없다.
   pick up이면 필요하다(`common/servo.py` 확인). 손 뻗기로 정하면 필요 없다
   →
 - [ ] **`run_gcode --dry-run`** — 도달 범위(수평 280 mm), 각도 30°, Z 하한(66 막기 · 71 경고) 경고가 있는지 확인한다
-  →
+  → **손 뻗기 3개는 통과, pick up은 막힘 (10/7, seed 0)**
+
+  | G-code (`trajectories/`) | 줄 | 수평 최대 | 각도 최대 | Z 최저 | 블록 위 정지 플랜지 | 목표와 차이 | dry-run |
+  | --- | ---: | ---: | ---: | ---: | --- | ---: | --- |
+  | `2026_10_07-w6-reach-red-s0.gcode` | 114 | 251.3 mm | 2.9° | 85.3 mm | X240.74 Y−60.39 Z85.55 | 0.84 mm | 경고 없음 |
+  | `2026_10_07-w6-reach-green-s0.gcode` | 113 | 202.6 mm | 2.9° | 85.2 mm | X199.93 Y0.06 Z85.63 | 0.09 mm | 경고 없음 |
+  | `2026_10_07-w6-reach-blue-s0.gcode` | 115 | 248.8 mm | 2.9° | 85.3 mm | X238.70 Y59.19 Z85.55 | 1.53 mm | 경고 없음 |
+  | `2026_10_07-w6-pickup-red-s0.gcode` | 146 | 251.3 mm | 2.9° | **62.5 mm** | — | — | **Z 66 아래 32줄 → 보내지 않음** |
+
+  - 손 뻗기는 블록 위에서 손끝이 작업대 위 30 mm에 오도록 멈춘다(플랜지 Z ≈ Zt 55.7 + 30). 목표와의 차이는 블록 배치(±1.1 mm)와 정지 오차를 합친 값이다
+  - 마지막 줄은 홈 근처다(X 195~198, Z 228). 처음 몇 줄은 Panda 시작 기울기 3°를 바로잡는 동작이다(B 2.9° → 0)
+  - **pick up이 막히는 이유**: 블록 중심(작업대 위 20 mm)에서 잡으면 플랜지 Z = 55.7 + 0.663 × 11.8 ≈ 63.5 mm다.
+    닫은 집게가 작업대에 닿는 높이(60.7 mm)에 여유를 둔 하한 66 mm보다 낮다. 3단계로 가려면 정해야 한다 — 잡는 높이를 블록 위쪽으로 /
+    실물 블록 크기 / 이 파일만 `--z-floor` 낮추기(Zt 측정 때처럼)
 
 ## 5. 실물 — 로봇 노트북 (카메라 불필요)
 
 W5 9-③: 블록 자리에 종이로 표시하고, 손끝의 위치·높이를 자로 잰다. 처음에는 `--auto`로 한 줄씩 실행한다.
+보낼 파일은 4절 표의 손 뻗기 G-code 3개다. 로봇 노트북이 받으려면 push가 필요하다.
+줄이 113~115개라 `--auto`로는 waypoint마다 멈춰 오래 걸린다. 줄 수를 줄이려면 번역기 `--every N`을 쓴다(아직 안 함).
 
 - [ ] 작업대 높이에서 안쪽 한계(X 150~170) 확인 (W5 9절)
   →
@@ -143,6 +163,7 @@ W5 9-③: 블록 자리에 종이로 표시하고, 손끝의 위치·높이를 �
 - [x] **Panda pick up과 `Up` Goal** (10/6) — 15/15 성공, 브라우저 `--pickup`으로 세 색 화면 확인, `dd9c28c` push
 - [x] **동료 README 문장 정정** — "로컬 Goal은 배치 확인용"을 "색상 task goal False가 정상"으로 고쳤다 (10/6, 같은 커밋)
 - [x] **블록 자리를 Mirobot 범위로** (10/7) — 2절. 새 자리에서 pick up 15/15
+- [x] **좌표·자세 기록과 번역기 연결** (10/7) — 3·4절. 손 뻗기 G-code 3개 dry-run 통과
 
 ## 8. 다음 미팅에 가져갈 질문
 

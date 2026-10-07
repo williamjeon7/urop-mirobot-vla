@@ -5,6 +5,9 @@
     python -m tools.action_to_gcode --log data/follow/2026_09_28-10_36_55.jsonl
     python -m tools.run_gcode <나온 파일> --dry-run        # 도달 범위·Z 하한 경고가 있나
 
+    # LIBERO suite 밖의 장면 (W6 RGB 블록) — 기록 meta 의 bddl · register · seed 를 그대로 쓴다
+    python -m tools.action_to_gcode --log data/pickup/<기록>.jsonl --scale 0.663
+
 policy 가 내는 action 은 "여기로 가라" 가 아니라 **Panda OSC 에 주는 변화량**이라, 같은 값이라도 실제로
 얼마나 가는지는 컨트롤러의 강성·감쇠와 현재 속도가 정한다. 그래서 곱하기로는 Mirobot 좌표로 못 바꾼다.
 
@@ -122,6 +125,28 @@ def read_actions(path: Path, episode: int | None = None) -> tuple[dict, list[lis
     return meta, [a for _, a in chosen]
 
 
+def register_objects(spec: str) -> None:
+    """`파일.py:함수` 를 불러 사용자 물체를 LIBERO 에 등록한다 — BDDL 이 그 물체 이름을 쓰기 전에."""
+    import importlib.util
+
+    path, _, func = spec.partition(":")
+    module_spec = importlib.util.spec_from_file_location(Path(path).stem, path)
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    getattr(module, func or "register")()
+
+
+def first_goal_step(path: Path) -> int | None:
+    """원래 실행에서 과제 성공이 처음 뜬 스텝 — 기록 줄에 `goal` 이 있을 때만 (W6 pickup.py)."""
+    if path.suffix != ".jsonl":
+        return None
+    for line in path.open(encoding="utf-8"):
+        row = json.loads(line)
+        if row.get("action") and row.get("goal"):
+            return row["step"]
+    return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--log", type=Path, required=True,
@@ -144,6 +169,10 @@ def main() -> None:
     parser.add_argument("--task-name", default="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet")
     parser.add_argument("--task-id", type=int, help="suite 안의 태스크 번호. 주면 --task-name 대신 쓴다 "
                         "(eval 은 태스크 0 부터 차례로 돌므로 에피소드 순서와 맞다)")
+    parser.add_argument("--bddl", type=Path, help="suite 밖의 BDDL. 주면 suite·태스크·초기 상태 대신 seed 로 reset 한다. "
+                        "없으면 기록 meta 의 bddl")
+    parser.add_argument("--register", help="BDDL 전에 부를 물체 등록 `파일.py:함수`. 없으면 기록 meta 의 register")
+    parser.add_argument("--seed", type=int, help="--bddl 장면의 reset seed. 없으면 기록 meta 의 seed (없으면 0)")
     parser.add_argument("--init-state", type=int, default=0,
                         help="초기 상태 번호. eval 은 회차 번호를 그대로 쓴다 (1회차 = 0)")
     parser.add_argument("--res", type=int, default=384)
@@ -164,12 +193,26 @@ def main() -> None:
     if args.scale is not None:
         scale = args.scale
 
-    if args.task_id is not None:
-        suite, task_id = benchmark.get_benchmark_dict()[args.suite](), args.task_id
+    custom_bddl = args.bddl or src_meta.get("bddl")
+    seed = args.seed if args.seed is not None else src_meta.get("seed", 0)
+    if custom_bddl:
+        # suite 밖의 장면 — 초기 상태 파일이 없으니 원래 실행과 같은 seed 로 reset 해서 같은 배치를 만든다
+        suite = task_id = None
+        bddl = str(custom_bddl)
+        task_name = src_meta.get("task") or Path(bddl).stem
+        scene = f"{bddl} (seed {seed})"
+        register = args.register or src_meta.get("register")
+        if register:
+            register_objects(register)
     else:
-        suite, task_id = find_task(args.suite, args.task_name)
-    task = suite.get_task(task_id)
-    bddl = os.path.join(get_libero_path("bddl_files"), task.problem_folder, task.bddl_file)
+        if args.task_id is not None:
+            suite, task_id = benchmark.get_benchmark_dict()[args.suite](), args.task_id
+        else:
+            suite, task_id = find_task(args.suite, args.task_name)
+        task = suite.get_task(task_id)
+        task_name = task.name
+        scene = f"{args.suite} 태스크 {task_id} ({task_name}), 초기 상태 {args.init_state}"
+        bddl = os.path.join(get_libero_path("bddl_files"), task.problem_folder, task.bddl_file)
     stamp = time.strftime("%H_%M_%S")
 
     args.log_dir.mkdir(parents=True, exist_ok=True)
@@ -184,9 +227,13 @@ def main() -> None:
     rows, frames, n = [], [], 0
     log = log_path.open("w")
     try:
-        env.seed(0)
-        env.reset()
-        obs = env.set_init_state(suite.get_task_init_states(task_id)[args.init_state])
+        if custom_bddl:
+            env.seed(seed)
+            obs = env.reset()
+        else:
+            env.seed(0)
+            env.reset()
+            obs = env.set_init_state(suite.get_task_init_states(task_id)[args.init_state])
         # 대기 동작은 eval 의 `get_libero_dummy_action` · libero_follow 와 같게 — 그리퍼 정확히 −1.
         # 정책 action 의 그리퍼는 −1.005 처럼 살짝 넘치므로 첫 action 에서 빌려 오면 안 된다
         dummy = [0.0] * 6 + [GRIPPER_OPEN]
@@ -199,9 +246,12 @@ def main() -> None:
         p_grip, q = read_pose(obs)
         ref_flange = grip_to_flange(p_grip, q)
         ref_q = q
-        log.write(json.dumps({"meta": {"source": str(args.log), "suite": args.suite, "task_id": task_id,
-                                       "init_state": args.init_state, "source_meta": src_meta,
-                                       "task": task.name, "actions": len(actions),
+        log.write(json.dumps({"meta": {"source": str(args.log), "suite": None if custom_bddl else args.suite,
+                                       "task_id": task_id, "bddl": bddl if custom_bddl else None,
+                                       "seed": seed if custom_bddl else None,
+                                       "init_state": None if custom_bddl else args.init_state,
+                                       "source_meta": src_meta,
+                                       "task": task_name, "actions": len(actions),
                                        "settle": settle, "orientation": args.orientation, "point": args.point,
                                        "every": args.every, "horizon": horizon, "mapping": args.mapping,
                                        "ref_mirobot_mm": list(ref_mirobot), "scale": scale,
@@ -242,7 +292,7 @@ def main() -> None:
     which = "파지점 ↔ 파지점" if args.point == "grip" else "플랜지 ↔ 플랜지"
     pair = f"{which}, Panda 시작 ↔ Mirobot {tuple(round(v, 2) for v in ref_mirobot)} (짝 {args.mapping}), 배율 {scale:g}"
     lines = [f"; 번역기 — action → 시뮬 Panda → Mirobot  (tools/action_to_gcode.py)",
-             f"; action 출처 {args.log}  {args.suite} 태스크 {task_id} ({task.name}), 초기 상태 {args.init_state}",
+             f"; action 출처 {args.log}  {scene}",
              f"; F = x축 180°, {pair}, orientation {args.orientation}",
              f"; action {len(rows)}개 중 {len(kept)}줄 (every {args.every}), chunk {args.chunk}",
              point_marker(args.point), pair_marker(ref_mirobot, scale), "G90", "M20"]
@@ -288,7 +338,12 @@ def main() -> None:
     # 재현 검산 — eval 은 과제 성공(done)이 뜨는 순간 멈춘다. 같은 장면·같은 action 이면 마지막 action 에서 처음 떠야 한다.
     # 장면이 다르면 안 뜬다(10/1 대조). 다만 대기 10 vs 30 같은 작은 차이는 못 가린다 — 자세까지 같은지는
     # eval 의 proprio(`--data_collection True`)와 대야 안다
-    if first_done is None:
+    expected_done = first_goal_step(args.log)
+    if custom_bddl:
+        # 원래 실행의 기록에 스텝마다 goal 이 있으니 같은 스텝에서 처음 뜨는지로 재현을 본다
+        same = "같다" if first_done == expected_done else "!! 다르다 — 재현이 안 됐다"
+        print(f"과제 성공 판정 — 재실행 {first_done} / 원래 {expected_done}  {same}")
+    elif first_done is None:
         print(f"과제 성공 판정 — 없음 ({len(rows)}스텝 동안)")
     else:
         same = ("  ← 마지막 action. eval 과 같은 결과 (자세 일치는 proprio 로 확인)" if first_done == len(rows)

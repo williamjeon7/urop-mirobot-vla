@@ -160,6 +160,14 @@ bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task red --pickup
   green, blue도 정상 동작을 확인했다. 뷰어 실행 기록: green seed 0–4, blue seed 0–2 모두 성공.
 - `--pickup` 없이 실행하면 기존처럼 Panda가 움직이지 않는 배치 확인 화면이다. `--pickup`은 red / green / blue에서만 쓸 수 있다.
 
+### 5.2 손 뻗기 모드와 기록 (2026-10-07)
+
+- `--mode reach`: settle → approach → hover(손끝이 Mirobot 기준 작업대 위 30 mm) → 20 step 유지 → rise → 시작 자세로 return.
+  성공 조건은 블록 위 수평 오차 < 5 mm, 어떤 블록에도 닿지 않음, 모든 블록이 제자리, Goal이 `False`로 끝남이다.
+  seed 0에서 세 색 모두 성공했다(수평 오차 0.2–0.4 mm, 손끝 29.9–30.0 mm).
+- `--log`: 번역기 입력용 JSONL. 형식과 Mirobot 변환 결과는 [../CHECKLIST.md](../CHECKLIST.md) 3·4절에 있다.
+- 공통 동작은 `PandaMover`로 묶었다. `run_pickup`의 동작과 결과는 바뀌지 않았다(red seed 0, 146 step).
+
 ## 6. 결과 (2026-10-06)
 
 `pickup.py`를 red / green / blue × seed 0–4로 15회 실행했다. **15/15 성공.**
