@@ -171,6 +171,15 @@ bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task red --pickup
   배치 확인도 60 step episode가 되어 같은 조작판을 쓴다. 이미 떠 있는 서버를 다른 옵션으로 다시 실행하면 거부하지 않고 연결하며 안내한다.
   실제 시뮬레이션 확인: scene 배치 확인 → red pick up 성공(146 step) → red 손 뻗기 seed 2 성공(수평 0.4 mm, 손끝 29.9 mm)
   → green sandwich 실패(2.3 cm 위) → green 배치 확인 성공. 잘못된 조합(scene + pick up)은 400으로 거부된다. 뷰어 테스트는 58개다.
+- **10/8 Windows 기본 실행을 서버와 통일** — `run_local.cmd`도 `browser_viewer.py`를 기본 실행한다.
+  기존 OpenCV 창은 `-OpenCV`, 창 없는 배치 검증은 `-Headless`로 선택한다. 서버와 같은 최초 설정·포트·종료 옵션을 전달한다.
+  Windows에서 닫힌 localhost 포트의 연결 거부가 약 2초 늦게 도착해 종료를 실패로 보고하던 문제도 수정했다.
+  실제 로컬 검증: scene·blue Headless 각각 60 step 통과, 브라우저 설정 전환 후 red pick up seed 0 성공(145 step),
+  별도 포트의 blue 손 뻗기 seed 0 성공(121 step), 512×512 MJPEG 디코딩 및 두 포트의 `-Stop` 종료 확인.
+  green sandwich는 서버 기록과 같이 lower 단계에서 2.3 cm 위에 막혀 실패했다. HTTP 테스트는 Windows에서 60개 통과했다.
+  초기 설정 문서의 경로 예시를 사용자 폴더의 Anaconda 기준으로 수정하고, 없는 Python·LIBERO 경로는 입력된 경로를 표시하도록 보완했다.
+  이 PC의 기존 Anaconda `libero` 환경과 `.libero` 설정으로 `run_local.cmd -Setup`이 성공했으며,
+  없는 예시 경로를 전달해 실패해도 정상 설정 파일을 덮어쓰지 않는 것을 확인했다.
 - **10/6–10/7 페이지 오류 (바로잡음)** — 10/6 `--pickup` 상태 문구를 넣을 때 Python 문자열의 `\n`이
   JavaScript 따옴표 안에서 실제 줄바꿈이 되어, **페이지 스크립트 전체가 문법 오류로 멈췄다.**
   영상과 영상 위 글자는 보였지만 영상 아래 상태 문구는 "시뮬레이터 준비 중…"에서 갱신되지 않았을 것이다.

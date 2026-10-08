@@ -32,6 +32,8 @@ SCENARIO_NAMES = ("none", "adjacent", "sandwich")   # scenarios.SCENARIOS, witho
 MAX_SEED = 2 ** 31 - 1
 CONTROL_BODY_LIMIT = 1024
 VIEWER_ID = "libero-rgb-blocks-v1"
+# Windows can take about two seconds to refuse a closed loopback connection.
+EXIT_PROBE_TIMEOUT = 3.0 if sys.platform == "win32" else 0.5
 
 
 class _Stopped(Exception):
@@ -771,23 +773,29 @@ def request_shutdown(port, token, timeout=2.0):
 
 def wait_for_server_exit(port, timeout=15.0):
     deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
         try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+            with socket.create_connection(("127.0.0.1", port),
+                                          timeout=min(EXIT_PROBE_TIMEOUT, remaining)):
                 pass
         except ConnectionRefusedError:
             return True
         except OSError:
             pass
-        time.sleep(0.1)
-    return False
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+        time.sleep(min(0.1, remaining))
 
 
 def stop_existing_viewer(port, status=None):
     if status is None:
         status = probe_existing_viewer(port)
     if status is None:
-        if wait_for_server_exit(port, timeout=0.5):
+        if wait_for_server_exit(port, timeout=EXIT_PROBE_TIMEOUT):
             print("서버가 종료되어 있습니다.", flush=True)
             return 0
         print("RGB 서버로 확인되지 않아 종료하지 않았습니다.", file=sys.stderr)
@@ -808,7 +816,7 @@ def follow_existing_viewer(port, token):
             time.sleep(0.5)
             current = probe_existing_viewer(port)
             if current is None:
-                if wait_for_server_exit(port, timeout=0.5):
+                if wait_for_server_exit(port, timeout=EXIT_PROBE_TIMEOUT):
                     return 0
                 continue
             if current.get("shutdown_token") != token:

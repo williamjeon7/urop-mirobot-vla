@@ -1,6 +1,6 @@
 # RGB 정육면체 시뮬레이터
 
-> **절차** · 확인 2026-10-06
+> **절차** · 확인 2026-10-08
 > RGB 블록 장면과 색상별 Task를 선택해 localhost에서 초기 배치와 Panda pick up을 확인한다.
 
 ## 1. 실행
@@ -38,104 +38,73 @@ episode가 끝나면 마지막 장면에서 멈추고 기다린다. 영상 아�
 | "끝나면 자동으로 다음 seed" | 켜면 episode가 끝날 때마다 다음 seed로 넘어간다 |
 
 지나간 장면은 지금 episode의 것만 메모리에 둔다. 파일로 저장하지 않는다.
-설정·조작 요청에는 서버를 실행할 때마다 새로 만드는 토큰이 필요하다. 다른 웹사이트에서는 조작할 수 없다.
 
-명령어 옵션(`--task`, `--mode view|pickup|reach`, `--pickup`, `--scenario`, `--seed`)은 **처음 열 때의 설정**으로 남아 있다.
-서버가 이미 떠 있으면 다른 옵션으로 실행해도 그 서버에 연결하고, 설정은 브라우저에서 바꾸라고 안내한다.
-
-```bash
-bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task green --pickup --scenario sandwich
-```
+`--task`·`--mode`·`--scenario`·`--seed`는 처음 열 때의 설정이다. 실행 중 설정은 브라우저에서 바꾼다.
 
 설계와 검증 기록은 [PICKUP.md](./PICKUP.md)에 있다.
 
-### 1.2. 로컬 노트북 모니터에서 실행 (Windows)
+### 1.2. 로컬에서 실행 (Windows)
 
-노트북에서 시뮬레이션을 실행하고 OpenCV 창으로 화면을 확인한다.
-VS Code에서 로컬 저장소를 열고 **SSH 원격 터미널이 아닌 노트북의 PowerShell**에서 실행한다.
-W5의 `libero` 환경이 설치되어 있어야 한다. 처음 설정하는 노트북은
-[NewTaskBDDL.md](../../W5/NewTaskBDDL.md)의 3–5장(환경 설치·Windows WGL/DLL 설정)을 먼저 진행한다.
+로컬 저장소 루트(`mirobot-vla`)의 **PowerShell**에서 실행한다.
+W5의 `libero` 환경이 없다면 [NewTaskBDDL.md](../../W5/NewTaskBDDL.md)의 3–5장을 먼저 진행한다.
 
-**노트북마다 한 번 초기 설정한다.** 로컬 저장소 루트(`mirobot-vla`)에서 다음을 실행한다.
-실행기가 Anaconda·Miniforge·Miniconda의 `libero` 환경을 찾아 Windows WGL/DLL 설정을 확인하고,
-Python과 LIBERO 설정 경로를 `windows.local.json`에 저장한다. 이 파일은 Git에서 제외된다.
+처음 한 번 설치 경로를 저장한다.
 
 ```powershell
 .\docs\W6\rgb_blocks\run_local.cmd -Setup
 ```
 
-환경이 다른 위치에 있거나 여러 환경 중 하나를 지정하려면 초기 설정 때 경로를 전달한다.
-LIBERO 설정 폴더가 기본 위치(`$env:USERPROFILE\.libero`)와 다르면 `-ConfigDirectory`도 지정한다.
+경로를 찾지 못하거나 설치 위치를 옮겼다면 `-Setup`에 `-PythonPath`(실제 `python.exe` 경로)와
+`-ConfigDirectory`(`config.yaml`이 있는 폴더)를 지정한다.
 
-```powershell
-.\docs\W6\rgb_blocks\run_local.cmd -Setup -PythonPath 'D:\miniforge3\envs\libero\python.exe'
-# 설정 폴더도 다른 경우:
-.\docs\W6\rgb_blocks\run_local.cmd -Setup -PythonPath 'D:\miniforge3\envs\libero\python.exe' -ConfigDirectory 'D:\libero-config'
-```
-
-**이후에는 새 터미널에서도 실행 명령만 입력한다.** 로컬 저장소 루트에서 다음을 실행하면
-저장된 경로를 읽고 PATH·WGL·Numba 설정을 자동 적용한다.
-RGB 세 블록이 OpenCV 창에 표시되며, 창을 클릭한 뒤 `q`, `Q`, `Esc`를 누르거나 창을 닫으면 종료된다.
+이후에는 다음 명령으로 실행한다.
 
 ```powershell
 .\docs\W6\rgb_blocks\run_local.cmd
 ```
 
-색상별 Task는 아래 명령 중 하나로 실행한다. 다른 Task를 열기 전에 기존 창을 종료한다.
-로컬에서도 세 블록이 모두 표시된다. 이 실행기는 Panda를 움직이지 않는 배치 확인 화면이며,
-색상 Task의 Goal은 `Up`이므로 화면의 goal이 `False`인 것이 정상이다.
+브라우저에서 http://localhost:8766을 연다. 화면과 조작은 1.1과 같고, 로컬 실행에는 포트 전달이 필요 없다.
+`8766`이 OASYS 포트 전달이나 다른 프로그램에서 사용 중이면 다음처럼 실행하고 http://localhost:8767을 연다.
 
 ```powershell
-.\docs\W6\rgb_blocks\run_local.cmd -Task red
-.\docs\W6\rgb_blocks\run_local.cmd -Task green
-.\docs\W6\rgb_blocks\run_local.cmd -Task blue
+.\docs\W6\rgb_blocks\run_local.cmd -Port 8767
 ```
 
-노트북에서도 브라우저 화면을 쓰려면 다음을 실행하고
-http://localhost:8766을 연다. 로컬 실행이므로 포트 전달은 필요 없다.
-종료는 실행한 터미널에서 `Ctrl+C`를 누른다.
-
-```powershell
-.\docs\W6\rgb_blocks\run_local.cmd -Browser
-# 색상 선택 예시: 위 명령 끝에 -Task blue 추가
-```
-
-Python 또는 LIBERO 설정 폴더를 옮겼다면 `-Setup`에 새 경로를 지정해 다시 저장한다.
+OpenCV 배치 확인 창은 `-OpenCV`, 창 없는 검증은 6절의 `-Headless`를 사용한다. 종료 방법은 3절에 있다.
 
 ## 2. OASYS 화면을 로컬 브라우저로 보기
 
 VS Code 하단 PORTS에서 포트 전달을 눌러 `8766`을 추가한다.
 로컬 PC 브라우저에서 http://localhost:8766을 연다.
-이미 연결된 SSH를 사용하므로 추가 비밀번호는 없다.
 
 ## 3. 종료 및 Conda 환경 해제
 
 ### 3.1. 실행기 종료
 
-OASYS 서버는 실행한 터미널에서 `Ctrl+C`를 누른다. 다른 터미널에서 종료하려면:
+OASYS·로컬 서버는 실행한 터미널에서 `Ctrl+C`로 종료한다. 브라우저 탭만 닫으면 서버는 계속 실행된다.
+다른 터미널에서 종료하려면:
 
 ```bash
 bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --stop
 ```
 
-로컬 OpenCV 창은 `q`, `Q`, `Esc` 또는 창 닫기로 종료한다.
-로컬 브라우저 실행은 터미널에서 `Ctrl+C`로 종료하며, `-Headless` 검증은 지정한 step이 끝나면 자동 종료된다.
+```powershell
+.\docs\W6\rgb_blocks\run_local.cmd -Stop
+# 다른 포트로 실행한 경우:
+.\docs\W6\rgb_blocks\run_local.cmd -Stop -Port 8767
+```
 
-`run_local.cmd`는 별도 PowerShell 프로세스에서 `libero`의 Python을 직접 실행하고,
-`run_browser.sh`는 별도 Bash 프로세스 안에서 환경을 활성화한다.
-두 실행기 모두 원래 터미널의 Conda 환경을 바꾸지 않으므로 실행기 사용 후에는 별도로 `deactivate`할 필요가 없다.
+`-OpenCV` 창은 `q`, `Q`, `Esc` 또는 창 닫기로 종료하며,
+`-Headless` 검증은 지정한 step이 끝나면 자동 종료된다.
 
 ### 3.2. 직접 활성화한 Conda 환경 해제
 
-현재 터미널에서 `conda activate libero`를 직접 실행했다면, 검증이나 뷰어를 종료한 뒤
-**같은 터미널**에서 아래 명령을 실행한다. OASYS Bash와 로컬 PowerShell 모두 동일하다.
-실행 전에 직접 활성화한 환경은 실행기를 종료해도 유지된다.
+실행기는 원래 터미널의 Conda 환경을 바꾸지 않는다.
+`conda activate libero`를 직접 실행한 경우에만 종료 후 같은 터미널에서 해제한다.
 
 ```shell
 conda deactivate
 ```
-
-현재 환경이 해제되고 이전 환경으로 돌아간다. 이전 환경이 `base`이면 프롬프트에 `(base)`가 표시될 수 있다.
 
 ## 4. 블록 크기
 
@@ -154,7 +123,7 @@ conda deactivate
 | [pickup.py](./pickup.py), [PICKUP.md](./PICKUP.md) | Panda OSC_POSE pick up action과 성공 판정, 진행 기록 |
 | [scenarios.py](./scenarios.py) | 블록이 가까이 붙은 시작 배치 (`--scenario`) |
 | [browser_viewer.py](./browser_viewer.py), [run_browser.sh](./run_browser.sh) | localhost 실시간 화면과 Bash 실행 진입점 |
-| [run_local.cmd](./run_local.cmd), [run_local.ps1](./run_local.ps1) | Windows 노트북 초기 설정·OpenCV/브라우저 실행 |
+| [run_local.cmd](./run_local.cmd), [run_local.ps1](./run_local.ps1) | Windows 초기 설정·기본 브라우저 서버 실행/종료·OpenCV/Headless 확인 |
 | [test_rgb_blocks.py](./test_rgb_blocks.py) | 환경 초기화·배치·크기·관측 확인 |
 
 ## 6. 환경 확인

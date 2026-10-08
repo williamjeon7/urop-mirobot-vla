@@ -161,7 +161,8 @@ class BrowserViewerHTTPTests(unittest.TestCase):
         self.assertEqual(status, self.simulation.get_status())
         self.assertNotIn("shutdown_token", self.simulation.get_status())
 
-    def control_request(self, body, token=None, host=None, origin=None, raw=None):
+    def control_request(self, body, token=None, host=None, origin=None, raw=None,
+                        headers_only=False):
         token = self.status()["control_token"] if token is None else token
         payload = raw if raw is not None else json.dumps(body).encode("utf-8")
         headers = {"X-RGB-Control-Token": token, "Content-Type": "application/json",
@@ -174,7 +175,9 @@ class BrowserViewerHTTPTests(unittest.TestCase):
             for name, value in headers.items():
                 connection.putheader(name, value)
             connection.putheader("Content-Length", str(len(payload)))
-            connection.endheaders(payload)
+            # Header rejections never consume the body. Sending it anyway can make
+            # Windows reset the socket before the client receives the rejection.
+            connection.endheaders(None if headers_only else payload)
             response = connection.getresponse()
             return response.status, response.read()
         finally:
@@ -213,7 +216,7 @@ class BrowserViewerHTTPTests(unittest.TestCase):
             with self.subTest(case=case):
                 kwargs = dict(origin=own)
                 kwargs.update(case)
-                code, _ = self.control_request({"action": "pause"}, **kwargs)
+                code, _ = self.control_request({"action": "pause"}, headers_only=True, **kwargs)
                 self.assertEqual(code, 403)
         self.assertEqual(received, [])
         self.assertFalse(self.simulation.stop_event.is_set())
@@ -224,7 +227,8 @@ class BrowserViewerHTTPTests(unittest.TestCase):
         self.simulation.control = lambda command: {"ok": True}
         self.assertEqual(self.control_request(None, raw=b"not json")[0], 400)
         self.assertEqual(self.control_request(["pause"])[0], 400)
-        self.assertEqual(self.control_request(None, raw=b"{" + b" " * 2000 + b"}")[0], 413)
+        self.assertEqual(self.control_request(
+            None, raw=b"{" + b" " * 2000 + b"}", headers_only=True)[0], 413)
 
         def reject(command):
             raise ValueError("unknown action")
@@ -291,13 +295,15 @@ class BrowserViewerHTTPTests(unittest.TestCase):
         self.thread.join(timeout=2)
         self.assertFalse(self.thread.is_alive())
         self.assertTrue(self.simulation.stop_event.is_set())
-        self.assertTrue(browser_viewer.wait_for_server_exit(self.port, timeout=1))
+        self.assertTrue(browser_viewer.wait_for_server_exit(
+            self.port, timeout=max(1, browser_viewer.EXIT_PROBE_TIMEOUT)))
 
     def test_shutdown_client_uses_token_and_server_closes(self):
         self.assertTrue(browser_viewer.request_shutdown(self.port, self.shutdown_token()))
         self.thread.join(timeout=2)
         self.assertFalse(self.thread.is_alive())
-        self.assertTrue(browser_viewer.wait_for_server_exit(self.port, timeout=1))
+        self.assertTrue(browser_viewer.wait_for_server_exit(
+            self.port, timeout=max(1, browser_viewer.EXIT_PROBE_TIMEOUT)))
 
     def test_get_shutdown_unknown_post_and_preflight_do_not_stop_server(self):
         token = self.shutdown_token()
@@ -702,7 +708,8 @@ class ExistingViewerTests(unittest.TestCase):
                 mock.patch.object(browser_viewer.socket, "create_connection",
                                   side_effect=ConnectionRefusedError()) as connect:
             self.assertTrue(browser_viewer.wait_for_server_exit(12345, timeout=1))
-        connect.assert_called_once_with(("127.0.0.1", 12345), timeout=0.5)
+        connect.assert_called_once_with(("127.0.0.1", 12345),
+                                        timeout=min(browser_viewer.EXIT_PROBE_TIMEOUT, 1))
         for error in (TimeoutError(), OSError("network error")):
             with self.subTest(error=type(error).__name__):
                 with mock.patch.object(browser_viewer.time, "monotonic", side_effect=[0, 0, 1]), \
@@ -715,6 +722,24 @@ class ExistingViewerTests(unittest.TestCase):
                 mock.patch.object(browser_viewer.time, "sleep"), \
                 mock.patch.object(browser_viewer.socket, "create_connection", return_value=mock.MagicMock()):
             self.assertFalse(browser_viewer.wait_for_server_exit(12345, timeout=1))
+
+    def test_windows_exit_probe_has_time_to_observe_connection_refusal(self):
+        with mock.patch.object(browser_viewer, "EXIT_PROBE_TIMEOUT", 3.0), \
+                mock.patch.object(browser_viewer.time, "monotonic", side_effect=[0, 0]), \
+                mock.patch.object(browser_viewer.socket, "create_connection",
+                                  side_effect=ConnectionRefusedError()) as connect:
+            self.assertTrue(browser_viewer.wait_for_server_exit(12345, timeout=15))
+        connect.assert_called_once_with(("127.0.0.1", 12345), timeout=3.0)
+
+    def test_exit_probe_timeout_is_limited_to_the_remaining_deadline(self):
+        with mock.patch.object(browser_viewer, "EXIT_PROBE_TIMEOUT", 3.0), \
+                mock.patch.object(browser_viewer.time, "monotonic", side_effect=[0, 0.75, 1]), \
+                mock.patch.object(browser_viewer.time, "sleep") as sleep, \
+                mock.patch.object(browser_viewer.socket, "create_connection",
+                                  side_effect=TimeoutError()) as connect:
+            self.assertFalse(browser_viewer.wait_for_server_exit(12345, timeout=1))
+        connect.assert_called_once_with(("127.0.0.1", 12345), timeout=0.25)
+        sleep.assert_not_called()
 
     def test_stop_existing_viewer_requires_identity_and_actual_exit(self):
         stdout, stderr = io.StringIO(), io.StringIO()
@@ -739,7 +764,7 @@ class ExistingViewerTests(unittest.TestCase):
                         redirect_stdout(stdout), redirect_stderr(stderr):
                     self.assertEqual(browser_viewer.stop_existing_viewer(12345), expected)
                 shutdown.assert_not_called()
-                wait.assert_called_once_with(12345, timeout=0.5)
+                wait.assert_called_once_with(12345, timeout=browser_viewer.EXIT_PROBE_TIMEOUT)
                 if is_closed:
                     self.assertIn("종료되어 있습니다", stdout.getvalue())
                 else:
@@ -782,7 +807,7 @@ class ExistingViewerTests(unittest.TestCase):
                         12345, self.status["shutdown_token"]), 0)
                 stop.assert_not_called()
                 if current is None:
-                    wait.assert_called_once_with(12345, timeout=0.5)
+                    wait.assert_called_once_with(12345, timeout=browser_viewer.EXIT_PROBE_TIMEOUT)
                 else:
                     wait.assert_not_called()
 
@@ -794,7 +819,7 @@ class ExistingViewerTests(unittest.TestCase):
             self.assertEqual(browser_viewer.follow_existing_viewer(
                 12345, self.status["shutdown_token"]), 0)
         self.assertEqual(probe.call_args_list, [mock.call(12345), mock.call(12345)])
-        wait.assert_called_once_with(12345, timeout=0.5)
+        wait.assert_called_once_with(12345, timeout=browser_viewer.EXIT_PROBE_TIMEOUT)
         stop.assert_called_once_with(12345, status={"shutdown_token": self.status["shutdown_token"]})
 
     def test_main_stop_option_never_creates_simulation_or_server(self):
