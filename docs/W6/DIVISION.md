@@ -1,8 +1,8 @@
 # W6 분업 — Panda 쪽과 Mirobot 쪽
 
-> **절차** · 확인 2026-10-08 · 기준 `e80dc1d` + 번역기 분리
-> 10/8 팀 결정: 이번 주는 지금의 pick up을 Mirobot으로 옮겨 실제 경향성을 확인한다([CHECKLIST.md](CHECKLIST.md) 0장).
-> 일을 **Panda 쪽**(동작을 만들고 손 좌표를 남김)과 **Mirobot 쪽**(손 좌표를 Mirobot 명령으로 바꾸고 실물에서 확인)으로 나눈다.
+> **절차** · 확인 2026-10-08 · 기준 `b8a6ea2`(번역기 분리 + 견본 18개)
+> 10/8 팀 결정: 이번 주는 지금의 간단한 pick up을 그대로 Mirobot으로 옮겨 실제 경향성을 확인한다([CHECKLIST.md](CHECKLIST.md) 0장).
+> 일을 **Panda 쪽**(시뮬 Panda의 손 좌표를 남김)과 **Mirobot 쪽**(손 좌표를 Mirobot 명령으로 바꾸고 실물에서 확인)으로 나눈다.
 > 두 쪽은 **손 좌표 JSONL**(2장) 하나로 만난다. `→` 뒤 빈칸은 미리 채우지 않는다.
 > 이 문서는 **역할로만** 쓴다. 누가 어느 쪽을 맡는지는 적지 않는다.
 > 처음 읽는다면 **0장**(두 작업이 무엇인지)부터 읽는다. 3·4장은 할 일 목록이다.
@@ -22,7 +22,7 @@ Mirobot은 반대로 `G0 X Y Z A B C`처럼 **"이 좌표로 가라"는 절대 �
 ```text
   Panda 쪽                                           Mirobot 쪽
   ─────────────────────────────────────────────      ──────────────────────────────────────────────
-  pick up 동작 만들기 → action → 시뮬 Panda → 손 좌표  ──▶  Mirobot 좌표로 변환 → G-code → 실물 Mirobot
+  pick up(pickup.py) → action → 시뮬 Panda → 손 좌표   ──▶  Mirobot 좌표로 변환 → G-code → 실물 Mirobot
   (블록을 제대로 집는가?)                    (파일)      (블록 기준으로 같은 행동을 하는가?)
 ```
 
@@ -49,7 +49,8 @@ Mirobot은 반대로 `G0 X Y Z A B C`처럼 **"이 좌표로 가라"는 절대 �
   - **짝**: "Panda 시작 자세 ↔ Mirobot 홈"을 같은 점으로 보고, 거기서 움직인 만큼만 옮긴다(두 로봇의 원점이 다르기 때문)
   - **배율 0.663**: Panda가 100 mm 움직이면 Mirobot은 66.3 mm. 작업대 높이를 맞추는 세로 정렬로 정했다(W5 TABLE_ALIGNMENT)
   - **자세 변환 F**(x축 180°): 두 로봇이 "손이 아래를 향함"을 다르게 적는 차이
-  - **파지점 ↔ 플랜지**: Panda 좌표는 손가락 사이(파지점), Mirobot G0는 손목 끝(플랜지)이라 55 mm를 오간다
+  - **파지점 ↔ 플랜지**: 짝과 변위는 파지점(손가락 사이)끼리 맞춘다. Mirobot G0는 플랜지(손목 끝) 좌표라서
+    Panda는 파지점→플랜지 97 mm, Mirobot은 55 mm(자로 잰 값, ±5 mm)를 오간다(W5 회신 "파지점끼리", 9/30)
   - **그리퍼**: Panda의 `action[6]` 부호가 바뀌는 곳에 Mirobot `M4 S40`(열기)·`M4 S60`(닫기)을 넣는다
   - **안전 검사**: 보내기 전에 `run_gcode --dry-run`으로 도달 거리·각도·Z 하한(작업대 충돌)을 본다
 - **실물에서 같은 행동을 하는지 잰다.** "같다"의 뜻은 다음과 같다.
@@ -62,7 +63,7 @@ Mirobot은 반대로 `G0 X Y Z A B C`처럼 **"이 좌표로 가라"는 절대 �
 
 ```text
 [Panda 쪽]                                   [Mirobot 쪽]
-pickup.py · scenarios.py · BDDL · 뷰어         poses_to_gcode.py · common/workspace.py · common/rotation.py
+pickup.py · action_to_poses.py · BDDL · 뷰어    poses_to_gcode.py · common/workspace.py · common/rotation.py
    │                                            run_gcode.py · (실물 로봇)
    │  action → 시뮬 Panda → 손 좌표
    ▼
@@ -72,9 +73,11 @@ pickup.py · scenarios.py · BDDL · 뷰어         poses_to_gcode.py · common/
 
 | | Panda 쪽 | Mirobot 쪽 |
 | --- | --- | --- |
-| 묻는 것 | 시뮬에서 지시한 블록을 제대로 집는가 | 그 손 좌표가 Mirobot에서 같은 동작이 되는가 |
-| 결과물 | 손 좌표 JSONL | Mirobot G-code와 실물 측정 결과 |
-| 실행 환경 | 서버 conda `libero` (LIBERO·MuJoCo) | 표준 라이브러리만. 서버 venv, 노트북 어디서든 |
+| 묻는 것 | 시뮬 Panda의 손 좌표가 정확한가 (지시한 블록을 집고, 다시 돌려도 같은가) | 그 손 좌표가 Mirobot에서 블록 기준으로 같은 행동이 되는가 |
+| 결과물 | 손 좌표 JSONL (`docs/W6/poses/`) | Mirobot G-code와 실물 측정 결과 |
+| 실행 환경 | 서버 conda `libero` (Python 3.8, LIBERO·MuJoCo) | 표준 라이브러리, **Python 3.9 이상**. 서버 `cosmos-policy/.venv`(3.10)·로봇 노트북 |
+
+`common/`은 `tuple[...]` 표기를 써서 Python 3.8에서는 import부터 실패한다. 그래서 conda `libero`에서는 `poses_to_gcode.py`를 돌릴 수 없다.
 
 ### 1.1 번역기를 두 파일로 나눴다 (10/8)
 
@@ -97,7 +100,7 @@ pickup.py · scenarios.py · BDDL · 뷰어         poses_to_gcode.py · common/
 | 새 `action_to_gcode` ↔ `action_to_poses` → `poses_to_gcode` | **완전히 같음** |
 | 새 `action_to_gcode` ↔ `pickup.py` 기록 → `poses_to_gcode` | 149줄 중 73줄이 **0.01**(G-code 마지막 자리) 다름. 두 Python 환경의 시뮬 손 위치 차이 0.0012 mm가 반올림에 드러난 것 |
 | `poses_to_gcode`를 numpy·LIBERO 없이 실행 | 된다. 결과도 같다 |
-| 역변환 검산 (absolute · relative) | 최대 0.012 mm (Mirobot 기준, 반올림 크기) |
+| 역변환 검산 (absolute · relative) | 최대 0.012 mm (Mirobot 기준, 반올림 크기). 견본 18개는 최대 0.013 mm |
 | 테스트 | `tests/` 48개 통과 (`test_poses_to_gcode.py` 7개 새로) |
 
 ## 2. 넘겨주는 파일 — 손 좌표 JSONL (`panda-poses/1`)
@@ -115,6 +118,7 @@ red pick up 한 번(145 step)이 약 95 KB다.
 
 **meta — 있으면 쓰는 것**: `task`, `instruction`, `target`, `seed`, `bddl`, `register`, `scenario`, `block_size_mm`, `mode`(pickup·reach), `settle`,
 `blocks_start_xyz_m`(블록 이름 → 중심 m, reset 직후 — 종이 표시용, 10/8 추가).
+만든 쪽에 따라 더 있다 — `action_to_poses.py`는 `scene`, `first_done`, `expected_done` 등을 남긴다. 읽는 쪽은 모르는 키를 무시한다.
 
 **step 줄**
 
@@ -143,7 +147,7 @@ Panda 시작 자세는 LIBERO 기본값이다(약 (−0.2085, 0, 1.1733), 노이
 | 그다음 | 4 브라우저 시연 | 미팅 결과물 |
 | 미룸 | 5 pick up 다양화, 6 카메라 도착 후 | 지금 동작이 Mirobot에서 확인된 뒤 |
 
-- [ ] **1. 견본 손 좌표를 넘긴다** — `data/`는 git에서 빠지므로 `git pull`로 못 받는다. 5장 잠정안대로 `docs/W6/poses/`에 올린다.
+- [x] **1. 견본 손 좌표를 넘긴다** — `data/`는 git에서 빠지므로 `git pull`로 못 받는다. 5장대로 `docs/W6/poses/`에 올린다.
   세 색 × seed 몇 개, `pickup` 모드. 실물 1·2단계용 `reach` 모드도 함께
   → **올렸다 (10/8)** — [poses/](poses/README.md) 18개(세 색 × seed 0–2 × pickup·reach). 18개 모두 dry-run 통과.
   meta에 블록 시작 위치 `blocks_start_xyz_m`를 더했다(형식 버전은 그대로). seed별 종이 표시 좌표는 poses/README.md 2장
@@ -178,24 +182,27 @@ Panda 시작 자세는 LIBERO 기본값이다(약 (−0.2085, 0, 1.1733), 노이
 - [ ] **4. 줄 수** — pick up은 145줄 안팎이라 `--auto`로는 오래 걸린다. `--every N`을 정한다(그리퍼 줄은 항상 남는다)
   →
 - [ ] **5. 실물 1·2단계 (손 뻗기)** — W5 9-③: 블록 자리에 종이 표시, 손끝 위치·높이를 자로 잰다. `run_gcode --auto`.
-  종이 표시는 **Mirobot 원점(받침대 J1 중심)에서 자로 재서** 놓는다 — 로봇을 보내서 표시하면 변환이 아니라 반복 정밀도만 잰다
+  종이 표시는 **Mirobot 원점(받침대 J1 중심)에서 자로 재서** 놓는다 — 로봇을 보내서 표시하면 변환이 아니라 반복 정밀도만 잰다.
+  seed별 블록 좌표는 [poses/README.md](poses/README.md) 2장. 처음은 안쪽 끝을 쓰지 않는 seed 2부터
   →
-- [ ] **6. 작업 영역 안쪽 끝** — Mirobot X 150–170이 작업대 높이(플랜지 Z 70 근처)에서 닿는지(W5 TABLE_ALIGNMENT 6절). 무작위 배치가 이 범위를 쓴다
+- [ ] **6. 작업 영역 안쪽 끝** — Mirobot X 150–170이 작업대 높이(플랜지 Z 70 근처)에서 닿는지(W5 TABLE_ALIGNMENT 6절). 무작위 배치가 이 범위를 쓴다.
+  견본에서는 seed 0 blue(X 157.8)와 seed 1 blue(X 165.4)가 이 범위다
   →
 - [ ] **7. 실물 3단계 (pick up)** — 그리퍼까지. 블록 대용품(약 26 mm)으로 경향성을 본다: 지시한 색으로 가는가, 내려가는가, 집는가, 드는가
   →
-- [ ] **8. Z 경고 구간** — pick up 30개 중 5개에 플랜지 Z 66–71 mm 줄(경고만)이 있다. 그대로 둘지 정한다
+- [ ] **8. Z 경고 구간** — 플랜지 Z 66–71 mm 줄은 경고만 하고 보낸다. 견본 pick up 9개 중 3개에 있다
+  (blue-s0 11줄, blue-s1 4줄, red-s1 4줄. 최저 70.1 mm). 잡는 높이가 하한 가까이 내려가서다. 그대로 둘지 정한다
   →
 - [ ] **(나중에)** W3 `tools/libero_to_mirobot_gcode.py`(waypoint만, 그리퍼 없음)와 `poses_to_gcode.py`를 합칠지
   →
 
 ## 5. 함께 정할 것
 
-- [ ] **손 좌표를 넘기는 방법** — (가) 견본을 git이 추적하는 폴더(예: `docs/W6/poses/`)에 올린다 / (나) Mirobot 쪽이 서버에서 `pickup.py --log`를 직접 실행한다.
+- [x] **손 좌표를 넘기는 방법** — (가) 견본을 git이 추적하는 폴더(예: `docs/W6/poses/`)에 올린다 / (나) Mirobot 쪽이 서버에서 `pickup.py --log`를 직접 실행한다.
   (가)는 파일 하나에 약 95 KB다
-  → **잠정 (10/8): (가).** Panda 쪽이 `docs/W6/poses/`에 견본을 올리고 push한다. 이름은 `<mode>-<색>-s<seed>.jsonl`.
+  → **(가)로 했다 (10/8).** Panda 쪽이 `docs/W6/poses/`에 견본을 올리고 push한다. 이름은 `<mode>-<색>-s<seed>.jsonl`.
   Mirobot 쪽은 `git pull`로 받는다. 서버 conda 환경 없이도 변환을 시작할 수 있어서다. 더 필요한 seed는 (나)로 직접 만들어도 된다
-- [ ] **실물 로봇 담당** — 로봇 앞에서 측정할 사람. 측정 결과는 CHECKLIST 5절에 남긴다
+- [x] **실물 로봇 담당** — 로봇 앞에서 측정할 사람. 측정 결과는 CHECKLIST 5절에 남긴다
   → **Mirobot 쪽 (10/8 정함).** 실물 로봇을 다룰 시간이 더 있는 쪽이 Mirobot 쪽을 맡았다.
   "Panda 좌표가 Mirobot으로 실제로 잘 변환되는지 확인"도 Mirobot 쪽 일이다.
   W6–W7 수집은 계획서 10장대로 둘이 같이 한다(한 명 조작, 한 명 리셋)
@@ -216,8 +223,9 @@ python -B docs/W6/rgb_blocks/pickup.py --task red --seed 0 --log            # da
 python -B docs/W6/rgb_blocks/pickup.py --task red --seed 0 --mode reach --log
 conda deactivate
 
-# Mirobot 쪽 — 저장소 루트, cosmos-policy/.venv (또는 표준 라이브러리 Python 3.9+)
-cosmos-policy/.venv/bin/python -m tools.poses_to_gcode --poses data/pickup/<기록>.jsonl --scale 0.663 --gripper --out trajectories/<이름>.gcode
+# Mirobot 쪽 — 저장소 루트, cosmos-policy/.venv (또는 표준 라이브러리 Python 3.9+). 견본으로 시작한다
+cosmos-policy/.venv/bin/python -m tools.poses_to_gcode --poses docs/W6/poses/pickup-red-s2.jsonl --scale 0.663 --gripper --out trajectories/<이름>.gcode
+cosmos-policy/.venv/bin/python -m tools.poses_to_gcode --poses docs/W6/poses/reach-red-s2.jsonl --scale 0.663 --out trajectories/<이름>.gcode   # 손 뻗기는 --gripper 없이
 cosmos-policy/.venv/bin/python -m tools.run_gcode trajectories/<이름>.gcode --dry-run
 # 로봇 노트북 — 그리퍼가 든 파일은 --auto 로만 (--stream 은 거부된다)
 python -m tools.run_gcode trajectories/<이름>.gcode --port COM4 --auto
@@ -231,7 +239,10 @@ cosmos-policy/.venv/bin/python -m tools.action_to_poses --log data/pickup/<기�
 ## 관련 문서
 
 - [CHECKLIST.md](CHECKLIST.md) — 이번 주 목표, 실물 3단계, 블록 배치, 변환 확인 기록
+- [poses/README.md](poses/README.md) — 견본 18개, seed별 블록 좌표(종이 표시), 변환 확인 결과
 - [rgb_blocks/PICKUP.md](rgb_blocks/PICKUP.md) — pick up 설계·결과
 - [../W5/PIPELINE.md](../W5/PIPELINE.md) — 번역기(`action_to_gcode.py`)를 처음 만든 기록
 - [../W5/TABLE_ALIGNMENT.md](../W5/TABLE_ALIGNMENT.md) — 짝·배율 0.663·세로 정렬
+- [../W3/CONVERSION.md](../W3/CONVERSION.md), [../W3/LIBERO_AXES.md](../W3/LIBERO_AXES.md) — 좌표·자세 변환의 근거
+- [../meetings/2026-09-28/Professor reply.md](../meetings/2026-09-28/Professor%20reply.md) — 파지점끼리 맞추라는 회신 (9/30)
 - [../plan/UROP_프로젝트_계획.md](../plan/UROP_프로젝트_계획.md) 10장 — 2인 협업, 인터페이스 불일치가 가장 큰 실패 원인

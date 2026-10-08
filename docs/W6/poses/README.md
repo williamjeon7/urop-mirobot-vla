@@ -33,14 +33,14 @@
 
 모든 파일을 `tools/poses_to_gcode.py --scale 0.663`(pickup은 `--gripper`) → `tools/run_gcode.py --dry-run`으로 확인했다.
 
-| 파일 | step | 시뮬 결과 | 수평 최대 | Z 최저 | Z 경고 줄 |
+| 파일 | step | 시뮬 결과 | 수평 최대 | Z 최저 | Z 66–71 mm 줄 |
 | --- | ---: | --- | ---: | ---: | ---: |
-| pickup-red-s0 / s1 / s2 | 145 / 149 / 144 | 성공, 0.144–0.147 m 상승 | 260.4 / 202.6 / 202.6 mm | 72.5 / 70.9 / 71.7 mm | 0 / 1 / 0 |
+| pickup-red-s0 / s1 / s2 | 145 / 149 / 144 | 성공, 0.144–0.147 m 상승 | 260.4 / 202.6 / 202.6 mm | 72.5 / 70.9 / 71.7 mm | 0 / 4 / 0 |
 | pickup-green-s0 / s1 / s2 | 144 / 144 / 146 | 성공 | 209.4 / 226.2 / 248.7 mm | 72.2 / 72.3 / 72.3 mm | 0 |
-| pickup-blue-s0 / s1 / s2 | 151 / 147 / 149 | 성공 | 202.6 / 202.6 / 259.1 mm | 70.1 / 70.9 / 72.4 mm | 1 / 1 / 0 |
+| pickup-blue-s0 / s1 / s2 | 151 / 147 / 149 | 성공 | 202.6 / 202.6 / 259.1 mm | 70.1 / 70.9 / 72.4 mm | 11 / 4 / 0 |
 | reach-* (9개) | 112–121 | 성공, 블록 위 수평 오차 0.1–0.5 mm | 202.6–260.1 mm | 83.4–85.4 mm | 0 |
 
-- Z 하한(66 mm) 아래 줄은 18개 모두 없다. 경고 줄(66–71 mm)은 pickup 3개에 1줄씩이다
+- Z 하한(66 mm) 아래 줄은 18개 모두 없다. 경고 구간(66–71 mm) 줄은 pickup 3개에 있다(blue-s0 11줄, blue-s1·red-s1 4줄씩). 경고만 하고 보낸다
 - 역변환 검산(파일 값으로 되돌린 손 좌표와 원래의 차이)은 최대 0.013 mm다(반올림 크기)
 - 수평 202.6 mm는 시작 자세 쪽 값이다(블록이 홈 가까이 있을 때 그 값이 최대)
 - pickup G-code는 `M4 S40`(시작)·`M4 S60`(잡을 때) 두 줄을 포함하므로 `run_gcode --auto`로만 실행한다
@@ -48,7 +48,7 @@
 ## 4. 쓰는 법 · 다시 만드는 법
 
 ```bash
-# Mirobot 쪽 — 저장소 루트, conda 를 끈 셸
+# Mirobot 쪽 — 저장소 루트, conda 를 끈 셸 (Python 3.9 이상 — conda libero 3.8 에서는 common/ import 가 실패한다)
 cosmos-policy/.venv/bin/python -m tools.poses_to_gcode --poses docs/W6/poses/pickup-red-s2.jsonl --scale 0.663 --gripper --out trajectories/<이름>.gcode
 cosmos-policy/.venv/bin/python -m tools.run_gcode trajectories/<이름>.gcode --dry-run
 
