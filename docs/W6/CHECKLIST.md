@@ -7,6 +7,7 @@
 계획 원문: [../meetings/2026-10-05.md](../meetings/2026-10-05.md).
 W5에서 넘어온 것: [../W5/CHECKLIST.md](../W5/CHECKLIST.md) 4-3절(색 블록 장면), 9절(다음 action plan).
 pick up 구현의 결정과 결과: [rgb_blocks/PICKUP.md](rgb_blocks/PICKUP.md).
+**분업(10/8)과 넘겨주는 파일 형식: [DIVISION.md](DIVISION.md)** — Panda 쪽 / Mirobot 쪽 할 일은 거기서 관리한다.
 
 ## 0. 이번 주 목표
 
@@ -136,6 +137,7 @@ W5 CHECKLIST 4-3절은 10/5 커밋 `209ed24`로, 10/5 action plan보다 먼저 �
 
 W5에서 **action 번역**으로 정했다 (9/30).
 번역기 `tools/action_to_gcode.py`는 action을 시뮬 Panda에 넣고, 나온 손 자세를 `common/workspace.py`로 Mirobot G0 절대 좌표로 바꾼다.
+**10/8 두 단계로 나눴다** — `action_to_poses.py`(action → 손 좌표)와 `poses_to_gcode.py`(손 좌표 → G-code). `action_to_gcode.py`는 둘을 차례로 부른다([DIVISION.md](DIVISION.md) 1.1).
 `pickup.py`의 action도 같은 OSC_POSE 7차원이다.
 
 - [ ] **번역기를 우리 장면에서 돌게 하기** — 지금은 LIBERO suite 장면만 받는다(`--suite`, `--task-name`).
@@ -220,6 +222,7 @@ W5 9-③: 블록 자리에 종이로 표시하고, 손끝의 위치·높이를 �
 - [rgb_blocks/PICKUP.md](rgb_blocks/PICKUP.md) — pick up 결정·구현·결과
 - [rgb_blocks/README.md](rgb_blocks/README.md) — RGB 블록 장면 실행법
 - [../W5/CHECKLIST.md](../W5/CHECKLIST.md) — 4-3 색 블록 장면 결정, 8 미팅 질문, 9 다음 action plan
+- [DIVISION.md](DIVISION.md) — 10/8 분업, 손 좌표 JSONL 형식, 각 쪽 할 일
 - [../W5/PIPELINE.md](../W5/PIPELINE.md) — 번역기 `action_to_gcode.py` 기록
 - [../W5/TABLE_ALIGNMENT.md](../W5/TABLE_ALIGNMENT.md) — 좌표 맞추기, 배율 0.663, 블록 자리 계산
 - [../W5/D405_LIBERO_CAMERA.md](../W5/D405_LIBERO_CAMERA.md) — D405와 LIBERO 영상 보정 (동료)

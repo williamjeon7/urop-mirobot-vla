@@ -3,7 +3,8 @@
 Phases follow W5 custom_task_validation task B (milk): approach -> lower ->
 grasp -> lift, then hold the block in the air while the BDDL goal (Up) is checked.
 `--mode reach` stops above the block instead (Mirobot check steps 1-2, W6 CHECKLIST 0).
-Nothing is saved unless `--log` is given; the log feeds tools/action_to_gcode.py.
+Nothing is saved unless `--log` is given. The log is a Panda pose file (docs/W6/DIVISION.md 2):
+tools/poses_to_gcode.py turns it into Mirobot G-code, tools/action_to_poses.py replays its actions.
 """
 
 import argparse
@@ -224,11 +225,12 @@ def reach_success(result):
             and result["target_in_place"] and not result["final_goal"])
 
 
-def write_log(path, env, args, result, record):
-    """JSONL for tools/action_to_gcode.py: a meta line, then one line per step with `action`."""
+def write_log(path, env, args, result, record, start_pos, start_quat_xyzw):
+    """Panda pose JSONL (docs/W6/DIVISION.md 2): a meta line, then one line per step."""
     path.parent.mkdir(parents=True, exist_ok=True)
     spec = env.rgb_task
     meta = {
+        "format": "panda-poses/1",
         "source": "docs/W6/rgb_blocks/pickup.py", "mode": args.mode, "task": spec["name"],
         "instruction": spec["language"], "target": spec["target_object"], "seed": args.seed,
         "bddl": str(Path(spec["bddl_file"]).resolve().relative_to(REPO)),
@@ -238,6 +240,10 @@ def write_log(path, env, args, result, record):
         "settle": 0, "pos_unit": "m, world", "quat_order_raw": "xyzw",
         "point": "grip (robot0_eef_pos)", "rxyz": "scipy extrinsic xyz, deg, LIBERO frame",
         "joint_pos": "Panda 7 joints, rad (sim.data.qpos)",
+        # Pair reference on the Panda side: the hand pose right before the first action.
+        "start_eef_pos": [float(v) for v in start_pos],
+        "start_eef_quat_xyzw": [float(v) for v in start_quat_xyzw],
+        "scenario": getattr(args, "scenario", "none"),
     }
     with path.open("w", encoding="utf-8") as out:
         out.write(json.dumps({"meta": meta}, ensure_ascii=False) + "\n")
@@ -266,6 +272,7 @@ def main():
     record = [] if args.log else None
     try:
         obs = env.reset()
+        start_pos, start_quat = obs["robot0_eef_pos"].copy(), obs["robot0_eef_quat"].copy()
         print("Task:", env.rgb_task["language"], "| mode:", args.mode, flush=True)
         target = env.rgb_task["target_object"]
         if args.mode == "pickup":
@@ -280,7 +287,7 @@ def main():
             path = (REPO / "data" / "pickup" / "{}-{}-{}-s{}.jsonl".format(
                         time.strftime("%Y_%m_%d-%H_%M_%S"), args.mode, args.task, args.seed)
                     if args.log == "auto" else Path(args.log))
-            write_log(path, env, args, result, record)
+            write_log(path, env, args, result, record, start_pos, start_quat)
     except RuntimeError as error:
         print(str(error), file=sys.stderr)
         return 1

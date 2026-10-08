@@ -25,7 +25,8 @@
   결정과 검증 기록은 `PICKUP.md`에 남긴다.
 - 사용자가 별도로 요청하지 않으면 이미지·GIF·영상·결과 JSON 파일을 저장하지 않는다.
   예외(10/7 허락): `pickup.py --log`는 번역기 입력용 JSONL을 `data/pickup/`(git 제외)에 남긴다.
-  번역기(`tools/action_to_gcode.py`)가 만든 G-code는 `trajectories/`에 둔다.
+  `--log`는 손 좌표 JSONL(`panda-poses/1`, `docs/W6/DIVISION.md` 2장)이다. 이 폴더는 Panda 쪽이고,
+  Mirobot 변환(`tools/poses_to_gcode.py`, `common/`)은 Mirobot 쪽이 맡는다. 만든 G-code는 `trajectories/`에 둔다.
 - Windows는 W5에서 작동한 `libero` 환경과 WGL/DLL 설정을 사용한다.
   OASYS SSH에 `DISPLAY`가 없으면 OpenCV 창이 열리는 것처럼 설명하지 않는다.
 - 환경 확인은 `test_rgb_blocks.py --headless --steps 60 --size 512 --seed 0`으로 수행한다.
