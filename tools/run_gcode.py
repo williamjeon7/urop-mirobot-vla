@@ -97,6 +97,17 @@ def pose_of(command: str) -> list[float] | None:
     return [found.get(letter, 0.0) for letter in AXIS_LETTERS] if set(AXIS_LETTERS) <= set(found) else None
 
 
+def stream_blocker(entries) -> str | None:
+    """--stream 이 순서를 지킬 수 없는 줄 — 첫 이동 뒤에 오는 이동 아닌 줄 (예: 그리퍼 M4). 없으면 None."""
+    seen_move = False
+    for _, command in entries:
+        if pose_of(command) is not None:
+            seen_move = True
+        elif seen_move:
+            return command
+    return None
+
+
 def z_of(command: str) -> float | None:
     """이동 줄(G0/G1)의 Z. 여섯 축이 다 없어도 Z 만 있으면 읽는다 — `G0 Z50` 같은 줄이 하한 검사에서 빠지지 않게.
 
@@ -369,9 +380,15 @@ def main() -> None:
         print(f"\n!  Z {Z_WARN_MM:g}mm 아래 {len(low)}줄 (경고) — 처음 {', '.join(f'{w} Z{z:g}' for w, _, z in low[:5])}")
     if blocked:
         print(f"\n!! Z 하한 {args.z_floor:g}mm 아래 {len(blocked)}줄 — 처음 {', '.join(f'{w} Z{z:g}' for w, _, z in blocked[:5])}")
+    # --stream 은 설정 줄을 먼저 몰아 보낸다 — 이동 사이의 그리퍼 M4 는 순서가 바뀐다
+    mid = stream_blocker(entries)
+    if mid:
+        print(f"\n!  이동 사이에 설정 줄이 있다 ({mid}) — --auto 로만 실행한다 (--stream 은 거부)")
     if args.dry_run:
         print("\n--dry-run: 아무것도 보내지 않았다")
         return
+    if args.stream and mid:
+        raise SystemExit(f"\n--stream 은 설정 줄을 먼저 몰아 보내서 {mid} 의 순서가 바뀐다. --auto 로 실행한다")
     if blocked:
         raise SystemExit(f"\n하한 아래 줄이 있어 보내지 않는다. 일부러 내려가는 파일이면 --z-floor 로 낮춘다 "
                          f"(작업대에 닿는 플랜지 Z: 연 55.7, 닫은 60.7mm)")

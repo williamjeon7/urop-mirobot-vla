@@ -193,6 +193,12 @@ bash ~/UROP/docs/W6/rgb_blocks/run_browser.sh --task red --pickup
 - `--log`: 번역기 입력용 JSONL. 형식과 Mirobot 변환 결과는 [../CHECKLIST.md](../CHECKLIST.md) 3·4절에 있다.
 - 공통 동작은 `PandaMover`로 묶었다. `run_pickup`의 동작과 결과는 바뀌지 않았다(red seed 0, 146 step).
 
+### 5.2.1 잡는 높이와 그리퍼 명령 (2026-10-08)
+
+- 팀 결정: 이번 주는 지금의 pick up을 Mirobot으로 옮겨 경향성을 본다(../CHECKLIST.md 0장).
+- 잡는 높이를 블록 중심에서 **중심 +15 mm**로 올렸다. Mirobot 플랜지 Z 하한(66 mm) 때문이다. 세 색 × seed 0–19 60/60.
+- Mirobot 그리퍼 명령(`M4 S40` 열기 / `M4 S60` 닫기)은 번역기 `--gripper`가 넣는다(../CHECKLIST.md 4절).
+
 ### 5.3 블록이 가까이 붙은 상황 (2026-10-07)
 
 - 지금 pick up은 그리퍼 방향이 고정이다(손가락이 world y로 벌어짐). 옆 블록이 손가락 자리를 막는지 검사하지 않는다.

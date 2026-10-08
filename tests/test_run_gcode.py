@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import math
 
-from tools.run_gcode import Z_FLOOR_MM, Z_WARN_MM, closest_passes, low_lines, z_of
+from tools.run_gcode import Z_FLOOR_MM, Z_WARN_MM, closest_passes, low_lines, stream_blocker, z_of
 
 
 def entries(*commands: str) -> list[tuple[str, str]]:
@@ -106,3 +106,16 @@ if __name__ == "__main__":
             print(f"ok  {name}")
             ran += 1
     print(f"\n{ran}개 통과")
+
+
+
+# --stream 은 설정 줄을 먼저 보내므로 이동 사이 M4(그리퍼)가 있으면 거부한다 (10/8)
+def test_settings_before_moves_do_not_block_stream():
+    entries = [("", "G90"), ("", "M20"), ("", "M4 S40"), ("a", "G0 X1 Y2 Z90 A0 B0 C0")]
+    assert stream_blocker(entries) is None
+
+
+def test_gripper_between_moves_blocks_stream():
+    entries = [("", "G90"), ("a", "G0 X1 Y2 Z90 A0 B0 C0"), ("g", "M4 S60"),
+               ("b", "G0 X1 Y2 Z120 A0 B0 C0")]
+    assert stream_blocker(entries) == "M4 S60"

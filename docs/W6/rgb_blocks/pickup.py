@@ -35,6 +35,9 @@ REPO = Path(__file__).resolve().parents[3]
 TOP_DOWN = np.array([[0., 1., 0.], [1., 0., 0.], [0., 0., -1.]])
 APPROACH_HEIGHT_M = 0.15   # above the block centre before lowering
 LIFT_HEIGHT_M = 0.15       # Up needs block z >= 1.0 m; the block rests near 0.92 m
+# Grasp this far above the block centre. At the centre the Mirobot flange would go to
+# Zt + s * (0.920 - 0.9092 m) = 63.5 mm, under run_gcode's 66 mm floor (W6 CHECKLIST 4).
+GRASP_ABOVE_CENTRE_M = 0.015
 VERIFY_STEPS = 30
 # Reach mode hovers so the Mirobot fingertips stay 30 mm above its table (W5 CHECKLIST 9).
 # Vertical alignment (docs/W5/TABLE_ALIGNMENT.md 4): fingertip height on Mirobot =
@@ -141,7 +144,8 @@ def others_max_move(env, start):
     return max(float(np.linalg.norm(block_pos(env, n) - p)) for n, p in start.items())
 
 
-def run_pickup(env, obs, target, on_step=None, record=None, check_regions=True):
+def run_pickup(env, obs, target, on_step=None, record=None, check_regions=True,
+               grasp_offset_m=GRASP_ABOVE_CENTRE_M):
     """Pick up `target` (e.g. "red_block_1") from a fresh reset and keep holding it.
 
     Other blocks must not move more than 1 cm. `check_regions=False` skips their BDDL
@@ -153,7 +157,7 @@ def run_pickup(env, obs, target, on_step=None, record=None, check_regions=True):
     mover.move_to(mover.obs["robot0_eef_pos"].copy(), -1., "settle", limit=20, hold=True)
     others_start = others_positions(env, target)
     start_block = block_pos(env, target)
-    grasp = start_block.copy()
+    grasp = start_block + [0., 0., grasp_offset_m]
     mover.move_to(grasp + [0., 0., APPROACH_HEIGHT_M], -1., "approach")
     mover.move_to(grasp, -1., "lower")
     mover.move_to(grasp, 1., "grasp", limit=30, hold=True)

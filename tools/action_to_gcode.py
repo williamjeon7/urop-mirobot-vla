@@ -160,6 +160,11 @@ def main() -> None:
                         help="Mirobot 쪽 짝과 배율 (common/workspace.py MAPPINGS). candidate 는 10/1 후보 — 실물 확인 전")
     parser.add_argument("--scale", type=float, help="배율만 덮어쓴다 (짝은 --mapping 그대로)")
     parser.add_argument("--settle", type=int, help="시작 전 dummy 스텝. 기본은 기록 meta 의 값 (없으면 30)")
+    parser.add_argument("--gripper", action="store_true",
+                        help="그리퍼 부호가 바뀌는 스텝 앞에 M4 를 넣는다 (Panda 는 부호만 쓴다). "
+                             "이 파일은 run_gcode --auto 로만 — --stream 은 설정 줄을 먼저 몰아 보낸다")
+    parser.add_argument("--gripper-open", default="M4 S40", help="열기 명령 (W4 · robot/inverse_kinematics.py)")
+    parser.add_argument("--gripper-close", default="M4 S60", help="닫기 명령")
     parser.add_argument("--every", type=int, default=1,
                         help="N 스텝마다 한 줄만 적는다. Mirobot 이 20Hz 를 못 따라갈 때 (CHECKLIST 2-4)")
     parser.add_argument("--chunk", type=int, default=16, help="라벨에 쓸 chunk 길이. policy 가 한 번에 내는 수")
@@ -288,7 +293,18 @@ def main() -> None:
         env.close()
         log.close()
 
-    kept = [r for r in rows if r["step"] % args.every == 0 or r["step"] == len(rows)]
+    # 그리퍼 — Panda 는 action[6] 의 부호만 쓴다 (robosuite panda_gripper.py format_action).
+    # 부호가 바뀌는 첫 스텝 앞에 M4 한 줄을 넣고, 그 스텝은 --every 와 무관하게 남긴다
+    gripper_at = {}
+    if args.gripper:
+        sign = None
+        for r in rows:
+            now = 1 if r["action"][6] > 0 else -1
+            if now != sign:
+                gripper_at[r["step"]] = args.gripper_close if now > 0 else args.gripper_open
+                sign = now
+    kept = [r for r in rows if r["step"] % args.every == 0 or r["step"] == len(rows)
+            or r["step"] in gripper_at]
     which = "파지점 ↔ 파지점" if args.point == "grip" else "플랜지 ↔ 플랜지"
     pair = f"{which}, Panda 시작 ↔ Mirobot {tuple(round(v, 2) for v in ref_mirobot)} (짝 {args.mapping}), 배율 {scale:g}"
     lines = [f"; 번역기 — action → 시뮬 Panda → Mirobot  (tools/action_to_gcode.py)",
@@ -296,9 +312,14 @@ def main() -> None:
              f"; F = x축 180°, {pair}, orientation {args.orientation}",
              f"; action {len(rows)}개 중 {len(kept)}줄 (every {args.every}), chunk {args.chunk}",
              point_marker(args.point), pair_marker(ref_mirobot, scale), "G90", "M20"]
+    if gripper_at:
+        lines.insert(4, "; 그리퍼 M4 포함 — run_gcode --auto 로만 실행한다 (--stream 은 M4 를 앞에 몰아 보낸다)")
     for r in kept:
         x, y, z = r["mirobot_xyz_mm"]
         a, b, c = r["mirobot_abc_deg"]
+        if r["step"] in gripper_at:
+            # 앞 줄의 G0 에 도착한 뒤(--auto) 개폐한다. 닫히는 시간은 아직 안 쟀다 — 뒤따르는 같은 자리 G0 들이 기다림이 된다
+            lines += [f"; gripper s{r['step']:04d}", gripper_at[r["step"]]]
         lines += [f"; c{r['chunk']:02d}s{r['step']:04d}",
                   f"G0 X{x:.2f} Y{y:.2f} Z{z:.2f} A{a:.2f} B{b:.2f} C{c:.2f}"]
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -321,6 +342,8 @@ def main() -> None:
         x, y, z = r["mirobot_xyz_mm"]
         a, b, c = r["mirobot_abc_deg"]
         print(f"{r['step']:6d} {r['chunk']:5d} | {x:8.2f} {y:8.2f} {z:8.2f} | {a:7.2f} {b:7.2f} {c:7.2f} | {r['reach_mm']:6.1f}")
+    if gripper_at:
+        print("그리퍼 " + ", ".join(f"스텝 {k} {v}" for k, v in gripper_at.items()))
     print(f"\n{len(rows)}스텝 → G0 {len(kept)}줄.  수평 최대 {reach:.1f}mm (경고선 {REACH_WARN_MM:.0f}), "
           f"각도 최대 {angle:.1f}° (경고선 {ANGLE_WARN_DEG:.0f}), "
           f"Z 최저 {z_lo:.1f}mm (하한 {Z_FLOOR_MM:g} · 경고선 {Z_WARN_MM:g})")
