@@ -60,7 +60,8 @@ red pick up 한 번(145 step)이 약 95 KB다.
 | `start_eef_pos` | **짝의 Panda 쪽** — 첫 action 직전 손(파지점) 위치, m, LIBERO world |
 | `start_eef_quat_xyzw` | 같은 때 손 자세, 쿼터니언 xyzw (LIBERO 순서) |
 
-**meta — 있으면 쓰는 것**: `task`, `instruction`, `target`, `seed`, `bddl`, `register`, `scenario`, `block_size_mm`, `mode`(pickup·reach), `settle`.
+**meta — 있으면 쓰는 것**: `task`, `instruction`, `target`, `seed`, `bddl`, `register`, `scenario`, `block_size_mm`, `mode`(pickup·reach), `settle`,
+`blocks_start_xyz_m`(블록 이름 → 중심 m, reset 직후 — 종이 표시용, 10/8 추가).
 
 **step 줄**
 
@@ -84,7 +85,8 @@ Panda 시작 자세는 LIBERO 기본값이다(약 (−0.2085, 0, 1.1733), 노이
 
 - [ ] **1. 견본 손 좌표를 넘긴다** — `data/`는 git에서 빠지므로 `git pull`로 못 받는다. 5장 잠정안대로 `docs/W6/poses/`에 올린다.
   세 색 × seed 몇 개, `pickup` 모드. 실물 1·2단계용 `reach` 모드도 함께
-  →
+  → **올렸다 (10/8)** — [poses/](poses/README.md) 18개(세 색 × seed 0–2 × pickup·reach). 18개 모두 dry-run 통과.
+  meta에 블록 시작 위치 `blocks_start_xyz_m`를 더했다(형식 버전은 그대로). seed별 종이 표시 좌표는 poses/README.md 2장
 - [ ] **2. 잡는 높이를 Mirobot 쪽 결과에 맞춘다** — 지금은 블록 중심 +15 mm(`pickup.py` `GRASP_ABOVE_CENTRE_M`). Z 하한 66 mm 때문이다.
   실물 블록 크기와 집게 폭(S60)이 정해지면 다시 정한다
   →

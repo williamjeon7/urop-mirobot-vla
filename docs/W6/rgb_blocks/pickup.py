@@ -225,7 +225,7 @@ def reach_success(result):
             and result["target_in_place"] and not result["final_goal"])
 
 
-def write_log(path, env, args, result, record, start_pos, start_quat_xyzw):
+def write_log(path, env, args, result, record, start_pos, start_quat_xyzw, blocks_start):
     """Panda pose JSONL (docs/W6/DIVISION.md 2): a meta line, then one line per step."""
     path.parent.mkdir(parents=True, exist_ok=True)
     spec = env.rgb_task
@@ -244,6 +244,8 @@ def write_log(path, env, args, result, record, start_pos, start_quat_xyzw):
         "start_eef_pos": [float(v) for v in start_pos],
         "start_eef_quat_xyzw": [float(v) for v in start_quat_xyzw],
         "scenario": getattr(args, "scenario", "none"),
+        # Block centres right after reset (and scenario), m, LIBERO world — for paper marks.
+        "blocks_start_xyz_m": blocks_start,
     }
     with path.open("w", encoding="utf-8") as out:
         out.write(json.dumps({"meta": meta}, ensure_ascii=False) + "\n")
@@ -279,6 +281,9 @@ def main():
             moved = apply_scenario(env, args.scenario, target, args.gap_mm)
             if moved:
                 print("Scenario", args.scenario, "moved", moved, flush=True)
+        blocks_start = {n: [round(float(v), 5) for v in block_pos(env, n)]
+                        for n in sorted(env.env.objects_dict)}
+        if args.mode == "pickup":
             _, result = run_pickup(env, obs, target, record=record,
                                    check_regions=args.scenario == "none")
         else:
@@ -287,7 +292,7 @@ def main():
             path = (REPO / "data" / "pickup" / "{}-{}-{}-s{}.jsonl".format(
                         time.strftime("%Y_%m_%d-%H_%M_%S"), args.mode, args.task, args.seed)
                     if args.log == "auto" else Path(args.log))
-            write_log(path, env, args, result, record, start_pos, start_quat)
+            write_log(path, env, args, result, record, start_pos, start_quat, blocks_start)
     except RuntimeError as error:
         print(str(error), file=sys.stderr)
         return 1
