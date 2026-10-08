@@ -3,7 +3,7 @@
 Phases follow W5 custom_task_validation task B (milk): approach -> lower ->
 grasp -> lift, then hold the block in the air while the BDDL goal (Up) is checked.
 `--mode reach` stops above the block instead (Mirobot check steps 1-2, W6 CHECKLIST 0).
-Nothing is saved unless `--log` is given. The log is a Panda pose file (docs/W6/DIVISION.md 2):
+Nothing is saved unless `--log` is given. The log is a Panda pose file (docs/W6/DIVISION.md 3):
 tools/poses_to_gcode.py turns it into Mirobot G-code, tools/action_to_poses.py replays its actions.
 """
 
@@ -226,7 +226,7 @@ def reach_success(result):
 
 
 def write_log(path, env, args, result, record, start_pos, start_quat_xyzw, blocks_start):
-    """Panda pose JSONL (docs/W6/DIVISION.md 2): a meta line, then one line per step."""
+    """Panda pose JSONL (docs/W6/DIVISION.md 3): a meta line, then one line per step."""
     path.parent.mkdir(parents=True, exist_ok=True)
     spec = env.rgb_task
     meta = {

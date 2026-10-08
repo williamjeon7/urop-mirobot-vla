@@ -2,7 +2,7 @@
 
 > **기록** · 만든 날 2026-10-08
 > Mirobot 쪽이 바로 변환을 시작할 수 있도록 Panda 쪽이 올려 두는 손 좌표 JSONL(`panda-poses/1`)이다.
-> 형식과 분업은 [../DIVISION.md](../DIVISION.md) 2장·5장에 있다.
+> 형식과 분업은 [../DIVISION.md](../DIVISION.md) 3장·6장에 있다.
 
 ## 1. 파일
 
@@ -56,4 +56,4 @@ cosmos-policy/.venv/bin/python -m tools.run_gcode trajectories/<이름>.gcode --
 python -B docs/W6/rgb_blocks/pickup.py --task red --mode pickup --seed 2 --log docs/W6/poses/pickup-red-s2.jsonl
 ```
 
-잡는 높이나 블록 크기가 바뀌면(DIVISION 3장 ②③) Panda 쪽이 이 폴더를 다시 만들고 push한다. 형식은 그대로라 변환 코드는 고치지 않아도 된다.
+잡는 높이나 블록 크기가 바뀌면(DIVISION 4장 ②③) Panda 쪽이 이 폴더를 다시 만들고 push한다. 형식은 그대로라 변환 코드는 고치지 않아도 된다.

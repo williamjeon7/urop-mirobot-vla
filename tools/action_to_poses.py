@@ -16,7 +16,7 @@ policy 가 내는 action 은 "여기로 가라" 가 아니라 **Panda OSC 에 �
 그때 이 파일은 같은 action 이 같은 좌표를 내는지 보는 **재현 확인**이 된다.
 
 남는 것
-  <--out>   손 좌표 JSONL (기본 data/poses/<날짜>-<시각>.jsonl). 형식은 `docs/W6/DIVISION.md` 2절
+  <--out>   손 좌표 JSONL (기본 data/poses/<날짜>-<시각>.jsonl). 형식은 `docs/W6/DIVISION.md` 3장
 """
 
 from __future__ import annotations
@@ -146,7 +146,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def simulate(args) -> tuple[dict, list[dict]]:
-    """action 을 시뮬 Panda 에 넣는다. (meta, 스텝별 행) — 형식은 `docs/W6/DIVISION.md` 2절."""
+    """action 을 시뮬 Panda 에 넣는다. (meta, 스텝별 행) — 형식은 `docs/W6/DIVISION.md` 3장."""
     src_meta, actions = read_actions(args.log, args.episode)
     if args.max_steps:
         actions = actions[:args.max_steps]

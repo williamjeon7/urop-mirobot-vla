@@ -137,7 +137,7 @@ W5 CHECKLIST 4-3절은 10/5 커밋 `209ed24`로, 10/5 action plan보다 먼저 �
 
 W5에서 **action 번역**으로 정했다 (9/30).
 번역기 `tools/action_to_gcode.py`는 action을 시뮬 Panda에 넣고, 나온 손 자세를 `common/workspace.py`로 Mirobot G0 절대 좌표로 바꾼다.
-**10/8 두 단계로 나눴다** — `action_to_poses.py`(action → 손 좌표)와 `poses_to_gcode.py`(손 좌표 → G-code). `action_to_gcode.py`는 둘을 차례로 부른다([DIVISION.md](DIVISION.md) 1.1).
+**10/8 두 단계로 나눴다** — `action_to_poses.py`(action → 손 좌표)와 `poses_to_gcode.py`(손 좌표 → G-code). `action_to_gcode.py`는 둘을 차례로 부른다([DIVISION.md](DIVISION.md) 2.1).
 `pickup.py`의 action도 같은 OSC_POSE 7차원이다.
 
 - [ ] **번역기를 우리 장면에서 돌게 하기** — 지금은 LIBERO suite 장면만 받는다(`--suite`, `--task-name`).

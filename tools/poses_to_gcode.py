@@ -5,7 +5,7 @@
     python -m tools.poses_to_gcode --poses data/poses/<기록>.jsonl --scale 0.663
     python -m tools.run_gcode <나온 파일> --dry-run        # 도달 범위·Z 하한 경고가 있나
 
-입력은 손 좌표 JSONL 이다 (`docs/W6/DIVISION.md` 2절) — `pickup.py --log` 와 `tools/action_to_poses.py` 가 남긴다.
+입력은 손 좌표 JSONL 이다 (`docs/W6/DIVISION.md` 3장) — `pickup.py --log` 와 `tools/action_to_poses.py` 가 남긴다.
 meta 의 `start_eef_pos` · `start_eef_quat_xyzw` 가 짝의 Panda 쪽(첫 action 직전 손 자세)이고, Mirobot 쪽은 `--mapping` 이다.
 
     손 좌표 ──▶ 플랜지 ──▶ 짝·배율로 변위 옮김 (common/workspace.py) ──▶ 자세 F (common/rotation.py) ──▶ G0 (절대)
