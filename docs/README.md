@@ -1,7 +1,7 @@
 # 문서 규칙과 목록
 UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행동 rollout trajectories를 모은 후 기존 VLA를 fine-tuning 하여 real-world task에서 deploy 및 실제상황에서도 vision input만으로 Task라도 달성하는것을 목표
 
-> **기준** · 확인 2026-10-01
+> **기준** · 확인 2026-10-09
 > 문서를 어디에 두고 어떻게 쓸지. 아래 목록이 이 저장소 문서의 색인이다.
 
 문서가 늘어나면 "이게 무슨 문서였지", "아직 맞는 내용인가"를 매번 열어서 판단하게 된다.
@@ -38,6 +38,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W5 | [W5/ACTION_MEANING.md](W5/ACTION_MEANING.md) | **action 의미** — (가) 실행 단계에서 환산 vs (나) fine-tuning 에서 재학습 |
 | W5 | [W5/D405_LIBERO_CAMERA.md](W5/D405_LIBERO_CAMERA.md) | **RGB 카메라 비교** — 카메라 파라미터 설명, 동일 장면의 시야각 비교, D405 공개 RGB 시야각에 따른 투영 변환 실험 |
 | W6 | [W6/rgb_blocks/README.md](W6/rgb_blocks/README.md) | RGB 블록 장면·색상별 Task 선택, localhost 실행과 초기 배치 검증 |
+| W6 | [W6/PANDA_REPLAY.md](W6/PANDA_REPLAY.md) | Panda 동작 재생 18개, LIBERO → Mirobot 좌표 변환식과 실제 계산 예시, 시뮬 사진·GIF |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 

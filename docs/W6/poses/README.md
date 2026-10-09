@@ -1,8 +1,9 @@
 # 손 좌표 견본 — Panda 쪽 → Mirobot 쪽
 
-> **기록** · 만든 날 2026-10-08
+> **기록** · 만든 날 2026-10-08 · 확인 2026-10-09
 > Mirobot 쪽이 바로 변환을 시작할 수 있도록 Panda 쪽이 올려 두는 손 좌표 JSONL(`panda-poses/1`)이다.
 > 형식과 분업은 [../DIVISION.md](../DIVISION.md) 3장·6장에 있다.
+> 18개 견본의 재생 결과와 LIBERO → Mirobot 좌표 변환 예시는 [../PANDA_REPLAY.md](../PANDA_REPLAY.md)에 정리했다.
 
 ## 1. 파일
 
@@ -17,7 +18,7 @@
 
 **같은 seed는 동작·색과 관계없이 배치가 같다**(6개 파일 모두 확인). 그래서 seed마다 종이 한 벌이면 된다.
 값은 블록 중심의 **Mirobot 파지점 X·Y (mm)**다. meta `blocks_start_xyz_m`를 짝(Panda 시작 ↔ Mirobot 홈)·배율 0.663으로 옮겼다
-(`common/workspace.py` `libero_to_mirobot_xyz_mm`). 실물 블록 한 변은 시뮬 40 mm ÷ 0.663 ≈ 26.5 mm에 해당한다.
+(`common/workspace.py` `libero_to_mirobot_xyz_mm`). 실물 블록 한 변은 시뮬 40 mm × 0.663 ≈ 26.5 mm에 해당한다.
 
 | seed | red | green | blue |
 | --- | --- | --- | --- |

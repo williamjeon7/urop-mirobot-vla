@@ -39,7 +39,8 @@ Mirobot은 반대로 `G0 X Y Z A B C`처럼 **"이 좌표로 가라"는 절대 �
     달라질 수 있는 것은 그 결과로 손이 간 곳이다. 시작 자세, 블록 배치(seed), 컨트롤러, 시뮬 버전이 다르면 같은 action이 다른 곳으로 간다.
   - **step 사이 이동량이 아니라 world 기준 절대 좌표를 비교한다.** 이동량만 보면 시작부터 일정하게 어긋난 경우를 놓친다.
     예를 들어 시작 자세가 1 cm 다르면 매 step 이동량은 같아도 손은 내내 블록 1 cm 옆에 있다.
-  - 지금까지: 손 **위치**는 step마다 최대 0.0012 mm 차이, Goal이 처음 뜨는 step도 같다. 손 **자세**는 아직 비교하지 않았다(4장 7).
+  - **10/8 위치·자세 재현 확인 완료:** 견본 18개를 재생하고 시작 자세·각 action의 절대 위치·자세·Goal을 비교했다.
+    측정값, 오차 그래프, 실험 범위는 [PANDA_REPLAY.md](PANDA_REPLAY.md)에 남겼다. 실물 Mirobot 오차와는 별개다.
 - **(미룸) 동작 다듬기** — 그리퍼를 돌려 잡기, 블록 회전, 가까운 블록 대응처럼 pick up 자체를 바꾸는 일은
   지금 동작이 Mirobot에서 확인된 뒤에 한다(4장 5). 동작이 바뀌면 Mirobot 쪽이 확인할 대상도 바뀌기 때문이다.
 
@@ -142,7 +143,7 @@ Panda 시작 자세는 LIBERO 기본값이다(약 (−0.2085, 0, 1.1733), 노이
 
 | 순서 | 항목 | 이유 |
 | --- | --- | --- |
-| 먼저 | 1 견본 넘기기 (끝남), 7 재현 확인에 자세 추가 | Mirobot 쪽이 받는 좌표가 정확한지가 이번 주 일의 바탕이다 |
+| 먼저 | 1 견본 넘기기, 7 재현 확인에 자세 추가 (둘 다 끝남) | Mirobot 쪽이 받는 좌표가 정확한지가 이번 주 일의 바탕이다 |
 | Mirobot 결과가 오면 | 2 잡는 높이, 3 블록 크기 | 값만 바꾸고 동작 구조는 그대로 둔다 |
 | 그다음 | 4 브라우저 시연 | 미팅 결과물 |
 | 미룸 | 5 pick up 다양화, 6 카메라 도착 후 | 지금 동작이 Mirobot에서 확인된 뒤 |
@@ -164,9 +165,10 @@ Panda 시작 자세는 LIBERO 기본값이다(약 (−0.2085, 0, 1.1733), 노이
   →
 - [ ] **6. 카메라 도착 후** — 영상 기반 pick up, VLA 데이터(CHECKLIST 6절)
   →
-- [ ] **7. 재현 확인에 자세도 넣는다** — `action_to_poses.py`가 원래 기록과 step마다 손 **위치와 자세**(쿼터니언 각도 차)를 비교해 최대 차이를 출력하게 한다.
-  지금은 Goal step만 출력하고, 위치 비교는 따로 스크립트로 했다(1.2). 자세는 Mirobot A·B·C로 그대로 넘어가므로 같이 본다
-  →
+- [x] **7. 재현 확인에 자세도 넣는다** — `action_to_poses.py`가 원래 기록과 step마다 손 **위치와 자세**(쿼터니언 각도 차)를 비교해 최대 차이를 출력하게 한다.
+  자세는 Mirobot A·B·C로 그대로 넘어가므로 같이 본다.
+  → **완료 (10/8)** — 위치·자세의 최대·평균·마지막 차이, 시작 자세, 각 action의 Goal을 비교한다.
+  견본 18개 재생 결과와 실제 시뮬 사진·GIF는 [PANDA_REPLAY.md](PANDA_REPLAY.md)에 정리했다.
 
 ## 5. Mirobot 쪽 할 일
 
@@ -230,8 +232,9 @@ cosmos-policy/.venv/bin/python -m tools.run_gcode trajectories/<이름>.gcode --
 # 로봇 노트북 — 그리퍼가 든 파일은 --auto 로만 (--stream 은 거부된다)
 python -m tools.run_gcode trajectories/<이름>.gcode --port COM4 --auto
 
-# 재현 확인 (선택) — 같은 action 을 시뮬에 다시 넣어 같은 step 에서 Goal 이 뜨는지
-cosmos-policy/.venv/bin/python -m tools.action_to_poses --log data/pickup/<기록>.jsonl --out data/poses/<이름>.jsonl
+# 재현 확인 (Panda 쪽, conda libero) — 같은 action에서 절대 위치·자세·Goal 비교
+conda activate libero
+python -B -m tools.action_to_poses --log data/pickup/<기록>.jsonl --out data/poses/<이름>.jsonl
 ```
 
 한 셸에서 conda `libero`를 켠 채로 `cosmos-policy/.venv` Python을 실행하면 출력이 비는 일이 있었다(10/7·10/8). 위처럼 `conda deactivate`한 뒤 실행한다.
@@ -240,6 +243,7 @@ cosmos-policy/.venv/bin/python -m tools.action_to_poses --log data/pickup/<기�
 
 - [CHECKLIST.md](CHECKLIST.md) — 이번 주 목표, 실물 3단계, 블록 배치, 변환 확인 기록
 - [poses/README.md](poses/README.md) — 견본 18개, seed별 블록 좌표(종이 표시), 변환 확인 결과
+- [PANDA_REPLAY.md](PANDA_REPLAY.md) — Panda 재생의 위치·자세 측정, 시뮬 사진·GIF, 남은 확인
 - [rgb_blocks/PICKUP.md](rgb_blocks/PICKUP.md) — pick up 설계·결과
 - [../W5/PIPELINE.md](../W5/PIPELINE.md) — 번역기(`action_to_gcode.py`)를 처음 만든 기록
 - [../W5/TABLE_ALIGNMENT.md](../W5/TABLE_ALIGNMENT.md) — 짝·배율 0.663·세로 정렬
