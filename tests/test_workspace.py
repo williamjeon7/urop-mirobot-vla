@@ -18,6 +18,8 @@ from common.rotation import (
 )
 from common.workspace import (
     LEGACY_POINT,
+    LEGACY_TOOL_MM,
+    MIROBOT_TOOL_MM,
     MIROBOT_HOME_GRIP_MM,
     MIROBOT_HOME_MM,
     flange_to_grip,
@@ -35,6 +37,8 @@ from common.workspace import (
     read_pair_marker,
     read_point_marker,
     resolve_mapping,
+    tool_marker,
+    tool_of,
 )
 
 # 9/17 libero_90[7] 안정 후 플랜지 위치 (m, 월드) — 값 자체보다 "기준점" 역할이다
@@ -76,11 +80,16 @@ def test_round_trip():
 
 # ── 파지점 기준 (9/30) ────────────────────────────────────────
 
-def test_mirobot_home_grip_is_55mm_below():
-    """홈 (0,0,0) 에서 공구 축은 정확히 아래 — 파지점은 플랜지 바로 아래 55mm."""
-    assert close(MIROBOT_HOME_GRIP_MM, (198.67, 0.0, 175.72))
+def test_mirobot_home_grip():
+    """홈 (0,0,0) 에서 공구 좌표 = 월드 축 — 파지점은 플랜지에서 앞 15mm, 아래 55mm (10/11).
+
+    10/11 전에는 앞 15mm 를 몰라 플랜지 바로 아래로 잡았다 (`LEGACY_TOOL_MM`).
+    """
+    assert MIROBOT_TOOL_MM == (15.0, 0.0, -55.0)
+    assert close(MIROBOT_HOME_GRIP_MM, (213.67, 0.0, 175.72))
     assert close(mirobot_flange_to_grip_mm(MIROBOT_HOME_MM, IDENTITY), MIROBOT_HOME_GRIP_MM)
     assert close(mirobot_grip_to_flange_mm(MIROBOT_HOME_GRIP_MM, IDENTITY), MIROBOT_HOME_MM)
+    assert close(mirobot_home_mm("grip", LEGACY_TOOL_MM), (198.67, 0.0, 175.72))
 
 
 def test_mirobot_grip_sign():
@@ -89,11 +98,45 @@ def test_mirobot_grip_sign():
     B+20° 는 LIBERO Δry+ 와 같은 쪽 — 그리퍼가 뒤(−x)를 향한다 (LIBERO_AXES.md 3절 `(−sinθ, 0, −cosθ)`).
     """
     q = euler_xyz_deg_to_quat(0.0, 20.0, 0.0)
-    grip = mirobot_flange_to_grip_mm((0.0, 0.0, 0.0), q)
+    grip = mirobot_flange_to_grip_mm((0.0, 0.0, 0.0), q, LEGACY_TOOL_MM)  # 축 방향만 — 부호를 보려고
     s, c = math.sin(math.radians(20)), math.cos(math.radians(20))
     assert close(grip, (-55 * s, 0.0, -55 * c))
     wrong = flange_to_grip((0.0, 0.0, 0.0), q, 55.0)  # 규약을 안 바꾸면 이렇게 된다 — 정확히 반대
     assert close(wrong, tuple(-v for v in grip))
+
+
+def test_tool_offset_turns_with_the_gripper():
+    """앞 15mm 는 월드 X 고정이 아니라 집게에 붙어 돈다 — 집게를 90° 돌리면 왼쪽(+Y), 기울이면 높이에도 섞인다."""
+    turned = mirobot_flange_to_grip_mm((0.0, 0.0, 0.0), euler_xyz_deg_to_quat(0.0, 0.0, 90.0))
+    assert close(turned, (0.0, 15.0, -55.0))
+    s, c = math.sin(math.radians(20)), math.cos(math.radians(20))
+    tilted = mirobot_flange_to_grip_mm((0.0, 0.0, 0.0), euler_xyz_deg_to_quat(0.0, 20.0, 0.0))
+    assert close(tilted, (15 * c - 55 * s, 0.0, -15 * s - 55 * c))
+    q = euler_xyz_deg_to_quat(12.0, -7.0, 33.0)
+    assert close(mirobot_grip_to_flange_mm(mirobot_flange_to_grip_mm((1.0, 2.0, 3.0), q), q), (1.0, 2.0, 3.0))
+
+
+def test_tool_marker_and_legacy_files():
+    """새 파일은 머리말에 `; tool …` 을 적는다. 없는 파지점 파일(9/30~10/11)은 축 방향 55mm 로 읽는다."""
+    assert tool_of(f"; point grip\n{tool_marker()}\nG90\n") == MIROBOT_TOOL_MM
+    assert tool_of("; point grip\nG90\n") == LEGACY_TOOL_MM
+    assert read_pair_marker("; point grip\nG90\n", "grip", LEGACY_TOOL_MM) == ((198.67, 0.0, 175.72), 1.0)
+
+
+def test_legacy_tool_reads_old_gcode_back():
+    """옛 파일은 옛 벡터로 읽어야 되돌아온다 — 새 벡터로 읽으면 짝이 같아도 파지점이 15mm 어긋난다."""
+    p = (-0.17, -0.04, 1.20)
+    q_libero = quat_mul(quat_from_axis_deg("x", 6.0), PANDA_START_QUAT)
+    q_m = libero_to_mirobot_quat(q_libero)
+    ref_old = mirobot_home_mm("grip", LEGACY_TOOL_MM)
+    old = libero_to_mirobot_flange_mm(p, q_libero, q_m, PANDA_START_FLANGE_M, PANDA_START_QUAT,
+                                      "grip", 0.663, ref_old, LEGACY_TOOL_MM)
+    back = mirobot_to_libero_flange_m(old, q_m, q_libero, PANDA_START_FLANGE_M, PANDA_START_QUAT,
+                                      "grip", 0.663, ref_old, LEGACY_TOOL_MM)
+    assert close(back, p, 1e-12)
+    wrong = mirobot_to_libero_flange_m(old, q_m, q_libero, PANDA_START_FLANGE_M, PANDA_START_QUAT,
+                                       "grip", 0.663, ref_old)  # 짝은 옛 값인데 벡터만 새 값
+    assert abs(math.dist(wrong, p) * 1000 * 0.663 - 15.0) < 0.5
 
 
 def test_grip_reference_maps_to_home_grip():
@@ -122,6 +165,9 @@ def test_grip_stays_when_panda_turns_about_grip():
     q_mirobot = libero_to_mirobot_quat(tilt)  # 시작이 정확히 top-down 이라 absolute = relative
     out = libero_to_mirobot_flange_mm(p_flange, tilt, q_mirobot, PANDA_START_FLANGE_M, top_down)
     assert close(mirobot_flange_to_grip_mm(out, q_mirobot), MIROBOT_HOME_GRIP_MM)
+    # ANSWER 의 15.7mm 는 축 방향 55mm 만 있을 때의 값이다 — 옛 벡터로 확인한다
+    out = libero_to_mirobot_flange_mm(p_flange, tilt, q_mirobot, PANDA_START_FLANGE_M, top_down,
+                                      tool=LEGACY_TOOL_MM)
     assert abs(math.hypot(out[0] - MIROBOT_HOME_MM[0], out[1] - MIROBOT_HOME_MM[1]) - 15.70) < 0.01
     assert abs(math.dist(p_flange, PANDA_START_FLANGE_M) * 1000 * math.cos(math.radians(16.59 / 2))
                - 27.70) < 0.05  # Panda 쪽 수평 몫

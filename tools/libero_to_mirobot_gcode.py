@@ -43,6 +43,7 @@ from common.workspace import (
     pair_marker,
     point_marker,
     resolve_mapping,
+    tool_marker,
 )
 
 REACH_WARN_MM = 280.0  # 수평 거리. Mirobot 도달 약 315mm (9/14 미팅 메모) — 여유를 둔다
@@ -96,6 +97,7 @@ def main() -> None:
              f"; F = x축 180°, {pair}, scale {args.scale}, orientation {args.orientation}",
              point_marker(args.point),  # 읽는 쪽(libero_follow · roundtrip_check · drift_check)이 이 줄로 점을 안다
              pair_marker(ref_mirobot, scale),  # 짝과 배율도 — 10/1 전 파일에는 없고, 없으면 홈·배율 1
+             *([tool_marker()] if args.point == "grip" else []),  # 공구 벡터 — 없으면 10/11 전 파일(축 방향 55mm)
              "G90", "M20"]
     print(f"{log}  —  waypoint {len(wps)}개, scale {args.scale}, orientation {args.orientation}, "
           f"point {args.point}\n")

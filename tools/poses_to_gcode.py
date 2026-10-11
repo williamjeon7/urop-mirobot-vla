@@ -40,6 +40,7 @@ from common.workspace import (
     DEFAULT_MAPPING,
     DEFAULT_POINT,
     MAPPINGS,
+    MIROBOT_TOOL_MM,
     POINTS,
     flange_to_grip,
     grip_to_flange,
@@ -48,6 +49,7 @@ from common.workspace import (
     pair_marker,
     point_marker,
     resolve_mapping,
+    tool_marker,
 )
 from tools.run_gcode import ANGLE_WARN_DEG, REACH_WARN_MM, Z_FLOOR_MM, Z_WARN_MM
 
@@ -142,7 +144,10 @@ def convert(meta: dict, rows: list[dict], args, source: str, title: str) -> tupl
              f"; 출처 {source}  {meta.get('scene') or meta.get('bddl') or ''}".rstrip(),
              f"; F = x축 180°, {pair}, orientation {args.orientation}",
              f"; 스텝 {len(out_rows)}개 중 {len(kept)}줄 (every {args.every}), chunk {args.chunk}",
-             point_marker(args.point), pair_marker(ref_mirobot, scale), "G90", "M20"]
+             point_marker(args.point), pair_marker(ref_mirobot, scale)]
+    if args.point == "grip":
+        lines.append(tool_marker())  # 읽는 쪽이 이 줄로 공구 벡터를 안다 — 없으면 10/11 전 파일(축 방향 55mm)
+    lines += ["G90", "M20"]
     if gripper_at:
         lines.insert(4, "; 그리퍼 M4 포함 — run_gcode --auto 로만 실행한다 (--stream 은 M4 를 앞에 몰아 보낸다)")
     for r in kept:
@@ -167,6 +172,7 @@ def convert(meta: dict, rows: list[dict], args, source: str, title: str) -> tupl
     log_meta = {"source": source, "source_meta": meta, "task": meta.get("task"),
                 "orientation": args.orientation, "point": args.point, "every": args.every,
                 "mapping": args.mapping, "ref_mirobot_mm": list(ref_mirobot), "scale": scale,
+                "tool_mm": list(MIROBOT_TOOL_MM) if args.point == "grip" else None,
                 "start_flange_m": list(ref_flange), "start_quat_wxyz": list(ref_q),
                 "gripper": {str(k): v for k, v in gripper_at.items()}}
     return lines, out_rows, {"meta": log_meta, "kept": kept, "gripper_at": gripper_at,
@@ -233,7 +239,7 @@ def main() -> None:
     add_arguments(parser)
     args = parser.parse_args()
     meta, rows = read_poses(args.poses)
-    lines, out_rows, info = convert(meta, rows, args, str(args.poses),
+    lines, out_rows, info = convert(meta, rows, args, args.poses.as_posix(),  # Windows 에서도 / 로 — 머리말이 기기마다 같게
                                     "Panda 손 좌표 → Mirobot  (tools/poses_to_gcode.py)")
     print(f"손 좌표 {len(rows)}스텝 — {args.poses}")
     print(f"orientation {args.orientation}, point {args.point}, every {args.every}")

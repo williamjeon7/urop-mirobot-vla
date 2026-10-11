@@ -66,31 +66,56 @@ def grip_to_flange(p_grip, q_wxyz, offset_m: float = PANDA_FLANGE_TO_GRIP_M) -> 
     return flange_to_grip(p_grip, q_wxyz, -offset_m)
 
 
-# Mirobot 은 플랜지만 보고한다. 파지점은 거기서 공구 축으로 55mm 아래다 — 9/21 자로 잰 값, ±5mm
-# (docs/W3/CHECKLIST.md 8절). **이 ±5mm 는 왕복 검증으로는 안 보인다** — 나갈 때와 들어올 때 같은 값을 써서
-# 상쇄된다(`F` 와 같은 구조). 외부 측정(캘리퍼스)으로만 줄일 수 있다.
-MIROBOT_FLANGE_TO_GRIP_M = 0.055
+# Mirobot 은 플랜지만 보고한다. 집게는 플랜지에 붙어 같이 돌고, **플랜지 축에서 앞으로 비켜 있다** (10/11).
+# 그래서 플랜지 → 파지점은 거리 하나가 아니라 **공구 좌표의 벡터**다. Mirobot 자세 규약으로 적는다 —
+# A0 B0 C0 이면 공구 좌표가 월드 축과 같아서 +x 앞, +y 왼쪽, +z 위다. 파지점 = 플랜지 + R(자세)·벡터.
+#   앞 15mm  — 10/11 실물. 블록을 플랜지 바로 아래로 보냈더니 집게가 종이 좌표로 13~15mm 앞에서 닫혀 놓쳤다
+#   아래 55mm — 9/21 자로 잰 값, ±5mm (docs/W3/CHECKLIST.md 8절)
+# 둘 다 **왕복 검증으로는 안 보인다** — 나갈 때와 들어올 때 같은 값을 써서 상쇄된다(`F` 와 같은 구조). 외부 측정으로만 줄인다.
+MIROBOT_TOOL_MM: Vec3 = (15.0, 0.0, -55.0)
 
-# 홈에서 RxRyRz = (0,0,0) 이면 공구 축이 정확히 아래를 향한다 → 파지점은 플랜지 바로 아래 55mm
-MIROBOT_HOME_GRIP_MM: Vec3 = (MIROBOT_HOME_MM[0], MIROBOT_HOME_MM[1],
-                              MIROBOT_HOME_MM[2] - MIROBOT_FLANGE_TO_GRIP_M * 1000.0)
+# 9/30 ~ 10/11 의 파지점 파일은 앞 15mm 를 몰랐다 — 축 방향 55mm 만 썼다. 머리말에 `; tool …` 이 없는 파지점 파일은
+# 이 값으로 읽는다. 짝(홈 파지점)과 G0 가 같은 값으로 같이 틀려서 **G0 는 맞았고**, 그 짝으로 계산한 블록 자리만 15mm 뒤로 나왔다
+LEGACY_TOOL_MM: Vec3 = (0.0, 0.0, -55.0)
 
 
-def mirobot_flange_to_grip_mm(p_flange_mm, q_mirobot_wxyz, offset_m: float = MIROBOT_FLANGE_TO_GRIP_M) -> Vec3:
-    """Mirobot 플랜지(mm) → 파지점(mm).
+def mirobot_flange_to_grip_mm(p_flange_mm, q_mirobot_wxyz, tool: Vec3 = MIROBOT_TOOL_MM) -> Vec3:
+    """Mirobot 플랜지(mm) → 파지점(mm). 공구 벡터를 플랜지 자세로 돌려 더한다.
 
-    **Mirobot 자세 규약에서 공구 축은 −z 다.** top-down 을 (0,0,0) 으로 적어 LIBERO 규약과 `F`(x축 180°)
-    만큼 다르다 (`common/rotation.py` `FRAME_F`). 그래서 LIBERO 규약으로 바꾼 뒤 `flange_to_grip` 에 넣는다 —
-    Mirobot 쿼터니언을 그대로 넣으면 파지점이 55mm **위**로 잡힌다.
+    **Mirobot 자세 규약** 쿼터니언을 넣는다 — 그 규약에서 공구 축은 −z 라 벡터의 z 가 음수다.
+    LIBERO 규약(`flange_to_grip`)과는 `F`(x축 180°) 만큼 다르다 (`common/rotation.py` `FRAME_F`).
     """
-    from common.rotation import mirobot_to_libero_quat
+    from common.rotation import quat_to_matrix  # 위치가 회전을 쓰는 유일한 자리
 
-    return flange_to_grip(p_flange_mm, mirobot_to_libero_quat(q_mirobot_wxyz), offset_m * 1000.0)
+    m = quat_to_matrix(q_mirobot_wxyz)
+    return tuple(p + sum(m[i][j] * tool[j] for j in range(3)) for i, p in enumerate(p_flange_mm))  # type: ignore[return-value]
 
 
-def mirobot_grip_to_flange_mm(p_grip_mm, q_mirobot_wxyz, offset_m: float = MIROBOT_FLANGE_TO_GRIP_M) -> Vec3:
+def mirobot_grip_to_flange_mm(p_grip_mm, q_mirobot_wxyz, tool: Vec3 = MIROBOT_TOOL_MM) -> Vec3:
     """Mirobot 파지점(mm) → 플랜지(mm). G0 에 넣는 것은 플랜지다."""
-    return mirobot_flange_to_grip_mm(p_grip_mm, q_mirobot_wxyz, -offset_m)
+    return mirobot_flange_to_grip_mm(p_grip_mm, q_mirobot_wxyz, tuple(-v for v in tool))
+
+
+# 홈에서 RxRyRz = (0,0,0) 이면 공구 좌표가 월드 축과 같다 → 파지점은 플랜지에서 앞 15, 아래 55mm
+MIROBOT_HOME_GRIP_MM: Vec3 = tuple(h + t for h, t in zip(MIROBOT_HOME_MM, MIROBOT_TOOL_MM))  # type: ignore[assignment]
+
+_TOOL_RE = re.compile(r"^;\s*tool\s+X(-?[\d.]+)\s+Y(-?[\d.]+)\s+Z(-?[\d.]+)", re.MULTILINE)
+
+
+def tool_marker(tool: Vec3 = MIROBOT_TOOL_MM) -> str:
+    """G-code 머리말에 적는 줄 — 이 파일을 만들 때 쓴 공구 벡터 (Mirobot 공구 좌표, mm)."""
+    x, y, z = tool
+    return f"; tool X{x:.2f} Y{y:.2f} Z{z:.2f}"
+
+
+def read_tool_marker(text: str) -> Vec3 | None:
+    m = _TOOL_RE.search(text)
+    return (float(m.group(1)), float(m.group(2)), float(m.group(3))) if m else None
+
+
+def tool_of(text: str) -> Vec3:
+    """G-code 본문 → 만들 때 쓴 공구 벡터. `; tool …` 이 없으면 10/11 전 파일이다 — 축 방향 55mm 만 썼다."""
+    return read_tool_marker(text) or LEGACY_TOOL_MM
 
 
 # ── 어느 점끼리 맞추나 ────────────────────────────────────────
@@ -131,16 +156,18 @@ _PAIR_RE = re.compile(r"^;\s*pair\s+X(-?[\d.]+)\s+Y(-?[\d.]+)\s+Z(-?[\d.]+)\s+sc
 _OLD_SCALE_RE = re.compile(r"^;.*?\bscale\s+([0-9.]+)", re.MULTILINE)  # 9/30 까지 머리말 설명 줄의 "scale 1.0"
 
 
-def mirobot_home_mm(point: str) -> Vec3:
-    """그 점의 Mirobot 홈 — 짝을 따로 정하지 않았을 때의 Mirobot 쪽 기준."""
-    return MIROBOT_HOME_GRIP_MM if point == "grip" else MIROBOT_HOME_MM
+def mirobot_home_mm(point: str, tool: Vec3 = MIROBOT_TOOL_MM) -> Vec3:
+    """그 점의 Mirobot 홈 — 짝을 따로 정하지 않았을 때의 Mirobot 쪽 기준. 파지점이면 공구 벡터에 달렸다."""
+    if point != "grip":
+        return MIROBOT_HOME_MM
+    return tuple(h + t for h, t in zip(MIROBOT_HOME_MM, tool))  # type: ignore[return-value]
 
 
-def resolve_mapping(name: str, point: str) -> tuple[Vec3, float]:
+def resolve_mapping(name: str, point: str, tool: Vec3 = MIROBOT_TOOL_MM) -> tuple[Vec3, float]:
     """이름 → (Mirobot 쪽 짝, 배율). 짝은 `point` 의 점으로 돌려준다."""
     ref, scale = MAPPINGS[name]
     if ref is None:
-        return mirobot_home_mm(point), scale
+        return mirobot_home_mm(point, tool), scale
     if point != "grip":
         raise ValueError(f"짝 {name!r} 은 파지점 기준으로 정한 값이다 — --point grip 으로 쓸 것")
     return ref, scale
@@ -152,43 +179,44 @@ def pair_marker(ref_mirobot_mm: Vec3, scale: float) -> str:
     return f"; pair X{x:.2f} Y{y:.2f} Z{z:.2f} scale {scale:g}"
 
 
-def read_pair_marker(text: str, point: str) -> tuple[Vec3, float]:
+def read_pair_marker(text: str, point: str, tool: Vec3 = MIROBOT_TOOL_MM) -> tuple[Vec3, float]:
     """G-code 본문 → (Mirobot 쪽 짝, 배율).
 
-    `; pair …` 가 없으면 10/1 전 파일이다 — 짝은 그 점의 홈, 배율은 옛 머리말 설명 줄의 `scale …`(없으면 1).
+    `; pair …` 가 없으면 10/1 전 파일이다 — 짝은 그 점의 홈(`tool` 로 셈), 배율은 옛 머리말 설명 줄의 `scale …`(없으면 1).
     """
     m = _PAIR_RE.search(text)
     if m:
         return (float(m.group(1)), float(m.group(2)), float(m.group(3))), float(m.group(4))
     old = _OLD_SCALE_RE.search(text)
-    return mirobot_home_mm(point), float(old.group(1)) if old else 1.0
+    return mirobot_home_mm(point, tool), float(old.group(1)) if old else 1.0
 
 
 def libero_to_mirobot_flange_mm(p_flange_m, q_libero, q_mirobot, ref_flange_m, ref_q_libero,
                                 point: str = DEFAULT_POINT, scale: float = 1.0,
-                                ref_mirobot_mm: Vec3 | None = None) -> Vec3:
+                                ref_mirobot_mm: Vec3 | None = None, tool: Vec3 = MIROBOT_TOOL_MM) -> Vec3:
     """Panda 플랜지 위치(m) → Mirobot `G0` 의 `X Y Z`(플랜지, mm). `point` 끼리 변위를 옮긴다.
 
     q_libero        그 자리의 Panda 자세 (LIBERO 규약)
     q_mirobot       같은 자리에서 Mirobot 에 줄 자세 (Mirobot 규약 — absolute/relative 는 부르는 쪽이 정한다)
     ref_*           짝지을 Panda 기준 (보통 시작 자세)
     ref_mirobot_mm  짝지을 Mirobot 기준 — `point` 의 점으로 적는다. None 이면 그 점의 홈 (`mirobot_home_mm`)
+    tool            Mirobot 플랜지 → 파지점 공구 벡터 (`MIROBOT_TOOL_MM`). 옛 파일을 읽을 때만 바꾼다
     """
-    ref_m = ref_mirobot_mm or mirobot_home_mm(point)
+    ref_m = ref_mirobot_mm or mirobot_home_mm(point, tool)
     if point == "flange":
         return libero_to_mirobot_xyz_mm(p_flange_m, ref_flange_m, ref_m, scale)
     grip = libero_to_mirobot_xyz_mm(flange_to_grip(p_flange_m, q_libero), flange_to_grip(ref_flange_m, ref_q_libero),
                                     ref_m, scale)
-    return mirobot_grip_to_flange_mm(grip, q_mirobot)
+    return mirobot_grip_to_flange_mm(grip, q_mirobot, tool)
 
 
 def mirobot_to_libero_flange_m(p_mirobot_mm, q_mirobot, q_libero, ref_flange_m, ref_q_libero,
                                point: str = DEFAULT_POINT, scale: float = 1.0,
-                               ref_mirobot_mm: Vec3 | None = None) -> Vec3:
+                               ref_mirobot_mm: Vec3 | None = None, tool: Vec3 = MIROBOT_TOOL_MM) -> Vec3:
     """Mirobot `X Y Z`(플랜지, mm — G0 든 `?` 보고값이든) → Panda 플랜지 위치(m). 위 함수의 역."""
-    ref_m = ref_mirobot_mm or mirobot_home_mm(point)
+    ref_m = ref_mirobot_mm or mirobot_home_mm(point, tool)
     if point == "flange":
         return mirobot_to_libero_xyz_m(p_mirobot_mm, ref_flange_m, ref_m, scale)
-    grip = mirobot_to_libero_xyz_m(mirobot_flange_to_grip_mm(p_mirobot_mm, q_mirobot),
+    grip = mirobot_to_libero_xyz_m(mirobot_flange_to_grip_mm(p_mirobot_mm, q_mirobot, tool),
                                    flange_to_grip(ref_flange_m, ref_q_libero), ref_m, scale)
     return grip_to_flange(grip, q_libero)

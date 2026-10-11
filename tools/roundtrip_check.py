@@ -42,6 +42,7 @@ from common.rotation import (
 )
 from common.workspace import (
     LEGACY_POINT,
+    LEGACY_TOOL_MM,
     POINTS,
     flange_to_grip,
     mirobot_to_libero_flange_m,
@@ -50,6 +51,8 @@ from common.workspace import (
     point_marker,
     read_pair_marker,
     read_point_marker,
+    tool_marker,
+    tool_of,
 )
 from tools.probe_mirobot import fields, find_field, is_status, state_of
 from tools.run_gcode import parse_file, pose_of
@@ -68,7 +71,7 @@ def key_of(pose) -> tuple:
     return tuple(round(v, 2) for v in pose)
 
 
-def read_gcode(path: Path) -> tuple[list[tuple[str, list[float]]], float, str, str, tuple]:
+def read_gcode(path: Path) -> tuple[list[tuple[str, list[float]]], float, str, str, tuple, tuple]:
     """(이름, [X Y Z A B C]) 목록과 머리말의 scale·orientation·point·Mirobot 쪽 짝.
 
     point 표시가 없으면 플랜지 (9/28 까지의 파일). 짝·배율은 `; pair …` 에서, 없으면 홈과 옛 설명 줄의 scale.
@@ -81,8 +84,9 @@ def read_gcode(path: Path) -> tuple[list[tuple[str, list[float]]], float, str, s
         if line.startswith(";") and (m := HEADER_RE.search(line)):
             orientation = m.group(2)
     point = read_point_marker(text) or LEGACY_POINT
-    ref_mirobot, scale = read_pair_marker(text, point)
-    return wps, scale, orientation, point, ref_mirobot
+    tool = tool_of(text)  # 없으면 10/11 전 파일 — 축 방향 55mm
+    ref_mirobot, scale = read_pair_marker(text, point, tool)
+    return wps, scale, orientation, point, ref_mirobot, tool
 
 
 def reported_by_pose(log_path: Path) -> dict[tuple, dict]:
@@ -117,7 +121,7 @@ def reported_by_pose(log_path: Path) -> dict[tuple, dict]:
 
 
 def cmd_extract(args) -> None:
-    wps, scale, orientation, point, ref_mirobot = read_gcode(args.gcode)
+    wps, scale, orientation, point, ref_mirobot, tool = read_gcode(args.gcode)
     reported = reported_by_pose(args.run_log)
     missing = [label for label, pose in wps if key_of(pose) not in reported]
     if missing:
@@ -142,7 +146,7 @@ def cmd_extract(args) -> None:
 
     meta = {"meta": {"run_log": args.run_log.as_posix(), "gcode": args.gcode.as_posix(),
                      "scale": scale, "orientation": orientation, "point": point,
-                     "ref_mirobot_mm": list(ref_mirobot), "waypoints": len(rows),
+                     "ref_mirobot_mm": list(ref_mirobot), "tool_mm": list(tool), "waypoints": len(rows),
                      "note": "reported_* 는 Mirobot `?` 보고값 (플랜지 mm, extrinsic XYZ 도)"}}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", encoding="utf-8") as f:
@@ -154,7 +158,7 @@ def cmd_extract(args) -> None:
     gcode_out = args.out.with_suffix(".gcode")
     lines = [f"; Mirobot 이 실제로 간 자세 (`?` 보고값). 원본 {args.gcode.as_posix()}, 기록 {args.run_log.as_posix()}",
              f"; scale {scale}, orientation {orientation}", point_marker(point),
-             pair_marker(ref_mirobot, scale), "G90", "M20"]
+             pair_marker(ref_mirobot, scale), *([tool_marker(tool)] if point == "grip" else []), "G90", "M20"]
     for row in rows:
         x, y, z = row["reported_xyz_mm"]
         a, b, c = row["reported_rxryrz_deg"]
@@ -169,7 +173,9 @@ def cmd_compare(args) -> None:
     scale = args.scale if args.scale is not None else meta.get("scale", 1.0)
     orientation = args.orientation or meta.get("orientation", "absolute")
     point = args.point or meta.get("point") or LEGACY_POINT  # 9/20 측정 파일에는 없다 — 플랜지로 만든 것
-    ref_mirobot = tuple(meta["ref_mirobot_mm"]) if meta.get("ref_mirobot_mm") else mirobot_home_mm(point)  # 10/1 전 = 홈
+    tool = tuple(meta["tool_mm"]) if meta.get("tool_mm") else LEGACY_TOOL_MM  # 10/11 전 측정 파일 = 축 방향 55mm
+    ref_mirobot = (tuple(meta["ref_mirobot_mm"]) if meta.get("ref_mirobot_mm")
+                   else mirobot_home_mm(point, tool))  # 10/1 전 = 홈
 
     origin = [json.loads(line) for line in args.rollout.open(encoding="utf-8")][1:]
     wps = {r["waypoint"]: r for r in origin if r.get("waypoint")}
@@ -192,7 +198,7 @@ def cmd_compare(args) -> None:
         q_reported = euler_xyz_deg_to_quat(*row["reported_rxryrz_deg"])
         q_back = back_to_libero_quat(q_reported)
         p_back = mirobot_to_libero_flange_m(row["reported_xyz_mm"], q_reported, q_back, ref_pos, q_ref, point, scale,
-                                            ref_mirobot)
+                                            ref_mirobot, tool)
         p_orig = origin_row["flange_pos"]
         q_orig = quat_xyzw_to_wxyz(tuple(origin_row["flange_quat_xyzw"]))
 

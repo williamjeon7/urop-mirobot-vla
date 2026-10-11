@@ -50,6 +50,7 @@ from common.workspace import (
     mirobot_to_libero_flange_m,
     read_pair_marker,
     read_point_marker,
+    tool_of,
 )
 
 STILL_POS_MM = 0.3   # 한 스텝에 이만큼도 안 움직이면 섰다고 본다
@@ -87,7 +88,9 @@ def targets_from_gcode(path: Path, ref_flange_m, ref_quat, orientation: str = "a
     파일을 만든 쪽과 읽는 쪽이 어긋나면 시작 기울기만큼(3.3°) 전체가 어긋난다.
     `point` 도 같다 — 파지점끼리 만든 파일을 플랜지로 읽으면 자세에 따라 최대 42mm 어긋난다.
     """
-    ref_mirobot, scale = read_pair_marker(path.read_text(encoding="utf-8"), point)
+    text = path.read_text(encoding="utf-8")
+    tool = tool_of(text)  # 머리말 `; tool …` — 없으면 10/11 전 파일(축 방향 55mm)
+    ref_mirobot, scale = read_pair_marker(text, point, tool)
     out = []
     for label, command in parse_file(path):
         pose = pose_of(command)
@@ -96,7 +99,7 @@ def targets_from_gcode(path: Path, ref_flange_m, ref_quat, orientation: str = "a
         q_mirobot = euler_xyz_deg_to_quat(*pose[3:6])
         q_libero = quat_mul(q_mirobot, ref_quat) if orientation == "relative" else mirobot_to_libero_quat(q_mirobot)
         p_flange = mirobot_to_libero_flange_m(pose[:3], q_mirobot, q_libero, ref_flange_m, ref_quat, point,
-                                              scale, ref_mirobot)
+                                              scale, ref_mirobot, tool)
         out.append((label or f"wp{len(out) + 1}", p_flange, q_libero))
     return out
 
