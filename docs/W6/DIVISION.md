@@ -208,6 +208,7 @@ Panda 시작 자세는 LIBERO 기본값이다(약 (−0.2085, 0, 1.1733), 노이
   → 10/11 seed 2 red: RGB 20 mm 정육면체로 집어 드는 것을 확인했다. 다음은 견본 9자리(seed 2 → seed 0·1 → 안쪽 끝 blue s0·s1)를 차례로 돌린다.
   파일은 `trajectories/2026_10_11-w6-pickup-<색>-s<seed>-e5.gcode`(`--scale 0.663 --every 5 --gripper`, 9개 모두 dry-run 통과)이고,
   같은 자리의 시뮬 영상은 `images/mirobot/<색>_seed<seed>_pickup_sim.mp4`다(화면에 G-code 줄 `[n/N]`과 `M4 S60` 위치를 표시).
+  자리별 값·영상 읽는 법·실물 결과 표는 [MIROBOT_PICKUP.md](MIROBOT_PICKUP.md)에 모았다.
   실물에서 본 것: `M4 S60` 뒤에 2–3.5 mm 더 내려갔다가 올라온다. 견본의 grasp 단계 움직임이다(Panda 쪽 `move_to` tolerance 6 mm)
   → **10/11 실물 결과** — 로봇 밑에 깐 좌표종이(cm, 원점 J1 중심, 가로 X·세로 Y)로 집게 중심을 읽었다. 격자 1 cm 라 ±5 mm 보다 작은 차이는 못 가른다.
     파일은 공구 오프셋을 고친 뒤 다시 만든 것이고, 블록은 고친 종이 표시에 놓았다
