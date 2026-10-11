@@ -47,6 +47,7 @@ checkpoints/
 !docs/W5/images/custom_bddl_monitoring.mp4
 !docs/W5/images/custom_bddl_predicate_test.mp4
 !docs/W5/images/panda_drawer_action.mp4
+!docs/W6/images/mirobot/*.mp4
 *.avi
 
 # ─────────────────────────────────────────────────────────────
