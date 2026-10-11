@@ -1,7 +1,7 @@
 ; Panda 손 좌표 → Mirobot  (tools/poses_to_gcode.py)
 ; 출처 docs/W6/poses/pickup-red-s2.jsonl  docs/W6/rgb_blocks/tasks/red.bddl
 ; F = x축 180°, 파지점 ↔ 파지점, Panda 시작 ↔ Mirobot (198.67, 0.0, 175.72) (짝 home), 배율 0.663, orientation absolute
-; 스텝 144개 중 30줄 (every 5), chunk 16
+; 스텝 144개 중 31줄 (every 5), chunk 16
 ; 그리퍼 M4 포함 — run_gcode --auto 로만 실행한다 (--stream 은 M4 를 앞에 몰아 보낸다)
 ; point grip
 ; pair X198.67 Y0.00 Z175.72 scale 0.663
@@ -33,6 +33,8 @@ G0 X182.91 Y-46.49 Z132.01 A-0.04 B0.04 C-0.04
 G0 X182.57 Y-46.30 Z109.96 A-0.06 B-0.03 C-0.05
 ; c04s0055
 G0 X182.39 Y-46.13 Z87.76 A-0.07 B-0.07 C-0.07
+; c04s0059
+G0 X181.53 Y-46.50 Z75.14 A-0.04 B-0.29 C-0.05
 ; gripper s0060
 M4 S60
 ; c04s0060

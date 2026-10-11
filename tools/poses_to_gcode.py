@@ -129,7 +129,12 @@ def convert(meta: dict, rows: list[dict], args, source: str, title: str) -> tupl
                 gripper_at[r["step"]] = args.gripper_close if now > 0 else args.gripper_open
                 sign = now
     last = out_rows[-1]["step"]
-    kept = [r for r in out_rows if r["step"] % args.every == 0 or r["step"] == last or r["step"] in gripper_at]
+    # 그리퍼가 바뀌는 스텝 k 의 action 은 스텝 k-1 의 자세에서 시작한다. 그래서 k-1 도 남겨야
+    # Mirobot 이 그 자세에 도착한 뒤 M4 를 실행한다. --every 로 k-1 이 빠지면 몇 스텝 앞(예: 잡는 높이보다
+    # 15 mm 위)에서 집게가 닫힌다 (10/11, --every 5 에서 발견)
+    before_gripper = {k - 1 for k in gripper_at}
+    kept = [r for r in out_rows if r["step"] % args.every == 0 or r["step"] == last
+            or r["step"] in gripper_at or r["step"] in before_gripper]
 
     which = "파지점 ↔ 파지점" if args.point == "grip" else "플랜지 ↔ 플랜지"
     pair = f"{which}, Panda 시작 ↔ Mirobot {tuple(round(v, 2) for v in ref_mirobot)} (짝 {args.mapping}), 배율 {scale:g}"

@@ -67,12 +67,23 @@ def test_gripper_lines_go_before_the_step_where_the_sign_changes():
     assert any("--auto" in line for line in lines if line.startswith(";"))
 
 
-def test_every_keeps_gripper_steps_and_the_last_step():
+def test_every_keeps_gripper_steps_the_step_before_and_the_last_step():
     meta, rows = poses(10)
     lines, _, info = convert(meta, rows, options("--gripper", "--every", "4"), "test", "test")
     kept = [r["step"] for r in info["kept"]]
-    assert kept == [1, 4, 6, 8, 10]            # 1·6 그리퍼, 4·8 every, 10 마지막
+    assert kept == [1, 4, 5, 6, 8, 10]         # 1·6 그리퍼, 5 그리퍼 바로 앞, 4·8 every, 10 마지막
     assert len(g0(lines)) == len(kept)
+
+
+def test_gripper_closes_after_reaching_the_pose_before_the_change():
+    # 10/11: --every 5 에서 M4 앞 G0 가 잡는 높이보다 한참 위였다. M4 바로 앞 G0 는 바뀌기 직전 스텝이어야 한다
+    meta, rows = poses(22)                      # 그리퍼는 스텝 12 에서 닫힘 — 바로 앞 11 은 5 의 배수가 아니다
+    lines, out_rows, _ = convert(meta, rows, options("--gripper", "--every", "5"), "test", "test")
+    body = [line for line in lines if not line.startswith(";")]
+    close = body.index("M4 S60")
+    step11 = next(r for r in out_rows if r["step"] == 11)
+    x, y, z = step11["mirobot_xyz_mm"]
+    assert body[close - 1].startswith(f"G0 X{x:.2f} Y{y:.2f} Z{z:.2f}")
 
 
 def test_no_gripper_lines_without_the_flag():
