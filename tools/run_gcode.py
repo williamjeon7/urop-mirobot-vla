@@ -341,6 +341,118 @@ def print_closest(sent, samples) -> None:
     print("변환 검증에 쓸 '도착해서 선' 자세가 필요하면 --auto 로 다시 돌린다")
 
 
+def check_file(path: Path, z_floor: float = Z_FLOOR_MM, stream: bool = False):
+    """파일을 읽어 계획표와 경고를 찍는다. (entries, 이동 수, 하한 아래 줄, 이동 사이 설정 줄) 을 돌려준다.
+
+    보내기 전에 파일 전체를 보는 단계다 — `run_gcode` 와 `probe_mirobot` 의 `run` 이 같이 쓴다.
+    """
+    entries = parse_file(path)
+    moves = sum(1 for _, c in entries if pose_of(c) is not None)
+    print(f"{path} — 명령 {len(entries)}줄 (이동 {moves}개)"
+          f"{'  [stream — 멈추지 않고 이어서, 보고값 안 남음]' if stream else ''}")
+    show_plan(entries, z_floor)
+
+    # 세로 하한은 보내기 전에 파일 전체로 본다 — --stream 은 버퍼에 들어간 이동을 취소할 수 없어서
+    # 줄마다 보다가 멈추는 방식으로는 막지 못한다
+    blocked = low_lines(entries, z_floor)
+    low = [row for row in low_lines(entries, Z_WARN_MM) if row[2] >= z_floor]
+    if z_floor != Z_FLOOR_MM:
+        print(f"\n!! Z 하한을 {z_floor:g}mm 로 바꿨다 (기본 {Z_FLOOR_MM:g})")
+    if low:
+        print(f"\n!  Z {Z_WARN_MM:g}mm 아래 {len(low)}줄 (경고) — 처음 {', '.join(f'{w} Z{z:g}' for w, _, z in low[:5])}")
+    if blocked:
+        print(f"\n!! Z 하한 {z_floor:g}mm 아래 {len(blocked)}줄 — 처음 {', '.join(f'{w} Z{z:g}' for w, _, z in blocked[:5])}")
+    # --stream 은 설정 줄을 먼저 몰아 보낸다 — 이동 사이의 그리퍼 M4 는 순서가 바뀐다
+    mid = stream_blocker(entries)
+    if mid:
+        print(f"\n!  이동 사이에 설정 줄이 있다 ({mid}) — --auto 로만 실행한다 (--stream 은 거부)")
+    return entries, moves, blocked, mid
+
+
+def refuse_reason(blocked, mid, stream: bool) -> str | None:
+    """보내면 안 되는 이유. 없으면 None."""
+    if stream and mid:
+        return f"\n--stream 은 설정 줄을 먼저 몰아 보내서 {mid} 의 순서가 바뀐다. --auto 로 실행한다"
+    if blocked:
+        return (f"\n하한 아래 줄이 있어 보내지 않는다. 일부러 내려가는 파일이면 --z-floor 로 낮춘다 "
+                f"(작업대에 닿는 플랜지 Z: 연 55.7, 닫은 60.7mm)")
+    return None
+
+
+def execute(probe, entries, moves: int, *, auto: bool, stream: bool = False, home: bool = False,
+            settle_timeout: float = 20.0, poll_timeout: float = 0.3, poll_hz: float = 20.0,
+            log_path: Path | None = None):
+    """이미 열린 포트(`probe`)로 파일을 보낸다. 포트를 열고 닫는 것은 부르는 쪽이 한다.
+
+    줄마다 결과 [(설명, 명령 자세, 보고 자세, 정지까지 초)] 를 돌려준다. 끝 표를 찍을 것이 없으면
+    (호밍을 거절했거나 --stream) None. `Ctrl-C` 는 여기서 받아, 그때까지의 결과를 돌려준다.
+    """
+    results = []
+    try:
+        if home:
+            if input("호밍한다. 로봇이 크게 움직인다. 진행? [y/N] ").strip().lower() != "y":
+                return None
+            for command in HOME_SEQUENCE:
+                probe.send(command, timeout_s=60.0)
+
+        if stream:
+            for _, command in entries:  # G90, M20 같은 설정 줄을 먼저
+                if pose_of(command) is None:
+                    print(f"[설정] {command}")
+                    probe.send(command)
+            index = run_stream(probe, entries, moves, poll_timeout, settle_timeout, poll_hz)
+            print(f"\n{index}개 이동을 보냈다\nlog: {log_path}")
+            return None
+
+        index = 0
+        for label, command in entries:
+            pose = pose_of(command)
+            if pose is None:  # G90, M20 같은 설정 줄
+                print(f"\n[설정] {command}")
+                probe.send(command)
+                continue
+
+            index += 1
+            print(f"\n[{index}/{moves}] {label}  {command}")
+            if not auto:
+                answer = input("  보낼까? [Enter 보냄 / s 건너뜀 / q 중단] ").strip().lower()
+                if answer == "q":
+                    print("  중단")
+                    break
+                if answer == "s":
+                    continue
+
+            lines, _ = probe.send(command)
+            if any(is_error(line) for _, line in lines):
+                print("  !! 에러 — 멈춘다")
+                break
+
+            status_line, settle_s = probe.wait_settled(settle_timeout)
+            reported = find_field(fields(status_line), "Cartesian") if status_line else None
+            diff = [r - c for r, c in zip(reported[:6], pose)] if reported and len(reported) >= 6 else None
+            print(f"  보고: {fmt(reported[:6] if reported else None)}  ({state_of(status_line) if status_line else '?'},"
+                  f" {settle_s:.2f}s)" if status_line else "  보고 없음")
+            if diff:
+                print(f"  차이: {fmt([round(v, 3) for v in diff])}   위치 {math.dist(reported[:3], pose[:3]):.2f}mm")
+            probe.log("waypoint", label=label, cmd=command, commanded=pose, reported=reported, settle_s=settle_s)
+            results.append((label, pose, reported, settle_s))
+    except KeyboardInterrupt:
+        print("\n중단 — 로봇은 마지막 명령을 계속 수행할 수 있다")
+    return results
+
+
+def print_results(results, log_path: Path) -> None:
+    print(f"\n{'설명':14} | {'위치 차이':>9} | {'자세 차이 (A B C)':>24} | {'정지까지':>7}")
+    for label, pose, reported, settle_s in results:
+        if not reported or len(reported) < 6:
+            print(f"{label:14} | {'보고 없음':>9}")
+            continue
+        print(f"{label:14} | {math.dist(reported[:3], pose[:3]):8.2f}mm | "
+              f"{', '.join(f'{r - c:+.2f}' for r, c in zip(reported[3:6], pose[3:6])):>24} | "
+              f"{(f'{settle_s:.2f}s' if settle_s else '미정지'):>7}")
+    print(f"\nlog: {log_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("gcode", type=Path)
@@ -364,34 +476,13 @@ def main() -> None:
     if args.stream:
         args.auto = True
 
-    entries = parse_file(args.gcode)
-    moves = sum(1 for _, c in entries if pose_of(c) is not None)
-    print(f"{args.gcode} — 명령 {len(entries)}줄 (이동 {moves}개)"
-          f"{'  [stream — 멈추지 않고 이어서, 보고값 안 남음]' if args.stream else ''}")
-    show_plan(entries, args.z_floor)
-
-    # 세로 하한은 보내기 전에 파일 전체로 본다 — --stream 은 버퍼에 들어간 이동을 취소할 수 없어서
-    # 줄마다 보다가 멈추는 방식으로는 막지 못한다
-    blocked = low_lines(entries, args.z_floor)
-    low = [row for row in low_lines(entries, Z_WARN_MM) if row[2] >= args.z_floor]
-    if args.z_floor != Z_FLOOR_MM:
-        print(f"\n!! Z 하한을 {args.z_floor:g}mm 로 바꿨다 (기본 {Z_FLOOR_MM:g})")
-    if low:
-        print(f"\n!  Z {Z_WARN_MM:g}mm 아래 {len(low)}줄 (경고) — 처음 {', '.join(f'{w} Z{z:g}' for w, _, z in low[:5])}")
-    if blocked:
-        print(f"\n!! Z 하한 {args.z_floor:g}mm 아래 {len(blocked)}줄 — 처음 {', '.join(f'{w} Z{z:g}' for w, _, z in blocked[:5])}")
-    # --stream 은 설정 줄을 먼저 몰아 보낸다 — 이동 사이의 그리퍼 M4 는 순서가 바뀐다
-    mid = stream_blocker(entries)
-    if mid:
-        print(f"\n!  이동 사이에 설정 줄이 있다 ({mid}) — --auto 로만 실행한다 (--stream 은 거부)")
+    entries, moves, blocked, mid = check_file(args.gcode, args.z_floor, args.stream)
     if args.dry_run:
         print("\n--dry-run: 아무것도 보내지 않았다")
         return
-    if args.stream and mid:
-        raise SystemExit(f"\n--stream 은 설정 줄을 먼저 몰아 보내서 {mid} 의 순서가 바뀐다. --auto 로 실행한다")
-    if blocked:
-        raise SystemExit(f"\n하한 아래 줄이 있어 보내지 않는다. 일부러 내려가는 파일이면 --z-floor 로 낮춘다 "
-                         f"(작업대에 닿는 플랜지 Z: 연 55.7, 닫은 60.7mm)")
+    reason = refuse_reason(blocked, mid, args.stream)
+    if reason:
+        raise SystemExit(reason)
 
     if serial is None:
         raise SystemExit("pyserial 이 없다: python -m pip install pyserial")
@@ -406,76 +497,21 @@ def main() -> None:
     log_path = log_dir / f"{time.strftime('%Y%m%d_%H%M%S')}--{args.gcode.stem}.jsonl"
     ser = serial.Serial(port=args.port, baudrate=args.baudrate, timeout=0.05)
     probe = Probe(ser, log_path)
-    time.sleep(2)  # 포트를 열면 보드가 리셋된다
+    time.sleep(2)  # 열자마자 들어오는 줄을 받는다. 같은 전원에서 포트만 다시 열어서는 리셋되지 않았다 (10/5)
     for _, line in probe.read_lines(0.5):
         print(f"  boot: {line}")
     probe.log("run_gcode_open", port=args.port, gcode=str(args.gcode), auto=args.auto, z_floor=args.z_floor)
     print(f"log: {log_path}")
 
-    results = []
     try:
-        if args.home:
-            if input("호밍한다. 로봇이 크게 움직인다. 진행? [y/N] ").strip().lower() != "y":
-                return
-            for command in HOME_SEQUENCE:
-                probe.send(command, timeout_s=60.0)
-
-        if args.stream:
-            for _, command in entries:  # G90, M20 같은 설정 줄을 먼저
-                if pose_of(command) is None:
-                    print(f"[설정] {command}")
-                    probe.send(command)
-            index = run_stream(probe, entries, moves, args.poll_timeout, args.settle_timeout, args.poll_hz)
-            print(f"\n{index}개 이동을 보냈다\nlog: {log_path}")
-            return
-
-        index = 0
-        for label, command in entries:
-            pose = pose_of(command)
-            if pose is None:  # G90, M20 같은 설정 줄
-                print(f"\n[설정] {command}")
-                probe.send(command)
-                continue
-
-            index += 1
-            print(f"\n[{index}/{moves}] {label}  {command}")
-            if not args.auto:
-                answer = input("  보낼까? [Enter 보냄 / s 건너뜀 / q 중단] ").strip().lower()
-                if answer == "q":
-                    print("  중단")
-                    break
-                if answer == "s":
-                    continue
-
-            lines, _ = probe.send(command)
-            if any(is_error(line) for _, line in lines):
-                print("  !! 에러 — 멈춘다")
-                break
-
-            status_line, settle_s = probe.wait_settled(args.settle_timeout)
-            reported = find_field(fields(status_line), "Cartesian") if status_line else None
-            diff = [r - c for r, c in zip(reported[:6], pose)] if reported and len(reported) >= 6 else None
-            print(f"  보고: {fmt(reported[:6] if reported else None)}  ({state_of(status_line) if status_line else '?'},"
-                  f" {settle_s:.2f}s)" if status_line else "  보고 없음")
-            if diff:
-                print(f"  차이: {fmt([round(v, 3) for v in diff])}   위치 {math.dist(reported[:3], pose[:3]):.2f}mm")
-            probe.log("waypoint", label=label, cmd=command, commanded=pose, reported=reported, settle_s=settle_s)
-            results.append((label, pose, reported, settle_s))
-    except KeyboardInterrupt:
-        print("\n중단 — 로봇은 마지막 명령을 계속 수행할 수 있다")
+        results = execute(probe, entries, moves, auto=args.auto, stream=args.stream, home=args.home,
+                          settle_timeout=args.settle_timeout, poll_timeout=args.poll_timeout,
+                          poll_hz=args.poll_hz, log_path=log_path)
     finally:
         ser.close()
         probe.log_file.close()
-
-    print(f"\n{'설명':14} | {'위치 차이':>9} | {'자세 차이 (A B C)':>24} | {'정지까지':>7}")
-    for label, pose, reported, settle_s in results:
-        if not reported or len(reported) < 6:
-            print(f"{label:14} | {'보고 없음':>9}")
-            continue
-        print(f"{label:14} | {math.dist(reported[:3], pose[:3]):8.2f}mm | "
-              f"{', '.join(f'{r - c:+.2f}' for r, c in zip(reported[3:6], pose[3:6])):>24} | "
-              f"{(f'{settle_s:.2f}s' if settle_s else '미정지'):>7}")
-    print(f"\nlog: {log_path}")
+    if results is not None:
+        print_results(results, log_path)
 
 
 if __name__ == "__main__":

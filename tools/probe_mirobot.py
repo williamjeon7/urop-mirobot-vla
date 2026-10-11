@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""W2 실물 확인용 Mirobot 프로브. (노트북 전용)
+"""Mirobot 대화형 프로브 — 포트를 한 번 열어 둔 채 명령을 하나씩 보낸다. (로봇 노트북 전용)
 
-docs/W2/CHECKLIST.md §4 "실물에서 확인할 것" 을 명령 하나씩으로 쪼갰다.
-포트를 열면 보드가 리셋될 수 있으므로, 한 번 열어 둔 채 명령을 입력하는 대화형이다.
-응답은 원문 그대로 찍고 data/probe/<시각>.jsonl 에 전부 남긴다.
+손으로 조작할 때 쓴다 — 호밍, 지금 자세 보기, 홈 자세로·Z 만 이동, 집게 열고 닫기, 임의 G-code,
+G-code 파일 실행(`run`). 응답은 원문 그대로 찍고 data/probe/<시각>.jsonl 에 전부 남긴다.
+`run` 의 기록은 run_gcode 와 같은 형식으로 data/gcode_run/<시각>--<파일>.jsonl 에 따로 남는다.
 
     urop\Scripts\Activate.ps1
+    python -m serial.tools.list_ports -v           # 포트 번호부터 본다 — 꽂는 USB 구멍에 따라 바뀐다
     python -m tools.probe_mirobot --port COM4
+
+**Z 하한** — `send`·`dz`·`go`·`run` 은 플랜지 Z 가 하한(기본 66mm, run_gcode 와 같은 값) 아래인 이동을 보내지 않는다.
+집게를 닫은 채 작업대에 닿는 플랜지 Z 가 60.7mm 다 (10/5). 바꾸려면 `--z-floor` 로 띄운다.
+`send` 는 Z 를 절대 좌표로 읽는다 — `G91`(상대) 로 바꿔 쓰면 이 검사가 맞지 않는다.
+
+처음에는 W2 실물 확인용으로 만들었다(docs/W2/CHECKLIST.md §4). 그때의 실험 명령은 help 아래쪽에 묶어 남겼다.
+`Probe` 클래스와 상태 줄 함수(`fields` 등)는 run_gcode·roundtrip_check 가 같이 쓴다 — 바꾸면 그쪽도 확인한다.
 """
 
 from __future__ import annotations
@@ -25,19 +33,27 @@ except ImportError:
     serial = None
 
 from common.gcode import HOME_SEQUENCE
+from common.workspace import MIROBOT_HOME_MM
 from robot.serial_bridge import STATUS_READ_TIMEOUT_S, parse_status_lines
 
 HELP = """\
-  home                        $22=1 $H M20 G90 — 로봇이 크게 움직인다. 처음에 한 번
-  raw [n]                     ? 원문 + 필드별 값 개수 + 현재 파서(serial_bridge) 결과
-  grip <gcode...>             그리퍼 명령 1회 → 3초 뒤 ? 에서 바뀐 필드   예) grip M4 S40
+  home                        호밍 ($22=1 $H M20 G90). 전원을 켠 뒤에는 먼저 한 번 — 로봇이 크게 움직인다
+  raw                         지금 자세 한 줄 — 상태 · 플랜지 X Y Z A B C · 관절 J1~J6 · 집게 S
+  go home                     홈 자세(X198.67 Y0 Z230.72 A0 B0 C0)로 이동. 호밍이 아니다 — 원점은 다시 잡지 않는다
+  dz <mm>                     지금 자리에서 Z 만 올리거나(+) 내린다(-). 한 번에 ±100mm 까지
+  open / close                집게 활짝 열기 M4 S30 / 완전히 닫기 M4 S70 — 기다리지 않는다. 그 사이 값은 send M4 S50
+  send <gcode>                임의 명령을 그대로 보낸다. G0/G1 의 Z 가 하한 아래면 보내지 않는다
+  run <파일> [--auto] [--dry-run] [--z-floor N]
+                              G-code 파일을 이 포트로 실행한다 — run_gcode 와 같다 (기본은 줄마다 Enter, q 중단)
+  help / quit
+
+  W2 실험 명령 — 펌웨어 동작을 알아볼 때 (raw full · timing · moving · line · joint · euler)
+  raw full [n]                ? 원문 + 필드별 값 + serial_bridge 파서 결과
   timing [n]                  ? 왕복 시간 n회 (기본 100)
   moving <dx_mm> [sec]        G0 을 보내고 ok 를 기다리지 않고 ? 폴링 — 이동 중 위치 보고 여부, ok 시점
   line <x|y|z> <len> <step>   EE 직선 이동, 스텝마다 관절각 기록 — 튀는 구간 탐지
   joint <X|Y|Z|A|B|C> <deg>   관절 모드로 한 축만 움직였다 되돌림 — Angle(ABCDXYZ) 순서 확인
   euler [deg]                 관절 모드로 B(J5) 기울이고 C(J6) 돌림, 매 이동 정지 확인 — RxRyRz 합성 규약 (기본 10)
-  send <gcode...>             임의 명령 — 확인 없이 즉시 보낸다. 여러 줄을 붙여 넣으면 연달아 실행된다
-  help / quit
   moving·line·joint·euler 끝에 --stay 를 붙이면 끝난 자세에 그대로 둔다 (시작 자세로 복귀 안 함)
                               예) line x 50 5 --stay"""
 
@@ -97,6 +113,24 @@ def fmt(values: list[float] | None) -> str:
     return " ".join(f"{v:8.2f}" for v in values) if values else "-"
 
 
+def pose_summary(status_line: str) -> str:
+    """상태 줄 → 한 줄. 관절은 J1~J6 순서로 바꿔 적는다 (`Angle(ABCDXYZ)` = [J4, J5, J6, D, J1, J2, J3], W2 4절)."""
+    parsed = fields(status_line)
+    cart = find_field(parsed, "Cartesian")
+    angle = find_field(parsed, "Angle")
+    pwm = find_field(parsed, "Pump")
+    parts = [state_of(status_line)]
+    if cart and len(cart) >= 6:
+        parts.append("X {:.2f} Y {:.2f} Z {:.2f}".format(*cart[:3]))
+        parts.append("A {:.2f} B {:.2f} C {:.2f}".format(*cart[3:6]))
+    if angle and len(angle) == 7 and angle_letters(parsed) == "ABCDXYZ":
+        joints = [angle[4], angle[5], angle[6], angle[0], angle[1], angle[2]]
+        parts.append("J1~J6 " + " ".join(f"{v:.2f}" for v in joints))
+    if pwm:
+        parts.append(f"집게 S{pwm[0]:g}")
+    return "  " + " | ".join(parts)
+
+
 def clamp(value: float, limit: float) -> float:
     if abs(value) > limit:
         print(f"  {value} → ±{limit} 로 제한")
@@ -114,6 +148,9 @@ def confirm(message: str) -> bool:
 
 
 class Probe:
+    port = "?"
+    z_floor: float | None = None  # None 이면 run_gcode 의 Z_FLOOR_MM
+
     def __init__(self, ser, log_path: Path):
         self.ser = ser
         self.log_file = log_path.open("a", encoding="utf-8")
@@ -239,7 +276,46 @@ class Probe:
             print(f"send: {command}")
             self.send(command, timeout_s=120.0)
 
+    def floor(self) -> float:
+        if self.z_floor is not None:
+            return self.z_floor
+        from tools.run_gcode import Z_FLOOR_MM  # run_gcode 가 이 파일을 import 하므로 여기서 늦게 부른다
+        return Z_FLOOR_MM
+
+    def below_floor(self, command: str) -> bool:
+        """이동 줄의 Z 가 하한 아래면 알리고 True."""
+        from tools.run_gcode import z_of
+        z = z_of(command)
+        if z is not None and z < self.floor():
+            print(f"  !! Z {z:g} 는 하한 {self.floor():g}mm 아래라 보내지 않는다 "
+                  f"(작업대에 닿는 플랜지 Z: 연 55.7, 닫은 60.7mm). 바꾸려면 --z-floor 로 다시 띄운다")
+            return True
+        return False
+
+    def move_to(self, target: list[float]) -> None:
+        """G0 하나를 보내고 멈출 때까지 기다린 뒤 자세 한 줄을 찍는다."""
+        command = g0(target)
+        if self.below_floor(command):
+            return
+        print(f"send: {command}")
+        lines, _ = self.send(command)
+        if lines and is_error(lines[-1][1]):
+            return
+        status_line, settle_s = self.wait_settled()
+        if status_line:
+            print(pose_summary(status_line) + (f"  ({settle_s:.2f}s)" if settle_s else ""))
+            self.log("raw", lines=[[0.0, status_line]])  # roundtrip_check 가 send 다음의 상태 줄로 읽는다
+
     def cmd_raw(self, args: list[str]) -> None:
+        if not args or args[0] != "full":
+            status_line, elapsed, _ = self.status()
+            if status_line is None:
+                print("  ? 응답 없음")
+                return
+            print(pose_summary(status_line))
+            self.log("raw", lines=[[round(elapsed * 1000, 1), status_line]])
+            return
+        args = args[1:]
         n = int(args[0]) if args else 1
         for i in range(n):
             self.ser.reset_input_buffer()
@@ -255,26 +331,6 @@ class Probe:
                     print(f"  {label:<36} ({len(values)}개) {values}")
             print(f"  현재 파서 결과: {parse_status_lines([l for _, l in lines])}")
             self.log("raw", lines=[[round((t - t0) * 1000, 1), l] for t, l in lines])
-
-    def cmd_grip(self, args: list[str]) -> None:
-        if not args:
-            print("  사용: grip M4 S40")
-            return
-        command = " ".join(args)
-        before, _, _ = self.status()
-        print(f"send: {command}")
-        self.send(command)
-        print("  3초 대기 — 그리퍼가 어디까지 가는지 눈으로 볼 것")
-        time.sleep(3.0)
-        after, _, _ = self.status()
-        f_before = fields(before) if before else {}
-        f_after = fields(after) if after else {}
-        changed = [k for k in sorted(set(f_before) | set(f_after)) if f_before.get(k) != f_after.get(k)]
-        for label in changed:
-            print(f"  바뀜 {label}: {f_before.get(label)} → {f_after.get(label)}")
-        if not changed:
-            print("  ? 응답에서 바뀐 필드 없음")
-        self.log("grip", cmd=command, before=before, after=after, changed=changed)
 
     def cmd_timing(self, args: list[str]) -> None:
         n = int(args[0]) if args else 100
@@ -371,7 +427,7 @@ class Probe:
             actual = row["cart"][idx] if row["cart"] else float("nan")
             flag = "  <-- 튐" if row["jump_deg"] > JOINT_JUMP_WARN_DEG else ""
             print(f"  {row['i']:>3} {row['target'][idx]:8.2f} {actual:8.2f}  {row['jump_deg']:9.2f}   {fmt(row['angle'])}{flag}")
-        print(f"  스텝 {step}mm 에 관절이 {JOINT_JUMP_WARN_DEG}° 넘게 변하면 '튐' 표시. J5 범위(-180°~+40°)는 joint 로 순서를 확인한 뒤 읽을 것")
+        print(f"  스텝 {step}mm 에 관절이 {JOINT_JUMP_WARN_DEG}° 넘게 변하면 '튐' 표시. J5 범위(-200°~+30°, W4)는 joint 로 순서를 확인한 뒤 읽을 것")
         if stay:
             print("  --stay: 마지막 스텝 자세에 그대로 둔다")
             return
@@ -447,15 +503,94 @@ class Probe:
 
     def cmd_send(self, args: list[str]) -> None:
         command = " ".join(args)
+        if not command:
+            print("  사용: send <gcode>   예) send G0 X198.67 Y0 Z230.72 A0 B0 C0")
+            return
+        if self.below_floor(command):
+            return
         print(f"send: {command}")
         self.send(command, timeout_s=60.0)
 
+    def cmd_go(self, args: list[str]) -> None:
+        if args != ["home"]:
+            print("  사용: go home")
+            return
+        self.move_to([*MIROBOT_HOME_MM, 0.0, 0.0, 0.0])
+
+    def cmd_dz(self, args: list[str]) -> None:
+        if not args:
+            print("  사용: dz <mm>   예) dz 20 (올리기), dz -10 (내리기)")
+            return
+        dz = clamp(float(args[0]), MAX_MOVE_MM)
+        start = self.current_pose()
+        if start is None:
+            return
+        target = list(start)
+        target[2] += dz
+        self.move_to(target)
+
+    def cmd_open(self, args: list[str]) -> None:
+        print("send: M4 S30")
+        self.send("M4 S30")
+
+    def cmd_close(self, args: list[str]) -> None:
+        print("send: M4 S70")
+        self.send("M4 S70")
+
+    def cmd_run(self, args: list[str]) -> None:
+        """G-code 파일을 이미 열린 이 포트로 실행한다. 검사·실행·끝 표는 run_gcode 와 같은 함수다."""
+        from tools import run_gcode as rg
+
+        parser = argparse.ArgumentParser(prog="run", add_help=False)
+        parser.add_argument("gcode", type=Path)
+        parser.add_argument("--auto", action="store_true")
+        parser.add_argument("--dry-run", action="store_true")
+        parser.add_argument("--z-floor", type=float, default=self.floor())
+        try:
+            opts = parser.parse_args(args)
+        except SystemExit:
+            print("  사용: run <파일> [--auto] [--dry-run] [--z-floor N]")
+            return
+        if not opts.gcode.is_file():
+            print(f"  파일이 없다: {opts.gcode}")
+            return
+
+        entries, moves, blocked, mid = rg.check_file(opts.gcode, opts.z_floor)
+        if opts.dry_run:
+            print("\n--dry-run: 아무것도 보내지 않았다")
+            return
+        reason = rg.refuse_reason(blocked, mid, stream=False)
+        if reason:
+            print(reason)
+            return
+        if input(f"\n{self.port} 로 보낸다. 비상정지에 손이 닿는가? [y/N] ").strip().lower() != "y":
+            print("취소")
+            return
+
+        log_dir = Path("data/gcode_run")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / f"{time.strftime('%Y%m%d_%H%M%S')}--{opts.gcode.stem}.jsonl"
+        runner = Probe(self.ser, log_path)  # 같은 포트, 기록만 따로
+        runner.log("run_gcode_open", port=self.port, gcode=str(opts.gcode), auto=opts.auto,
+                   z_floor=opts.z_floor, via="probe_mirobot")
+        print(f"log: {log_path}")
+        try:
+            results = rg.execute(runner, entries, moves, auto=opts.auto, log_path=log_path)
+        finally:
+            runner.log_file.close()
+        if results is not None:
+            rg.print_results(results, log_path)
+        self.log("run", gcode=str(opts.gcode), log=str(log_path), auto=opts.auto,
+                 waypoints=len(results or []))
+
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Interactive Mirobot probe for W2 hardware checks.")
-    parser.add_argument("--port", default="COM7", help="Serial port, e.g. COM7")
+    parser = argparse.ArgumentParser(description="Mirobot 대화형 프로브 — 포트를 열어 둔 채 명령을 하나씩 보낸다.")
+    parser.add_argument("--port", default="COM4", help="시리얼 포트. python -m serial.tools.list_ports -v 로 확인")
     parser.add_argument("--baudrate", type=int, default=115200)
     parser.add_argument("--log-dir", default="data/probe")
+    parser.add_argument("--z-floor", type=float, default=None,
+                        help="플랜지 Z 하한 mm — send·dz·go·run 이 이보다 낮은 이동을 보내지 않는다 (기본은 run_gcode 와 같은 66)")
     args = parser.parse_args()
 
     if serial is None:
@@ -467,24 +602,30 @@ def main() -> None:
 
     ser = serial.Serial(port=args.port, baudrate=args.baudrate, timeout=0.05)
     probe = Probe(ser, log_path)
-    time.sleep(2)  # 포트를 열면 보드가 리셋된다
+    probe.port = args.port
+    probe.z_floor = args.z_floor
+    time.sleep(2)  # 열자마자 들어오는 줄을 받는다. 같은 전원에서 포트만 다시 열어서는 리셋되지 않았다 (10/5)
     boot = probe.read_lines(0.5)
     for _, line in boot:
         print(f"  boot: {line}")
     probe.log("open", port=args.port, boot=[l for _, l in boot])
     print(f"log: {log_path}")
-    print(HELP)
+    print(f"Z 하한 {probe.floor():g}mm · 명령 목록은 help")
 
     commands = {
         "home": probe.cmd_home,
         "raw": probe.cmd_raw,
-        "grip": probe.cmd_grip,
         "timing": probe.cmd_timing,
         "moving": probe.cmd_moving,
         "line": probe.cmd_line,
         "joint": probe.cmd_joint,
         "euler": probe.cmd_euler,
         "send": probe.cmd_send,
+        "go": probe.cmd_go,
+        "dz": probe.cmd_dz,
+        "open": probe.cmd_open,
+        "close": probe.cmd_close,
+        "run": probe.cmd_run,
     }
     try:
         while True:
@@ -494,11 +635,13 @@ def main() -> None:
                 break
             if not entered:
                 continue
-            name, *rest = shlex.split(entered)
+            # Windows 경로의 \ 를 / 로 — shlex 가 \ 를 지워 버린다. G-code 에는 \ 가 없다
+            name, *rest = shlex.split(entered.replace("\\", "/"))
             if name in ("quit", "exit", "q"):
                 break
             if name == "help":
                 print(HELP)
+                print(f"\n  Z 하한 {probe.floor():g}mm")
                 continue
             handler = commands.get(name)
             if handler is None:
@@ -510,6 +653,9 @@ def main() -> None:
                 print("\n  중단 — 로봇은 마지막으로 받은 명령을 계속 수행할 수 있다")
             except (ValueError, IndexError) as exc:
                 print(f"  인자 오류: {exc}")
+            except SystemExit as exc:  # 명령 하나가 끝내려 해도 프로브는 계속 연다
+                if exc.code not in (None, 0):
+                    print(f"  {exc.code}")
     finally:
         ser.close()
         probe.log_file.close()
