@@ -50,6 +50,7 @@ Action 실행 → 손 위치·자세 기록
 변환에는 [`tools/poses_to_gcode.py`](../../tools/poses_to_gcode.py)를 사용했다. 입력 파일에서 손 위치인 `eef_pos`와 방향인 `eef_quat_xyzw`를 읽어 Mirobot의 `G0 X Y Z A B C` 명령으로 바꾼다. 이런 형태로 로봇에 이동과 집게 개폐를 지시하는 명령을 G-code라고 한다. `X Y Z`는 위치(mm), `A B C`는 x·y·z축 회전각(°)이다.
 
 ### 3.1 두 로봇에서 어느 점을 맞췄나
+파지점끼리 먼저 맞추는 이유는 Panda와 Mirobot의 집게 길이가 다르고, 실제로 물체를 잡는 위치는 플랜지가 아니라 파지점이기 때문
 
 **파지점**은 집게가 물체를 무는 손가락 사이의 기준점이다. **플랜지**는 집게를 장착하는 손목 끝의 면이다. LIBERO의 `robot0_eef_pos`는 파지점 위치이고, Mirobot의 `G0 X Y Z`는 플랜지 위치를 받는다.
 
