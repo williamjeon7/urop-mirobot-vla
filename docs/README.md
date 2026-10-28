@@ -41,6 +41,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W6 | [W6/PANDA_REPLAY.md](W6/PANDA_REPLAY.md) | Panda 동작 재생 18개, LIBERO → Mirobot 좌표 변환식과 실제 계산 예시, 시뮬 사진·GIF |
 | W7 | [W7/CHECKLIST.md](W7/CHECKLIST.md) | D405 컬러 영상 확인과 첫 MP4 촬영의 진행 상태·촬영 기록 |
 | W7 | [W7/SETUP_D405_WINDOWS.md](W7/SETUP_D405_WINDOWS.md) | Windows에서 D405 Viewer 다운로드·실행, 컬러 영상 확인과 MP4 시험 녹화 |
+| W9 | [W9/WHY_VLA.md](W9/WHY_VLA.md) | **왜 VLA 인가** — 3색 블록은 직접 짠 코드로도 풀리는데 VLA 를 쓰는 이유, 직접 짠 코드의 역할. 미결: 직접 짠 버전을 기준선으로 잴지 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 
