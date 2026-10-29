@@ -139,11 +139,21 @@ def main():
     config.enable_device(serial_number)
     config.enable_stream(rs.stream.color, a.width, a.height, rs.format.rgb8, a.fps)
     stop, ready = threading.Event(), threading.Event()
+    recording, first_recorded_frame = threading.Event(), threading.Event()
+    from .recording_controls import RecordingControls
+    controls = RecordingControls() if a.teleop else None
+    if not a.teleop:
+        recording.set()
     errors = queue.Queue()
     profile = None
     worker = None
+    preview_title = 'D405 live - recording controls' if a.teleop else 'D405 - Esc stops capture'
     def camera_loop():
         try:
+            if a.preview:
+                cv2.namedWindow(preview_title)
+                if controls:
+                    cv2.setMouseCallback(preview_title, controls.mouse)
             with (a.out / 'frames.jsonl').open('x', encoding='utf-8') as log:
                 index = 0
                 while not stop.is_set():
@@ -153,20 +163,23 @@ def main():
                     if not frame:
                         continue
                     image = np.asanyarray(frame.get_data())
-                    name = f'rgb/{index:08d}.png'
-                    write_image(a.out / name, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-                    log.write(json.dumps(dict(file=name, t_s=(receipt_ns-clock_ns)/1e9,
-                                             device_ms=frame.get_timestamp(),
-                                             domain=str(frame.get_frame_timestamp_domain()),
-                                             number=frame.get_frame_number())) + '\n')
-                    log.flush()
+                    if recording.is_set():
+                        name = f'rgb/{index:08d}.png'
+                        write_image(a.out / name, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+                        log.write(json.dumps(dict(file=name, t_s=(receipt_ns-clock_ns)/1e9,
+                                                 device_ms=frame.get_timestamp(),
+                                                 domain=str(frame.get_frame_timestamp_domain()),
+                                                 number=frame.get_frame_number())) + '\n')
+                        log.flush()
+                        first_recorded_frame.set()
+                        index += 1
                     ready.set()
                     if a.preview:
                         from .color_calibration import apply_rgb
-                        cv2.imshow('D405 - Esc stops capture', cv2.cvtColor(apply_rgb(image, color_profile), cv2.COLOR_RGB2BGR))
+                        view = cv2.cvtColor(apply_rgb(image, color_profile), cv2.COLOR_RGB2BGR)
+                        cv2.imshow(preview_title, controls.draw(view) if controls else view)
                         if cv2.waitKey(1) & 0xff == 27:
                             stop.set()
-                    index += 1
         except Exception as e:
             errors.put(e)
             stop.set()
@@ -205,6 +218,11 @@ def main():
             for key, value in color_profile['camera_options'].items():
                 if key not in locked or abs(locked[key]-value) > max(1, abs(value)*.001):
                     raise ValueError('Cannot reproduce the colour-profile camera settings.')
+            # Discard buffered frames from before the profile settings took effect.
+            # The SDK option readback can update before delivered RGB frames do.
+            for _ in range(15):
+                pipe.wait_for_frames(2000)
+            meta['profile_settle_frames'] = 15
         save_meta()
         worker = threading.Thread(target=camera_loop, name='d405-capture')
         worker.start()
@@ -212,8 +230,14 @@ def main():
             raise RuntimeError('Camera did not become ready.')
         if a.teleop:
             from .teleop import run
-            print('Original IK controller: F8 start / F9 end / q exits (original homing remains).')
-            run(a.out, clock_ns, stop, a.initial_s, port=a.port)
+            def start_recording():
+                recording.set()
+                if not first_recorded_frame.wait(5) or stop.is_set():
+                    raise RuntimeError('Camera did not save a frame after recording started.')
+            meta['teleop_recording_mode'] = 'buttons_or_f8_f9_after_initial_idle'
+            print('Live preview during homing. After initial Idle: START/F8, STOP/F9, q saves and exits.')
+            run(a.out, clock_ns, stop, a.initial_s, port=a.port, controls=controls,
+                on_start=start_recording, on_end=recording.clear)
         elif entries:
             from .robot_capture import run_robot
             run_robot(a.port, entries, a.out, clock_ns, stop, a.gripper_seconds, a.initial_s)

@@ -59,15 +59,20 @@ def linear_to_lab(rgb, white):
 def load_profile(path):
     profile = json.loads(Path(path).read_text(encoding='utf-8'))
     matrix = np.asarray(profile['matrix'], float)
-    if profile.get('format') != 'w9-color/1' or matrix.shape != (3, 3) or not np.all(np.isfinite(matrix)):
+    if profile.get('format') not in ('w9-color/1', 'w9-color/2') or matrix.shape != (3, 3) or not np.all(np.isfinite(matrix)):
         raise ValueError('Invalid W9 colour profile.')
+    if profile['format'] == 'w9-color/2':
+        offset = np.asarray(profile.get('offset'), float)
+        if offset.shape != (3,) or not np.all(np.isfinite(offset)):
+            raise ValueError('Invalid W9 affine colour offset.')
     return profile
 
 
 def apply_rgb(rgb, profile):
     if profile is None:
         return rgb
-    return encode_srgb(decode_srgb(rgb)@np.asarray(profile['matrix']))
+    offset = np.asarray(profile['offset']) if profile.get('format') == 'w9-color/2' else 0
+    return encode_srgb(decode_srgb(rgb)@np.asarray(profile['matrix'])+offset)
 
 
 def pick_corners(image):
@@ -97,7 +102,7 @@ def pick_corners(image):
         cv2.destroyAllWindows()
 
 
-def sample_patches(image_rgb, corners):
+def sample_patches(image_rgb, corners, diagnostic_prefix=None):
     corners = np.asarray(corners, np.float32)
     if corners.shape != (4, 2) or not cv2.isContourConvex(corners.astype(np.int32)):
         raise ValueError('Four convex grid corners must be in TL,TR,BR,BL order.')
@@ -108,14 +113,30 @@ def sample_patches(image_rgb, corners):
         raise ValueError('Chart corner outside image.')
     matrix = cv2.getPerspectiveTransform(corners, np.float32([[0, 0], [600, 0], [600, 400], [0, 400]]))
     flat = cv2.warpPerspective(image_rgb, matrix, (600, 400))
-    values, clipping = [], []
+    values, clipping, diagnostics = [], [], []
     for row in range(4):
         for col in range(6):
             patch = flat[row*100+30:row*100+70, col*100+30:col*100+70]
             values.append(np.median(patch.reshape(-1, 3), axis=0))
             clipping.append(float(np.any((patch <= 1) | (patch >= 254), axis=2).mean()))
+            diagnostics.append(dict(row=row+1, column=col+1, median_rgb=values[-1].tolist(),
+                                    low_fraction=float(np.any(patch <= 1, axis=2).mean()),
+                                    high_fraction=float(np.any(patch >= 254, axis=2).mean()),
+                                    clipped_fraction=clipping[-1]))
+    if diagnostic_prefix is not None:
+        from .capture_storage import write_image
+        prefix = Path(diagnostic_prefix)
+        write_image(prefix.with_suffix('.patches.png'), cv2.cvtColor(flat, cv2.COLOR_RGB2BGR))
+        prefix.with_suffix('.sampling.json').write_text(json.dumps(dict(
+            corners=corners.tolist(), clip_limit_fraction=.02, patches=diagnostics,
+            clipping_passed=max(clipping) <= .02), indent=2), encoding='utf-8')
     if max(clipping) > .02:
-        raise ValueError('Chart patch clips >2% of pixels. Lower exposure / remove glare and recapture.')
+        bad = [f"row {d['row']} col {d['column']}: low={d['low_fraction']:.1%}, high={d['high_fraction']:.1%}"
+               for d in diagnostics if d['clipped_fraction'] > .02]
+        raise ValueError('Chart patch clips >2% of pixels. ' + '; '.join(bad) +
+                         '. High clipping: check glare/exposure. Low clipping: check shadows, '
+                         'camera colour settings and grid selection; do not blindly lower exposure. '
+                         'No calibration profile written.')
     return np.asarray(values), flat
 
 
@@ -150,6 +171,8 @@ def main():
     fit.add_argument('--corners', type=Path, help='Optional JSON [[x,y],...] for noninteractive use')
     fit.add_argument('--camera-metadata', type=Path, required=True, help='metadata.json from the chart capture')
     fit.add_argument('--confirm-edition', action='store_true', help='Confirm November 2014+ Classic 24 chart')
+    fit.add_argument('--model', choices=['matrix', 'affine'], default='matrix',
+                     help='matrix: fixed six held-out colours; affine: perceptual fit with 24-fold patch CV')
     apply = sub.add_parser('apply')
     apply.add_argument('--image', type=Path, required=True)
     apply.add_argument('--profile', type=Path, required=True)
@@ -173,18 +196,27 @@ def main():
     if not a.confirm_edition:
         p.error('Confirm chart edition against the reference, then add --confirm-edition.')
     corners = json.loads(a.corners.read_text()) if a.corners else pick_corners(image)
-    samples, flat = sample_patches(rgb, corners)
+    # Retain diagnostic files even when clipping or matrix fitting rejects the chart.
+    a.out.with_suffix('.corners.json').write_text(json.dumps(corners, indent=2), encoding='utf-8')
+    samples, flat = sample_patches(rgb, corners, diagnostic_prefix=a.out)
     reference = json.loads(a.reference.read_text(encoding='utf-8'))
     lab = np.asarray(reference['patches_lab_row_major'], float)
     if lab.shape != (24, 3):
         raise ValueError('Need 24 row-major reference Lab values.')
-    matrix, report = fit_matrix(samples, lab, np.array(reference['lab_white_xyz']))
+    if a.model == 'affine':
+        from .color_refinement import fit_affine
+        matrix, offset, report = fit_affine(samples, lab, np.array(reference['lab_white_xyz']))
+    else:
+        matrix, report = fit_matrix(samples, lab, np.array(reference['lab_white_xyz']))
     camera = json.loads(a.camera_metadata.read_text(encoding='utf-8'))
     profile = dict(format='w9-color/1', method='linearized sRGB row-vector @ 3x3 matrix',
                    matrix=matrix.tolist(), reference=reference, corners=corners, measured_rgb=samples.tolist(),
                    camera_serial=camera['serial'], camera_options=camera['locked_camera_options'],
                    width=camera['width'], height=camera['height'], fps=camera['fps'],
                    image_sha256=hashlib.sha256(a.image.read_bytes()).hexdigest(), report=report)
+    if a.model == 'affine':
+        profile.update(format='w9-color/2', method='perceptual affine linearized sRGB; 24-fold patch CV',
+                       offset=offset.tolist())
     a.out.write_text(json.dumps(profile, indent=2), encoding='utf-8')
     write_image(a.out.with_suffix('.patches.png'), cv2.cvtColor(flat, cv2.COLOR_RGB2BGR))
     comparison = np.hstack([rgb, apply_rgb(rgb, profile)])

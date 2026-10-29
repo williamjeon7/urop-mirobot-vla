@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
 from pathlib import Path
-from contextlib import redirect_stderr
+from contextlib import nullcontext, redirect_stderr
 
 import cv2
 import h5py
@@ -29,7 +29,10 @@ from .teleop import TeleopSession
 from .capture_storage import read_image, reserve_episode, write_image
 from .preview import create_review
 from .color_calibration import (D65, RGB_XYZ, adapt_xyz, apply_rgb, decode_srgb, encode_srgb,
-                                fit_matrix, lab_to_xyz, xyz_to_lab)
+                                fit_matrix, lab_to_xyz, linear_to_lab, load_profile,
+                                sample_patches, xyz_to_lab)
+from .color_refinement import fit_affine
+from .recording_controls import RecordingControls
 
 REPO = Path(__file__).resolve().parents[3]
 
@@ -64,6 +67,42 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(reserve_episode(self.root).name, '영상4')
         self.assertEqual(reserve_episode(self.root).name, '영상5')
         self.assertEqual(reserve_episode(self.root/'new').name, '영상1')
+
+    def test_clipped_chart_keeps_diagnostics_without_a_profile(self):
+        prefix = self.root/'classic_mini.json'
+        image = np.full((401, 601, 3), 100, dtype=np.uint8)
+        image[0:100, 0:100, 0] = 0
+        with self.assertRaisesRegex(ValueError, 'row 1 col 1: low=100.0%, high=0.0%'):
+            sample_patches(image, [[0, 0], [600, 0], [600, 400], [0, 400]], prefix)
+        self.assertFalse(prefix.exists())
+        self.assertTrue(prefix.with_suffix('.patches.png').is_file())
+        report = json.loads(prefix.with_suffix('.sampling.json').read_text(encoding='utf-8'))
+        self.assertFalse(report['clipping_passed'])
+        self.assertEqual(report['patches'][0]['low_fraction'], 1)
+        self.assertEqual(report['patches'][0]['high_fraction'], 0)
+
+    def test_affine_profile_fits_unseen_patch_colours_and_preserves_v1(self):
+        rng = np.random.default_rng(27)
+        rgb = rng.integers(50, 180, size=(24, 3)).astype(np.uint8)
+        expected_matrix = np.diag([1.08, .94, 1.04])
+        expected_offset = np.array([.004, .006, .003])
+        lab = linear_to_lab(decode_srgb(rgb)@expected_matrix+expected_offset, D65)
+        matrix, offset, report = fit_affine(rgb, lab, D65)
+        self.assertEqual(len(report['cross_validation_deltaE76']), 24)
+        self.assertLess(report['cross_validation_mean'], .5)
+        profile = dict(format='w9-color/2', matrix=matrix.tolist(), offset=offset.tolist())
+        path = self.root/'profile.json'
+        path.write_text(json.dumps(profile), encoding='utf-8')
+        profile = load_profile(path)
+        unseen = rng.integers(60, 170, size=(3, 4, 3)).astype(np.uint8)
+        predicted = apply_rgb(unseen, profile)
+        expected = encode_srgb(decode_srgb(unseen)@expected_matrix+expected_offset)
+        self.assertLessEqual(np.max(abs(predicted.astype(int)-expected.astype(int))), 2)
+        v1 = dict(format='w9-color/1', matrix=np.eye(3).tolist())
+        np.testing.assert_array_equal(apply_rgb(unseen, v1), unseen)
+        path.write_text(json.dumps(dict(profile, offset=[0, 0])), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'offset'):
+            load_profile(path)
 
     def test_korean_episode_images_and_numbered_mp4(self):
         ep = reserve_episode(self.root)
@@ -253,6 +292,51 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual([r['cmd'] for r in rows if r['kind'] == 'command'], ['G90', '?', 'M4 S60'])
         self.assertEqual(rows[-1]['kind'], 'complete')
 
+    def test_buttons_wait_for_fresh_idle_at_initial_pose_and_record_once(self):
+        controls = RecordingControls()
+        controls.request('start')
+        self.assertEqual(controls.pending(), [])
+        events = []
+        keyboard = SimpleNamespace(poll=lambda: None, is_pressed=lambda key: False)
+        session = TeleopSession(self.root, time.perf_counter_ns(), threading.Event(), 40,
+                               controls=controls, keyboard=keyboard,
+                               on_start=lambda: events.append('start'), on_end=lambda: events.append('end'))
+        self.addCleanup(session.log.close)
+        session.last_motion = [198.67, 0, 230.72, 0, 0, 0]
+        def feed():
+            for cart, state, fresh in [
+                (session.last_motion, 'Idle', False),
+                ([0]*6, 'Idle', True),
+                (session.last_motion, 'Run', True),
+                *[(session.last_motion, 'Idle', True)]*3,
+            ]:
+                time.sleep(.01)
+                with session.status_condition:
+                    session.status_revision += 1
+                    query_time = (time.perf_counter_ns()-session.clock_ns)/1e9 if fresh else -1
+                    session.latest_status = (cart, state, query_time)
+                    session.status_condition.notify_all()
+        thread = threading.Thread(target=feed)
+        thread.start()
+        session.wait_initial_ready(timeout=1)
+        thread.join()
+        self.assertEqual(controls.state, 'ready')
+        controls.draw(np.zeros((480, 640, 3), np.uint8))
+        controls.mouse(cv2.EVENT_LBUTTONUP, 30, 510, 0, None)
+        session.tick()
+        self.assertEqual(controls.state, 'recording')
+        controls.mouse(cv2.EVENT_LBUTTONUP, 500, 510, 0, None)
+        session.tick()
+        self.assertEqual(controls.state, 'ended')
+        controls.request('start')
+        session.tick()
+        self.assertEqual(events, ['start', 'end'])
+        controls.set_state('homing')
+        session.initial_ready = False
+        with self.assertRaises(TimeoutError):
+            session.wait_initial_ready(timeout=.02)
+        self.assertEqual(controls.state, 'homing')
+
     def test_teleop_linux_port_overrides_original_controller_port(self):
         session = TeleopSession(self.root, time.perf_counter_ns(), threading.Event(), 40,
                                port='/dev/serial/by-id/test-robot')
@@ -364,25 +448,48 @@ class PipelineTests(unittest.TestCase):
             return SimpleNamespace(get_color_frame=lambda: frame)
         pipeline = SimpleNamespace(start=lambda config: profile, wait_for_frames=wait_for_frames, stop=lambda: None)
         config = SimpleNamespace(enable_device=lambda serial: None, enable_stream=lambda *args: None)
-        for corrected in (False, True):
+        for mode in ('raw', 'corrected', 'teleop'):
+            corrected = mode != 'raw'
+            teleop = mode == 'teleop'
             with self.subTest(corrected=corrected):
-                out = self.root/'with_profile' if corrected else self.root/'recordings'/'영상1'
+                out = self.root/('with_teleop' if teleop else 'with_profile') if corrected else self.root/'recordings'/'영상1'
                 argv = ['capture', '--seconds', '.02']
                 argv += ['--out', str(out)] if corrected else ['--out-root', str(out.parent)]
                 if corrected:
                     correction = self.root/'correction.json'
-                    correction.write_text(json.dumps(dict(format='w9-color/1', matrix=np.eye(3).tolist(),
+                    correction.write_text(json.dumps(dict(format='w9-color/2', matrix=np.eye(3).tolist(), offset=[0,0,0],
                         camera_serial='TEST_SERIAL', width=640, height=480, fps=30,
                         camera_options={'Exposure': 10., 'White Balance': 10.})), encoding='utf-8')
                     argv += ['--color-profile', str(correction)]
+                if teleop:
+                    argv += ['--teleop', '--seed', '2', '--execute', '--port', 'FAKE',
+                             '--reference', str(REPO/'docs/W6/poses/pickup-red-s2.jsonl'),
+                             '--mapping-gcode', str(REPO/'trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode')]
+                def fake_teleop(*args, controls, on_start, on_end, **kwargs):
+                    time.sleep(.02)
+                    self.assertEqual(list((out/'rgb').glob('*.png')), [])
+                    self.assertEqual((out/'frames.jsonl').read_text(), '')
+                    self.assertEqual(controls.state, 'homing')
+                    controls.set_state('ready')
+                    on_start()
+                    time.sleep(.02)
+                    on_end()
+                    time.sleep(.02)  # Let any PNG already being written finish.
+                    count = len(list((out/'rgb').glob('*.png')))
+                    self.assertGreater(count, 0)
+                    time.sleep(.02)
+                    self.assertEqual(len(list((out/'rgb').glob('*.png'))), count)
                 with patch('sys.argv', argv), patch.object(rs, 'context', return_value=SimpleNamespace(
                         query_devices=lambda: [device])), patch.object(rs, 'pipeline', return_value=pipeline), \
-                        patch.object(rs, 'config', return_value=config):
+                        patch.object(rs, 'config', return_value=config), \
+                        (patch('docs.W9.d405.teleop.run', side_effect=fake_teleop) if teleop else nullcontext()):
                     capture_main()
                 metadata = json.loads((out/'metadata.json').read_text(encoding='utf-8'))
                 self.assertTrue(metadata['complete'])
                 self.assertGreater(len(list((out/'rgb').glob('*.png'))), 0)
                 self.assertEqual((out/'color_profile.json').exists(), corrected)
+                if corrected:
+                    self.assertEqual(metadata['profile_settle_frames'], 15)
                 self.assertTrue((out/('review.mp4' if corrected else '영상1.mp4')).is_file())
 
 

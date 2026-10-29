@@ -7,6 +7,7 @@ No serial port opens just by importing this file.
 from __future__ import annotations
 
 import json
+import math
 import os
 from contextlib import nullcontext
 import queue
@@ -16,13 +17,21 @@ import time
 from pathlib import Path
 
 from tools.probe_mirobot import fields, find_field, is_error, is_ok, is_status, state_of
+from tools.run_gcode import pose_of
 
 
 class TeleopSession:
-    def __init__(self, out, clock_ns, stop, initial_s, port=None, keyboard=None):
+    def __init__(self, out, clock_ns, stop, initial_s, port=None, keyboard=None,
+                 controls=None, on_start=None, on_end=None):
         self.out, self.clock_ns, self.stop = out, clock_ns, stop
         self.initial_s = initial_s
         self.port, self.keyboard = port, keyboard
+        self.controls, self.on_start, self.on_end = controls, on_start, on_end
+        self.initial_ready = False
+        self.last_motion = None
+        self.status_condition = threading.Condition()
+        self.status_revision = 0
+        self.latest_status = None
         self.requests = queue.Queue()
         self.started, self.ended = False, False
         self.closed = threading.Event()
@@ -70,8 +79,7 @@ class TeleopSession:
                     if active:
                         cmd = active['cmd']
                         if self.started and not self.ended and cmd.upper() in ('$H', 'M30'):
-                            self.emit('capture_end')  # exclude original exit homing from training interval
-                            self.ended = True
+                            self.end_capture()  # exclude original exit homing from saved frames too
                         self.emit('command', cmd=cmd)
                         if cmd != '?' or query_t is None:
                             self.ser.write((cmd+'\n').encode('ascii'))
@@ -98,6 +106,10 @@ class TeleopSession:
                                           query_start_s=query_t,
                                           rtt_s=None if query_t is None else
                                           (time.perf_counter_ns()-self.clock_ns)/1e9-query_t)
+                                with self.status_condition:
+                                    self.status_revision += 1
+                                    self.latest_status = (cart[:6], state_of(line), query_t)
+                                    self.status_condition.notify_all()
                             query_t = None
                             if active and active['cmd'].strip() == '?':
                                 print(line)
@@ -132,11 +144,66 @@ class TeleopSession:
         if self.failure:
             raise RuntimeError('Serial recording failed') from self.failure
         print('send:', command, 'ok' if request['ok'] else 'error')
+        if request['ok'] and pose_of(command) is not None:
+            self.last_motion = pose_of(command)
         if command.upper() == 'M30':
             self.close()
         return request['ok']
 
+    def wait_initial_ready(self, timeout=120):
+        if self.last_motion is None:
+            raise RuntimeError('No acknowledged initial pose; recording remains disabled.')
+        deadline = time.perf_counter()+timeout
+        threshold = (time.perf_counter_ns()-self.clock_ns)/1e9
+        revision, stable = self.status_revision, 0
+        while time.perf_counter() < deadline:
+            if self.stop.is_set() or self.failure or self.closed.is_set():
+                raise RuntimeError('Robot initialization interrupted.') from self.failure
+            with self.status_condition:
+                self.status_condition.wait_for(lambda: self.status_revision != revision, timeout=.05)
+                if self.status_revision == revision:
+                    continue
+                revision = self.status_revision
+                cart, state, query_time = self.latest_status
+            fresh = query_time is not None and query_time >= threshold
+            at_goal = (math.dist(cart[:3], self.last_motion[:3]) <= 2 and
+                       max(abs((a-b+180) % 360-180) for a, b in zip(cart[3:], self.last_motion[3:])) <= 2)
+            stable = stable+1 if fresh and state.lower() == 'idle' and at_goal else 0
+            if stable >= 3:
+                self.initial_ready = True
+                self.emit('initial_ready', cart=cart)
+                self.controls.set_state('ready')
+                print('=== HOMING / INITIAL MOVE COMPLETE - click START REC or press F8 ===', flush=True)
+                return
+        raise TimeoutError('Initial pose did not reach Idle within tolerance; recording disabled.')
+
+    def start_capture(self):
+        if self.started or (self.controls is not None and not self.initial_ready):
+            return
+        if self.controls:
+            self.controls.set_state('starting')
+        if self.on_start:
+            self.on_start()
+        self.emit('capture_start')
+        self.started = True
+        if self.controls:
+            self.controls.set_state('recording')
+        print('=== TRAINING EPISODE START ===', flush=True)
+
+    def end_capture(self):
+        if not self.started or self.ended:
+            return
+        self.emit('capture_end')
+        self.ended = True
+        if self.on_end:
+            self.on_end()
+        if self.controls:
+            self.controls.set_state('ended')
+        print('=== RECORDING STOPPED - q saves and exits (original exit homing) ===', flush=True)
+
     def tick(self):
+        if self.controls is not None and not self.initial_ready:
+            self.wait_initial_ready()
         keyboard = self.keyboard
         if keyboard is None:
             import keyboard
@@ -144,14 +211,16 @@ class TeleopSession:
             keyboard.poll()
         if self.stop.is_set():
             raise RuntimeError('Capture stopped.') from self.failure
-        if not self.started and keyboard.is_pressed('f8'):
-            self.emit('capture_start')
-            self.started = True
-            print('=== TRAINING EPISODE START (F8) ===')
-        if self.started and not self.ended and keyboard.is_pressed('f9'):
-            self.emit('capture_end')
-            self.ended = True
-            print('=== TRAINING EPISODE END (F9); q exits the original controller ===')
+        actions = self.controls.pending() if self.controls else []
+        if keyboard.is_pressed('f8'):
+            actions.append('start')
+        if keyboard.is_pressed('f9'):
+            actions.append('end')
+        for action in actions:
+            if action == 'start':
+                self.start_capture()
+            elif action == 'end':
+                self.end_capture()
 
     def close(self):
         self.closed.set()
@@ -169,14 +238,15 @@ class TeleopSession:
         self.emit('complete')
 
 
-def run(out, clock_ns, stop, initial_s, port=None):
+def run(out, clock_ns, stop, initial_s, port=None, controls=None, on_start=None, on_end=None):
     if os.name == 'posix':
         from .terminal_keyboard import TerminalKeyboard
         keyboard_context = TerminalKeyboard()
     else:
         keyboard_context = nullcontext(None)
     with keyboard_context as keyboard:
-        session = TeleopSession(out, clock_ns, stop, initial_s, port=port, keyboard=keyboard)
+        session = TeleopSession(out, clock_ns, stop, initial_s, port=port, keyboard=keyboard,
+                                controls=controls, on_start=on_start, on_end=on_end)
         try:
             path = Path(__file__).resolve().parents[3]/'robot/inverse_kinematics.py'
             runpy.run_path(str(path), init_globals={'_w9_session': session, '_w9_keyboard': keyboard},

@@ -45,6 +45,35 @@ RealSense Viewer는 녹화 전에 닫습니다. Python과 동시에 카메라를
 
 ## 3. 색 보정 준비 — 로컬 PowerShell
 
+### 현재 준비된 프로필 — 2026-10-29 실촬영 확인
+
+**`docs/W9/data/calibration/classic_mini.json` 생성·재촬영 검증을 마쳤습니다.** 같은 카메라·조명·장착 상태라면 아래 보정 생성 과정을 반복하지 않고 **4절 촬영으로 진행**합니다. 4절 명령의 `--color-profile`이 개선된 설정을 자동 복원합니다.
+
+기존 78개 설정 비교에 16개 설정을 추가하고, 선형·affine·root-polynomial 모델 및 지각 색 오차 최적화를 비교했습니다. 최종은 **선형광 RGB 3×3 행렬 + 채널별 offset의 affine 모델(`w9-color/2`)**입니다. 모델 비교 시 24회 leave-one-patch-out 교차검증을 사용했고, 표현 범위 밖의 색을 제외한 패치에는 밝기 여유를 두었습니다. 센서 시리얼은 `262422272124`, RGB 640×480·요청 30fps, 노출 33000·게인 16·화이트밸런스 5200·감마 340·채도 56·대비 45입니다. 현재 실측 저장 속도는 약 15fps입니다.
+
+| 확인 | 평균 색 오차 | 최대 색 오차 |
+| --- | ---: | ---: |
+| 최초 프로필의 생성용 사진, 보정 후 | 7.88 | 26.17 |
+| 개선 프로필의 생성용 사진, 보정 후 | 4.76 | 9.15 |
+| 개선 프로필의 별도 재촬영 5프레임, 보정 후 | 4.64 | 9.56 |
+| 최종 affine 프로필의 생성용 사진, 보정 후 | 3.60 | 7.43 |
+| **현재 프로필: 별도 재촬영 8프레임, 보정 후** | **3.62** | **8.31** |
+
+오차는 CIE76 ΔE입니다. 마지막 행은 8프레임 평균 오차의 평균과 전체 패치·프레임 중 최대 오차입니다. 설정 복원 후 15프레임을 버린 뒤 촬영했으며, 검사한 8프레임의 원본 클리핑 검사를 모두 통과했습니다. 보정 후에는 sRGB 범위 밖인 18번 청록 패치를 제외한 패치에서 채널 끝값 발생이 없었습니다. 18번의 기준 Lab을 현재 변환식으로 sRGB로 바꾸면 R이 음수이므로 출력 RGB의 경계 도달을 원본 센서 클리핑과 구분해 기록합니다.
+
+최종 모델은 24패치 전체로 추정했고, 패치를 하나씩 제외하는 교차검증 평균 4.14·최대 7.71을 함께 기록했습니다. 교차검증은 카메라·모델 선택에도 사용했습니다. 재촬영은 같은 표·배치·조명에서의 반복 확인이며, 새로운 색이나 조명의 검증은 아닙니다. 최초 3×3 모델의 고정 6패치 holdout 검사와는 검증 방식이 다릅니다.
+
+- 비교 이미지: `docs/W9/data/calibration/classic_mini.verify.png` (왼쪽 원본 / 오른쪽 보정).
+- 재촬영 보고서: `docs/W9/data/calibration/classic_mini.validation.json`.
+- 최초 프로필 보관: `docs/W9/data/calibration/initial_profile_backup/`.
+- 직전 4.64 프로필 보관: `docs/W9/data/calibration/before_perceptual_20261029_160234/`.
+- 최종 검증 촬영: `docs/W9/data/raw/chart_perceptual_verify_001/`.
+- 선택 기록: `docs/W9/data/calibration/perceptual_selection.json`.
+
+서버도 최신 `color_calibration.py`와 `color_refinement.py`를 사용해야 합니다. 기존 v1 프로필도 계속 읽을 수 있습니다. 비교한 root-polynomial 방식의 근거는 [Finlayson 등의 원 논문](https://research-portal.uea.ac.uk/en/publications/colour-correction-using-root-polynomial-regression/)이며, 현재 데이터에서는 교차검증 결과를 보고 affine을 채택했습니다.
+
+이 파일들은 Git 제외 데이터 폴더에 있으므로 서버로 원본과 함께 전송합니다. 다음은 조건이 바뀌어 **새 보정이 필요할 때**의 절차입니다.
+
 ### 3-1. 조명·배치 준비
 
 실험실 커튼을 치고 작업 조명을 켠 뒤, 촬영에 사용할 카메라 장착 위치와 블록 배치를 고정합니다. 격자판의 한 칸은 10×10mm이며, 표시해 둔 로봇·블록 초기 위치를 사용합니다.
@@ -60,18 +89,20 @@ Calibrite ColorChecker Classic Mini 24패치를 블록이 놓일 위치에 두�
 색상표는 학습 에피소드와 구분하기 위해 이름을 직접 지정합니다.
 
 ```powershell
-docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --out docs/W9/data/raw/chart_001 --seconds 3 --preview
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --out docs/W9/data/raw/chart_recal_001 --seconds 3 --preview --color-profile docs/W9/data/calibration/classic_mini.json
 ```
 
-기존 폴더는 덮어쓰지 않습니다. 재촬영은 `chart_002`처럼 새 이름으로 실행하고 아래 경로도 바꾸세요. 기본 RGB는 640×480, 요청 30fps입니다. 녹화 전 자동 노출·화이트밸런스가 안정화될 시간을 주고 지원 설정을 고정합니다. 정상 촬영 종료 후 `chart_001/review.mp4`도 자동 생성됩니다.
+기존 폴더는 덮어쓰지 않습니다. 재촬영은 `chart_recal_002`처럼 새 이름으로 실행하고 아래 경로도 바꾸세요. 이 명령은 현재 프로필의 카메라 설정을 복원하고 **원본 PNG를 보정 없이 저장**합니다. 카메라·해상도가 달라 기존 프로필을 사용할 수 없다면 `--color-profile`을 빼고 새 설정부터 검증합니다. 기본 RGB는 640×480, 요청 30fps입니다. 정상 촬영 종료 후 `chart_recal_001/review.mp4`도 자동 생성됩니다.
 
 ### 3-3. 네 모서리 선택·보정 프로필 생성
 
 흔들림·반사광이 없는 중간 PNG를 고릅니다. 예시는 10번 프레임입니다.
 
 ```powershell
-docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.color_calibration fit --image docs/W9/data/raw/chart_001/rgb/00000010.png --camera-metadata docs/W9/data/raw/chart_001/metadata.json --out docs/W9/data/calibration/classic_mini.json --confirm-edition
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.color_calibration fit --image docs/W9/data/raw/chart_recal_001/rgb/00000010.png --camera-metadata docs/W9/data/raw/chart_recal_001/metadata.json --out docs/W9/data/calibration/classic_mini_new.json --model affine --confirm-edition
 ```
+
+새 출력은 `classic_mini_new.json`입니다. 아래 생성 파일 설명에서 `classic_mini`는 새 프로필 이름에 맞춰 읽으세요. 새 프로필은 별도 촬영 검증 후 채택하며 현재 `classic_mini.json`을 즉시 덮어쓰지 않습니다.
 
 `--confirm-edition`은 사용한 표가 기준값과 맞는 **2014년 11월 이후 Classic 24패치**임을 확인했다는 뜻입니다.
 
@@ -84,14 +115,20 @@ docs/W9/data/calibration/
   classic_mini.json             보정 행렬·카메라 설정·오차 보고서
   classic_mini.patches.png      6×4 패치 선택 확인
   classic_mini.comparison.png   왼쪽 원본 / 오른쪽 보정
+  classic_mini.corners.json     선택한 네 모서리 (검사 실패 시에도 보관)
+  classic_mini.sampling.json    패치별 RGB·암부/밝은 부분 클리핑 검사
 ```
 
-먼저 `patches.png`의 패치 순서를 확인합니다. `comparison.png`에서 회색의 색 치우침이 줄고, RGB 패치가 과포화되거나 검게 뭉개지지 않는지 봅니다. 보고서의 `heldout_mean_after`가 `heldout_mean_before`보다 작아야 합니다. 조건을 통과하지 못하면 촬영·모서리 선택부터 확인합니다.
+**오류가 나면 `classic_mini.json`과 `comparison.png`가 생성되지 않을 수 있습니다.** 픽셀 검사·행렬 검증을 통과한 경우에만 보정 프로필을 저장합니다. 모서리를 정상 선택했다면 실패해도 `corners.json`, `patches.png`, `sampling.json`은 남습니다. `sampling.json`의 `low_fraction`은 RGB 중 한 채널이라도 1 이하인 픽셀 비율, `high_fraction`은 254 이상인 비율입니다. 어느 패치든 합친 비율이 2%를 넘으면 중단합니다.
+
+밝은 부분 클리핑은 반사광·과노출을 확인합니다. 암부 클리핑은 패치 선택·그림자·카메라 색 설정을 먼저 확인하며, 무조건 노출을 낮추지 않습니다. 실패한 프로필을 학습 촬영에 사용하지 않습니다. 저장된 모서리로 다시 검사하려면 위 `fit` 명령에 `--corners docs/W9/data/calibration/classic_mini.corners.json`을 추가할 수 있습니다. 다른 사진이나 위치가 바뀐 표에는 모서리를 새로 선택하세요.
+
+먼저 `patches.png`의 패치 순서를 확인합니다. `comparison.png`에서 회색의 색 치우침이 줄고, RGB 패치가 과포화되거나 검게 뭉개지지 않는지 봅니다. affine 모드는 `cross_validation_mean`·`cross_validation_max`와 `all_mean_after`·`all_max_after`를 확인하고, 프로필을 고정한 뒤 새 촬영에서 개선이 유지되는지 검사합니다. 원본 클리핑 검사와 교차검증 개선 검사를 통과하지 못하면 프로필을 저장하지 않습니다. 기본 matrix 모드의 검사는 별도의 `heldout_mean_before`·`heldout_mean_after`를 사용합니다.
 
 다른 프레임에 적용해 확인하려면:
 
 ```powershell
-docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.color_calibration apply --image docs/W9/data/raw/chart_001/rgb/00000020.png --profile docs/W9/data/calibration/classic_mini.json --out docs/W9/data/calibration/check_second_frame.png
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.color_calibration apply --image docs/W9/data/raw/chart_recal_001/rgb/00000020.png --profile docs/W9/data/calibration/classic_mini_new.json --out docs/W9/data/calibration/check_second_frame.png
 ```
 
 프로필·확인 이미지가 이미 있으면 새 출력 이름을 사용합니다. 실제 블록의 명암·질감을 유지하며 색 치우침을 줄이는 보정입니다. 블록 RGB를 원색 값으로 강제 변환하지 않습니다.
@@ -134,6 +171,17 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color red --
 
 터미널에 실제 저장 폴더가 출력됩니다. `--mapping-gcode`는 좌표 변환 머리말만 읽으며 해당 궤적을 자동 재생하지 않습니다. 이 명령은 기존 `robot/inverse_kinematics.py`를 실행하므로 **시작 시 호밍·초기 이동, q 종료 시 호밍이 일어납니다.** 작업 공간을 먼저 준비하세요. 기존 조작기를 별도 터미널에서 동시에 실행하지 않습니다.
 
+**`--preview`를 포함한 위 명령을 그대로 실행하면 카메라 영상이 실시간으로 보입니다.** 미리보기 아래의 버튼으로 녹화를 제어합니다. 호밍 중에도 화면은 보이지만 PNG·MP4용 프레임을 저장하지 않습니다.
+
+| 버튼·상태 | 의미 |
+| --- | --- |
+| `Homing / initial move...` | 시작 버튼 비활성화. 초기 위치 도착을 확인하는 중 |
+| `START REC (F8)` | 녹화 시작. 초기 위치에서 새 상태 응답 3회가 연속 Idle이고 목표와 2mm·2° 이내일 때 활성화 |
+| `STOP REC (F9)` | 녹화 종료. 카메라 실시간 화면은 계속 표시 |
+| `STOPPED` | `q`를 눌러 조작기를 종료하면 MP4 생성·저장이 완료됨. 종료 호밍은 영상에 저장하지 않음 |
+
+버튼·상태 글자는 미리보기에만 표시하며 원본 PNG나 확인용 MP4, 학습 영상에는 넣지 않습니다. 버튼은 마우스로 클릭하고, 키보드 F8/F9도 같은 기능으로 사용할 수 있습니다. `--preview`를 빼면 창 없이 F8/F9로 조작합니다.
+
 | 키 | 동작 |
 | --- | --- |
 | `w` / `s` | X 증가 / 감소 |
@@ -141,17 +189,17 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color red --
 | `↑` / `↓` | Z 증가 / 감소 |
 | `←` / `→` | 집게 열기 / 닫기 |
 | `1` / `2`, `4` / `5`, `7` / `8` | 각각 A, B, C 각도 증가 / 감소 |
-| `F8` / `F9` | 학습 에피소드 시작 / 종료 |
+| `F8` / `F9` | 녹화·학습 에피소드 시작 / 종료 (화면 버튼과 동일) |
 | `q` | 조작기 종료·기존 종료 호밍 |
 
 한 에피소드의 순서:
 
-1. 호밍·초기 이동이 끝날 때까지 기다립니다.
+1. 실시간 카메라 화면을 보며 호밍·초기 이동이 끝나고 `READY`가 표시될 때까지 기다립니다.
 2. `←`로 집게를 열어 초기 상태 S40을 맞추고 준비 자세를 잡습니다.
-3. `F8`을 한 번 눌러 학습 구간을 시작합니다.
+3. **`START REC (F8)` 버튼**을 클릭하거나 `F8`을 한 번 눌러 녹화·학습 구간을 시작합니다.
 4. 블록에 접근하고 `→`로 집은 뒤 들어 올립니다.
-5. 들어 올린 상태를 약 1초 유지하고 `F9`를 한 번 누릅니다.
-6. `q`로 종료합니다. 종료 호밍과 파일 저장·MP4 생성이 끝날 때까지 기다립니다.
+5. 들어 올린 상태를 약 1초 유지하고 **`STOP REC (F9)` 버튼**을 클릭하거나 `F9`를 한 번 누릅니다.
+6. 녹화가 멈춘 것을 확인하고 `q`로 종료합니다. 종료 호밍과 파일 저장·MP4 생성이 끝날 때까지 기다립니다. 종료 버튼만 누른 상태에서는 프로그램과 실시간 미리보기가 계속 실행 중입니다.
 7. 다음 촬영은 블록 배치를 복원하고 같은 명령을 다시 실행합니다. 번호는 자동 증가합니다.
 
 한 번 실행에 F8~F9 구간 하나입니다. `Esc`나 `Ctrl+C`는 수집 중단이며 정상 완료로 표시하지 않습니다. 이미 보낸 이동을 즉시 취소하는 비상정지가 아니므로 물리 비상정지에 접근할 수 있게 합니다. 자동 G-code 모드의 Z 하한 검사는 이 키보드 모드에 적용되지 않고 기존 조작기의 이동 범위를 사용합니다.
