@@ -15,7 +15,7 @@
 | 3 | 로컬 Windows | 색상표 촬영·보정 프로필 준비 | 같은 W9 환경 |
 | 4 | 로컬 Windows | 키보드로 조작하면서 영상·로봇 상태 기록 | 같은 W9 환경 |
 | 5 | 로컬 Windows | 영상 검토·0.05초 타임스텝 정렬 | 같은 W9 환경 |
-| 6 | 로컬 → 서버 | 원본·보정·정렬 결과 전송 | PowerShell `scp` |
+| 6 | 로컬 → 서버 | 원본·보정·정렬 결과 Git push → pull | Git + Git LFS |
 | 7 | 서버 OASYS | Panda 시뮬 추종·HDF5 생성 | `cosmos-policy/.venv/bin/python` |
 | 8~9 | 서버 OASYS | 구조·실제 로더 검사·통계·실제 T5 준비 | 같은 Cosmos/LIBERO 환경 |
 
@@ -72,7 +72,7 @@ RealSense Viewer는 녹화 전에 닫습니다. Python과 동시에 카메라를
 
 서버도 최신 `color_calibration.py`와 `color_refinement.py`를 사용해야 합니다. 기존 v1 프로필도 계속 읽을 수 있습니다. 비교한 root-polynomial 방식의 근거는 [Finlayson 등의 원 논문](https://research-portal.uea.ac.uk/en/publications/colour-correction-using-root-polynomial-regression/)이며, 현재 데이터에서는 교차검증 결과를 보고 affine을 채택했습니다.
 
-이 파일들은 Git 제외 데이터 폴더에 있으므로 서버로 원본과 함께 전송합니다. 다음은 조건이 바뀌어 **새 보정이 필요할 때**의 절차입니다.
+이 파일들은 원본과 함께 Git에 커밋·push하고 서버에서 pull합니다(6절). PNG·MP4는 Git LFS로 관리합니다. 다음은 조건이 바뀌어 **새 보정이 필요할 때**의 절차입니다.
 
 ### 3-1. 조명·배치 준비
 
@@ -244,27 +244,66 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.preview "docs/W9/data/raw/영�
 
 **`aligned.npz`는 아직 학습용 HDF5가 아닙니다.** 다음 서버 작업에서 외부 영상과 Panda action을 생성합니다.
 
-## 6. 원본과 보정 파일 전송 — 로컬에서 서버로
+## 6. 원본과 보정 파일 공유 — Git push → pull
 
-### 6-1. 서버 Bash: 받을 폴더 준비
+**Windows에서 촬영·정렬 → Git commit·push → OASYS에서 Git pull** 순서입니다. `docs/W9/data/`는 Git 추적 대상으로 설정돼 있고, PNG·MP4는 `.gitattributes`에 따라 Git LFS로 관리합니다. 별도 파일 전송이나 `git add -f`는 필요하지 않습니다.
 
-OASYS의 SSH 또는 VS Code Remote 터미널에서:
+**실행 위치 확인:** `PS C:\...>`는 로컬 Windows PowerShell, `<USER>@OASYS:~/UROP$`는 서버 Bash입니다. 서버에서는 아래 6-2절을 실행합니다. 로컬 촬영·업로드는 Windows 시작 메뉴에서 PowerShell을 열어 실행하세요. Windows 경로 `C:\mirobot-vla`는 노트북의 실제 저장소 경로로 바꿉니다.
+
+### 6-1. 로컬 Windows PowerShell: 커밋·push
+
+촬영과 5절 정렬을 마친 뒤 실행합니다. `영상1`은 방금 촬영한 폴더명으로 바꾸세요. MP4뿐 아니라 **PNG·JSONL·metadata·reference·보정·정렬 결과를 포함한 에피소드 폴더 전체**를 추가합니다.
+
+Git LFS가 설치돼 있어야 하며, 각 컴퓨터에서 최초 1회 `git lfs install`을 실행합니다.
+
+```powershell
+cd "C:\mirobot-vla"
+git lfs install
+git branch --show-current
+git add -- "docs/W9/data/raw/영상1" docs/W9/data/calibration
+git diff --cached --stat
+git status --short
+```
+
+추가할 파일이 맞는지 확인한 뒤 커밋·push합니다. `.venv`는 각 컴퓨터에서 별도로 사용합니다.
+
+```powershell
+git commit -m "Add Mirobot episode 1 and calibration"
+git push
+```
+
+push 과정에서 PNG·MP4의 LFS 데이터도 업로드됩니다. 오류 없이 완료됐는지 확인합니다. 추가 촬영분도 새 에피소드 폴더를 같은 방식으로 커밋합니다. 다른 노트북에서 같은 영상 번호를 만들었다면 먼저 폴더명을 구분합니다.
+
+### 6-2. 서버 OASYS Bash: pull·파일 확인
+
+로컬에서 push한 **같은 브랜치**에서 실행합니다. 서버에도 Git LFS를 설치하고 최초 1회 `git lfs install`을 실행합니다.
 
 ```bash
 cd ~/UROP
-mkdir -p docs/W9/data
+git lfs install
+git branch --show-current
+git status --short
+git pull --ff-only
+git lfs pull
+ls -lh "docs/W9/data/raw/영상1/"
+ls -lh docs/W9/data/calibration/classic_mini.json
 ```
 
-### 6-2. 로컬 PowerShell: 전송
+`git pull`이 로컬 변경이나 브랜치 분기로 중단되면 해당 변경부터 정리합니다. `git lfs pull`은 PNG·MP4의 실제 내용을 내려받습니다.
 
-`OASYS_HOST`를 평소 쓰는 실제 SSH 주소·별칭으로 바꿉니다.
+`영상1`은 업로드한 에피소드 이름으로 바꾸세요. 폴더에 `rgb/`, `metadata.json`, `frames.jsonl`, `robot.jsonl`, `reference.jsonl`, `source.gcode`, `color_profile.json`이 있어야 합니다. 5절 정렬을 마쳤다면 `aligned.npz`와 `alignment_report.json`도 확인합니다. 파일이 준비되면 7절로 진행합니다.
 
-```powershell
-cd C:\mirobot-vla
-scp -r docs/W9/data/raw docs/W9/data/calibration <USER>@OASYS_HOST:~/UROP/docs/W9/data/
+### 6-3. 원본만 올라온 경우: 서버에서 정렬
+
+`export_hdf5`에서 `FileNotFoundError: .../aligned.npz`가 발생하면 정렬 결과가 준비되지 않은 상태입니다. 로컬에서 생성한 두 정렬 파일을 커밋·push하고 서버에서 pull하거나, 원본이 모두 있는 서버에서 직접 정렬할 수 있습니다. 이 작업에는 카메라·로봇 연결이나 시뮬레이터가 필요하지 않습니다.
+
+```bash
+cd ~/UROP
+cosmos-policy/.venv/bin/python -m docs.W9.d405.prepare "docs/W9/data/raw/영상1"
+ls -lh "docs/W9/data/raw/영상1/aligned.npz" "docs/W9/data/raw/영상1/alignment_report.json"
 ```
 
-`data/`는 Git 제외 대상이므로 코드 push/pull로 녹화가 옮겨지지 않습니다. `.venv`는 보내지 않습니다. 이 명령은 raw 전체를 복사하므로 이후 추가 촬영분은 해당 에피소드 폴더만 서버의 `docs/W9/data/raw/`로 보내도 됩니다. 서로 다른 노트북·저장 위치에서 같은 번호를 만들었다면 서버의 기존 폴더와 충돌하지 않도록 구분해서 보관합니다.
+`prepare`가 정상 종료해 두 파일이 생성된 경우에만 7절을 실행합니다. `Camera frame too far from grid`는 실제 카메라 프레임과 20Hz 관측 시각의 차이가 기본 40ms를 초과했다는 뜻입니다. 이 경우 정렬 파일을 생성하지 않습니다. 원본 수신 속도·프레임 공백을 확인하고 촬영 조건을 개선한 뒤 다시 수집합니다. 누락 파일을 임의로 만들거나, 검사 통과만을 위해 오차 한계를 높이지 않습니다.
 
 **이후 명령은 서버 Bash에서 실행합니다.**
 

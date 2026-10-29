@@ -1,0 +1,267 @@
+{
+ "table_top_z": 0.9,
+ "robot_base": [
+  -0.66,
+  0.0,
+  0.912
+ ],
+ "start_grip": [
+  -0.2084646605658239,
+  0.0,
+  1.1732794757296405
+ ],
+ "orientation": "top-down (FRAME_F)",
+ "step_mm": 1.0,
+ "results": [
+  {
+   "step": 458,
+   "grip_z": 0.9091922485476452,
+   "grip_xy": [
+    -0.20184588074590026,
+    -6.008036936951215e-05
+   ],
+   "tilt_deg": 0.03630270241488,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.05277078920384869
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.0607971279651398
+    }
+   ],
+   "point_xy": [
+    -0.2,
+    0.0
+   ],
+   "gripper": "연",
+   "above_table_mm": 9.192248547645221
+  },
+  {
+   "step": 469,
+   "grip_z": 0.9092008822784942,
+   "grip_xy": [
+    -0.10178469645198192,
+    0.13711229532740393
+   ],
+   "tilt_deg": 0.044458936874833224,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.05572554533395113
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.040576009682213865
+    }
+   ],
+   "point_xy": [
+    -0.1,
+    0.15
+   ],
+   "gripper": "연",
+   "above_table_mm": 9.200882278494138
+  },
+  {
+   "step": 469,
+   "grip_z": 0.9092022208908066,
+   "grip_xy": [
+    -0.10177800023626787,
+    -0.1370981219175431
+   ],
+   "tilt_deg": 0.044463491697014336,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.032263348516248236
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.06136074821105897
+    }
+   ],
+   "point_xy": [
+    -0.1,
+    -0.15
+   ],
+   "gripper": "연",
+   "above_table_mm": 9.20222089080658
+  },
+  {
+   "step": 430,
+   "grip_z": 0.9092246892981112,
+   "grip_xy": [
+    -0.01436649878661341,
+    -8.19025133340696e-05
+   ],
+   "tilt_deg": 0.018473532771432013,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.02225929025445605
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.02642988301049254
+    }
+   ],
+   "point_xy": [
+    0.0,
+    0.0
+   ],
+   "gripper": "연",
+   "above_table_mm": 9.224689298111155
+  },
+  {
+   "step": 415,
+   "grip_z": 0.9092084847459694,
+   "grip_xy": [
+    0.03083699911663391,
+    0.09445958386711241
+   ],
+   "tilt_deg": 0.03813132884660229,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.06171383074238257
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.01938471215334747
+    }
+   ],
+   "point_xy": [
+    0.05,
+    0.1
+   ],
+   "gripper": "연",
+   "above_table_mm": 9.208484745969358
+  },
+  {
+   "step": 458,
+   "grip_z": 0.9091922261469397,
+   "grip_xy": [
+    -0.20184600840042274,
+    -6.050035647730535e-05
+   ],
+   "tilt_deg": 0.03631570584234401,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.05327391395193448
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.060338806610937816
+    }
+   ],
+   "point_xy": [
+    -0.2,
+    0.0
+   ],
+   "gripper": "닫은",
+   "above_table_mm": 9.192226146939708
+  },
+  {
+   "step": 469,
+   "grip_z": 0.909197896672811,
+   "grip_xy": [
+    -0.10178537969241366,
+    0.13711551412683134
+   ],
+   "tilt_deg": 0.04383848668630478,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.05077435455236312
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.05150034117562541
+    }
+   ],
+   "point_xy": [
+    -0.1,
+    0.15
+   ],
+   "gripper": "닫은",
+   "above_table_mm": 9.197896672811012
+  },
+  {
+   "step": 469,
+   "grip_z": 0.9092028408631383,
+   "grip_xy": [
+    -0.101778983321225,
+    -0.1371019342952864
+   ],
+   "tilt_deg": 0.04382934403665636,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.03957947458677058
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.05280659229878192
+    }
+   ],
+   "point_xy": [
+    -0.1,
+    -0.15
+   ],
+   "gripper": "닫은",
+   "above_table_mm": 9.202840863138274
+  },
+  {
+   "step": 430,
+   "grip_z": 0.9092246892944907,
+   "grip_xy": [
+    -0.01436649881537265,
+    -8.190806272681993e-05
+   ],
+   "tilt_deg": 0.018473626800038754,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.022538669193772343
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.026150511398648216
+    }
+   ],
+   "point_xy": [
+    0.0,
+    0.0
+   ],
+   "gripper": "닫은",
+   "above_table_mm": 9.224689294490718
+  },
+  {
+   "step": 415,
+   "grip_z": 0.9092053904711576,
+   "grip_xy": [
+    0.030834982597194867,
+    0.09446368206738043
+   ],
+   "tilt_deg": 0.0381957402472484,
+   "contacts": [
+    {
+     "geom": "gripper0_finger1_collision",
+     "depth_mm": 0.04865530009656727
+    },
+    {
+     "geom": "gripper0_finger2_collision",
+     "depth_mm": 0.038635138241538414
+    }
+   ],
+   "point_xy": [
+    0.05,
+    0.1
+   ],
+   "gripper": "닫은",
+   "above_table_mm": 9.205390471157537
+  }
+ ]
+}
