@@ -204,14 +204,43 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color red --
 
 한 번 실행에 F8~F9 구간 하나입니다. `Esc`나 `Ctrl+C`는 수집 중단이며 정상 완료로 표시하지 않습니다. 이미 보낸 이동을 즉시 취소하는 비상정지가 아니므로 물리 비상정지에 접근할 수 있게 합니다. 자동 G-code 모드의 Z 하한 검사는 이 키보드 모드에 적용되지 않고 기존 조작기의 이동 범위를 사용합니다.
 
-## 5. 영상 확인·0.05초 타임스텝 정렬 — 로컬 PowerShell
+## 5. Alignment: 영상 확인·0.05초 타임스텝 정렬 — 로컬 PowerShell
+
+### 5-1. 영상 검토와 alignment 실행
+
+여기서 **alignment는 PNG 프레임·로봇 상태·집게 명령을 같은 20Hz 시간축에 맞추는 후처리**입니다. 프로젝트 루트 `C:\mirobot-vla`에서 실행합니다. MP4를 여는 명령과 alignment 명령은 별개입니다.
 
 아래 `영상1`은 **방금 터미널에 출력된 폴더명**으로 바꿉니다. PowerShell에서 영상을 열어 목표 블록을 실제로 잡아 들었는지, 손목 화면·색 보정·블록 배치가 정상인지 확인합니다.
 
 ```powershell
 Start-Process "docs/W9/data/raw/영상1/영상1.mp4"
+```
+
+확인 후 아래 명령이 실제 alignment를 수행합니다.
+
+```powershell
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.prepare "docs/W9/data/raw/영상1"
 ```
+
+영상1~10을 한꺼번에 정렬하고 실패한 번호를 확인하려면:
+
+```powershell
+cd C:\mirobot-vla
+$failedEpisodes = @()
+foreach ($episodeNumber in 1..10) {
+    & docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.prepare "docs/W9/data/raw/영상$episodeNumber"
+    if ($LASTEXITCODE -ne 0) { $failedEpisodes += $episodeNumber }
+}
+if ($failedEpisodes.Count -gt 0) {
+    Write-Warning "Alignment 실패: 영상 $($failedEpisodes -join ', ')"
+} else {
+    Write-Host "영상1~10 alignment 완료"
+}
+```
+
+성공하면 각 원본 폴더에 `aligned.npz`와 `alignment_report.json`이 생깁니다. 실패한 에피소드는 학습용 정렬이 완료된 것이 아닙니다. `Camera frame too far from grid`는 가장 가까운 PNG도 정렬 시각과 기본 허용값 40ms보다 멀다는 뜻입니다. 원본의 프레임 누락·실제 저장 속도를 확인하고, 통과만을 위해 허용값을 늘리지 않습니다.
+
+### 5-2. 출력과 품질 검사
 
 MP4 생성에 실패했거나 중단된 기록을 검토해야 한다면 PNG를 보존한 상태에서 다시 만들 수 있습니다. 기존 MP4는 덮어쓰지 않습니다.
 
@@ -244,6 +273,22 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.preview "docs/W9/data/raw/영�
 
 **`aligned.npz`는 아직 학습용 HDF5가 아닙니다.** 다음 서버 작업에서 외부 영상과 Panda action을 생성합니다.
 
+### 5-3. 이번 영상1~10의 후처리 결과와 재현 방법
+
+2026-10-29 수집한 영상1~10은 사용자가 실물 집기 성공을 확인했습니다. 각 `metadata.json`에 `real_success: true`와 확인 출처를 기록했습니다. 원본 PNG·MP4·로봇 로그는 유지했습니다.
+
+실제 PNG 저장 속도는 약 10~11fps여서 기본 40ms 프레임 차이 검사는 10개 모두 실패했습니다. 이번 배치는 저장 프레임 간격(최대 약 139ms)에 맞춰 **프레임 허용 차이만 명시적으로 70ms**로 선택해 정렬했습니다. 로봇 공백 기준은 기존 150ms를 유지했습니다. 이것은 기본 품질 기준을 통과한 결과와 구별해야 합니다. 실제 가장 가까운 프레임 차이는 약 55~67ms이며, 원본의 시간 해상도가 향상된 것은 아닙니다. 다음 촬영에서는 실제 저장 속도를 높이고 기본 40ms 기준을 다시 확인합니다.
+
+다음 명령으로 PNG 전체 디코딩·MP4 프레임 수·보정 프로필·정렬 배열·입력 해시를 검사하고 동일한 결과를 재현할 수 있습니다. 기존 파생 결과를 재생성하므로 현재 결과를 유지하려면 재실행하지 않아도 됩니다.
+
+```powershell
+docs/W9/.venv/Scripts/python.exe docs/W9/data/postprocess/finish_local.py --max-frame-ms 70 --real-success-reviewed
+```
+
+`--real-success-reviewed`는 검토 완료 사실을 기록하는 옵션입니다. 새 촬영분에 성공 확인 없이 사용하지 않습니다. 각 에피소드에 `aligned.npz`, `alignment_report.json`, `postprocess_report.json`을 만들고, 전체 결과는 `docs/W9/data/postprocess/summary.json`에 저장합니다. 보고서의 `accepted_max_frame_ms`, `default_frame_limit_passed`, `steps_exceeding_default_frame_limit`, `repeated_frames`를 서버에서도 함께 확인합니다.
+
+서버 인수인계와 명령은 [SERVER_HANDOFF.md](data/postprocess/SERVER_HANDOFF.md)에 정리했습니다. **실물 집기 성공 확인은 reference 배치 일치 확인과 별개**이며, 후자는 서버 HDF5 변환 전에 확인합니다.
+
 ## 6. 원본과 보정 파일 전송 — 로컬에서 서버로
 
 ### 6-1. 서버 Bash: 받을 폴더 준비
@@ -264,7 +309,7 @@ cd C:\mirobot-vla
 scp -r docs/W9/data/raw docs/W9/data/calibration <USER>@OASYS_HOST:~/UROP/docs/W9/data/
 ```
 
-`data/`는 Git 제외 대상이므로 코드 push/pull로 녹화가 옮겨지지 않습니다. `.venv`는 보내지 않습니다. 이 명령은 raw 전체를 복사하므로 이후 추가 촬영분은 해당 에피소드 폴더만 서버의 `docs/W9/data/raw/`로 보내도 됩니다. 서로 다른 노트북·저장 위치에서 같은 번호를 만들었다면 서버의 기존 폴더와 충돌하지 않도록 구분해서 보관합니다.
+현재 `data/`는 Git에 포함하며 PNG·MP4·NPZ는 Git LFS로 관리합니다. 이번 촬영분은 서버에서 `git pull --ff-only` 후 `git lfs pull`로 받을 수 있습니다. 위 `scp`는 Git LFS 대신 직접 복사할 때 사용하는 방법입니다. `.venv`는 보내지 않습니다. 이 명령은 raw 전체를 복사하므로 이후 추가 촬영분은 해당 에피소드 폴더만 서버의 `docs/W9/data/raw/`로 보내도 됩니다. 서로 다른 노트북·저장 위치에서 같은 번호를 만들었다면 서버의 기존 폴더와 충돌하지 않도록 구분해서 보관합니다.
 
 **이후 명령은 서버 Bash에서 실행합니다.**
 
