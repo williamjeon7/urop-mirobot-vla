@@ -1,12 +1,13 @@
 # W9 — 작업 목록 (3·4번: 시간 동기화, LIBERO 호환 HDF5)
 
-> **절차** · 확인 2026-10-28 · 기준 10/28 action plan, `5ab0ded`, `cosmos-policy@18a2acc`
+> **절차** · 확인 2026-10-28 · **갱신 2026-10-29** · 기준 10/28 action plan, `5ab0ded`, `cosmos-policy@18a2acc`
 > 10/28 action plan 중 3번(Timestamp 기반 데이터 동기화)과 4번(LIBERO 호환 HDF5 데이터셋 생성)을 할 일로 쪼갠 것.
 > `→` 뒤 빈칸은 **미리 채우지 않는다**.
 
 계획 원문: [../meetings/2026-10-28.md](../meetings/2026-10-28.md).
 1·2·5번(동료·공동)은 여기서 다루지 않는다. 3·4번과 맞닿는 곳 — 넘겨받는 것, 넘겨주는 것 — 만 적는다.
 W5에서 넘어온 것: [../W5/CHECKLIST.md](../W5/CHECKLIST.md) 7-2절(시간 맞추기), 2-4절의 `libero_follow` 시간 기준 모드.
+작업 기록(시간 순서 목차): [WORKLOG.md](WORKLOG.md). 자세한 설명: [DATASET_HDF5.md](DATASET_HDF5.md)(HDF5 형식·도구), [FOLLOW.md](FOLLOW.md)(따라가기·proprio).
 
 ## 0. 이번 주 목표
 
@@ -39,29 +40,11 @@ Mirobot 이 G-code 실행                     ① 상태 기록을 0.05초 격�
          proprio: 실물 t_k 자세 → Panda 형식, 손가락은 B' | action k: 시뮬이 t_(k+1) 로 가도록 낸 것 )
 ```
 
-- **두 영상은 시계로 직접 맞추지 않는다.** 둘 다 실물 자세 기록에 묶인다 — 손목은 **시각**으로, 외부는 **자세**로(시뮬이 그 자세를 따라간다)
-- **스텝 번호는 저절로 맞지만 영상 내용은 따라가기 오차만큼 어긋날 수 있다.** Panda 는 한 스텝에 목표의 약 26% 만 간다(W5). 3-3 에서 잰다
-- **목표를 한 칸 앞(`t_(k+1)`)에 둔다.** 칸 k 의 그림·상태는 action k 를 내기 전이고, action k 는 "지금 → 다음" 이어야 짝 규칙과 맞다.
-  W5 1-4 의 "스텝 k 의 목표 = k × 0.05초 자세" 그대로면 한 칸 밀린다. 녹화 뒤 처리라 다음 자세를 이미 안다
-- **0.05초는 바꾸지 않는다** — LIBERO 제어 주기(20 Hz)다. 바꾸면 같은 action 이 다르게 움직인다 (action 번역의 전제, [../W5/ACTION_MEANING.md](../W5/ACTION_MEANING.md) 1-4)
-- G-code 를 만든 시뮬 pick up 의 action·영상을 그대로 쓰지 않는 이유 — 실물은 시뮬과 같은 속도로 움직이지 않아서, 같은 시각의 시뮬 장면이 같은 동작 단계가 아니다
+왜 이렇게 묶는지 — 시계 대신 자세로 맞추는 이유, 한 칸 앞 목표, 0.05초 고정, 시뮬 원본 action 을 안 쓰는 이유 — 는 [FOLLOW.md](FOLLOW.md) 1·2절.
 
-### 목표 형식 — Cosmos LIBERO 로더가 읽는 것
+### 목표 형식
 
-`cosmos_policy/datasets/libero_dataset.py` 기준. 줄 번호는 `cosmos-policy@18a2acc`.
-
-| 무엇 | 형태 | 비고 | 근거 |
-| --- | --- | --- | --- |
-| `data/demo_<i>/obs/agentview_rgb` | (T, 256, 256, 3) uint8 | 또는 `agentview_rgb_jpeg`. **위아래가 바로 선 영상** (시뮬은 `np.flipud`) | `libero_dataset.py:182-187`, `regenerate_libero_dataset.py:74, 242` |
-| `data/demo_<i>/obs/eye_in_hand_rgb` | (T, 256, 256, 3) uint8 | 또는 `eye_in_hand_rgb_jpeg`. **없으면 KeyError** | `libero_dataset.py:189-194` |
-| `data/demo_<i>/actions` | (T, 7) → float32 | Panda OSC_POSE 식 (action 번역) | `:196` |
-| `data/demo_<i>/robot_states` | (T, 9) → float32 | 손가락 qpos 2 + 손 위치 3 (m, LIBERO world) + 쿼터니언 4 **`xyzw`** | `:200`, `regenerate_libero_dataset.py:222` |
-| 지시문 | **파일 이름** | `<아무거나>_SCENE<n>_<단어_단어…>_demo.hdf5` → `SCENE` 뒤 단어를 공백으로 이은 문장 | `:203-212` |
-| 묶음(suite) | `data_dir` 바로 아래 폴더 이름 | 뽑을 때는 폴더와 무관하게 **step 단위로 고르게** 뽑는다 | `:226`, `:519` |
-
-- **한 칸의 짝** — `obs(t)` 는 action(t) 를 넣기 **전** 관측이다. LIBERO 재생성 코드가 관측을 기록한 뒤 `env.step(action)` 한다 (`regenerate_libero_dataset.py:213-260`)
-- 로더 밖에서 필요한 것 — `data_dir/dataset_statistics.json` (처음 한 번 계산해 저장, `dataset_common.py:262`), `t5_embeddings.pkl` (지시문 → T5 임베딩)
-- `obs` 의 다른 키(`ee_states`, `joint_states`, `gripper_states`)와 `states`·`rewards`·`dones` 는 로더가 읽지 않는다
+Cosmos LIBERO 로더가 읽는 형식(키·모양, 짝, 파일 이름 = 지시문, 묶음·비율)은 [DATASET_HDF5.md](DATASET_HDF5.md) 1–3절.
 
 ### 지금 상태 (10/28)
 
@@ -76,7 +59,7 @@ Mirobot 이 G-code 실행                     ① 상태 기록을 0.05초 격�
 | 라벨(시뮬 Panda 따라가기) | 도착 기준뿐. 시간 기준 모드 없음 | `tools/libero_follow.py`, W5 2-4 |
 | 시뮬 Panda 기록 | step 마다 action·손·관절·그리퍼 JSONL (`pickup.py --log`). **영상은 없다** | [../W6/CHECKLIST.md](../W6/CHECKLIST.md) 3절 |
 | 두 카메라 256 px 렌더링 | 있다 — pick up 하며 두 시점을 step 마다 찍는다 | [panda_cameras/two_view_video.py](panda_cameras/two_view_video.py) |
-| HDF5 | 이미지 없는 형식만 (`actions`·`robot_states`) | `tools/demos_to_hdf5.py` |
+| HDF5 | **Panda 시뮬 → LIBERO 형식 도구 있음, Cosmos 로더로 읽힘** (10/29, 시험판 6개) | `tools/pickup_to_hdf5.py`, `tools/check_cosmos_dataset.py`, [DATASET_HDF5.md](DATASET_HDF5.md) |
 | 좌표·회전 변환 | 있다 — Mirobot ↔ LIBERO 위치 왕복 최대 0.013 mm (W6). proprio 로 쓰려면 조립이 남았다 | 3-2, `common/workspace.py`, `common/rotation.py` |
 
 ## 1. 순서
@@ -154,7 +137,7 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
 - [ ] **시뮬 따라가기 — action 라벨과 외부 영상** — 실물과 같은 장면·seed 에서 시뮬 Panda 를 실물 시작 자세에 둔다.
   스텝 k 마다 **`t_(k+1)` 의 실물 자세**를 목표로 action k 를 낸다(시간 기준, 도착을 기다리지 않는다). action k 를 내기 **전에** agentview 를 찍는다.
   `libero_follow` 에 시간 기준 모드로 넣는다 (W5 2-4)
-  →
+  → 간단한 버전을 scratchpad 시험 코드로 만들어 가짜 실물 기록으로 돌렸다 (10/29). 도구 자리(`libero_follow` 확장 / 새 파일)와 실행 환경은 미정 — [FOLLOW.md](FOLLOW.md) 4·5절
 - [ ] **시뮬 그리퍼** — 실물 `M4` 명령 시각에 시뮬 그리퍼 action 부호를 바꾼다. 실물 서보가 늦게 닫히면(손목 영상으로 확인) 그만큼 옮긴다.
   시뮬 블록을 실제로 집어야 외부 영상이 맞는다
   →
@@ -168,9 +151,9 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
   - 쿼터니언 — **`xyzw`** 로 낸다. `common/schema.py` STATE 는 `wxyz` 다 ([../W3/ROTATION.md](../W3/ROTATION.md) 5절)
   - 설정 — 그 에피소드 G-code 를 만든 짝·배율·공구·자세 모드로 읽는다. 머리말 `; pair`·`; tool`·`; point` 에서 가져온다(`libero_follow.targets_from_gcode` 와 같은 방식).
     다르게 읽으면 궤적 전체가 밀리거나 기운다
-  →
-- [ ] **proprio 9칸 왕복 확인** — 시뮬 Panda proprio → G-code → 다시 proprio 가 같은지. 위치는 W6 에서 확인했고(최대 0.013 mm), 자세(쿼터니언)는 아직이다
-  →
+  → 변환은 **`common/proprio.py` (10/29)** — 파지점 위치, `xyzw`, 머리말 설정 읽기, 쿼터니언 부호 맞추기까지. `?` 응답을 읽어 넣는 부분은 아직 — [FOLLOW.md](FOLLOW.md) 3절
+- [x] **proprio 9칸 왕복 확인** — 시뮬 Panda proprio → G-code → 다시 proprio 가 같은지. 위치는 W6 에서 확인했고(최대 0.013 mm), 자세(쿼터니언)는 아직이다
+  → **위치 최대 0.0112 mm, 자세 최대 0.0070°, 부호 모두 같음** (W6 실제 파일 쌍 G0 31줄, 10/29). G-code 반올림만큼이다 — [FOLLOW.md](FOLLOW.md) 3-3절
 - [ ] **손가락 2칸 — B' (10/28)** — Mirobot `M4` 명령을 기준으로 하되, 값은 Panda 가 쓰는 뜻에 맞춘다.
   단순히 S30 → 0.04, S70 → 0 으로 바꾸면 블록을 잡은 장면이 "빈손으로 닫음"(0 근처)처럼 보여 Panda 데이터와 뜻이 반대가 된다
 
@@ -181,10 +164,10 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
   | 그 사이 | 닫히는 시간 동안 두 값을 잇는다. 닫히는 시간은 손목 영상(손가락이 보임)으로 잰다 | |
 
   시뮬 블록 크기가 바뀌면 "닫기" 값을 다시 잰다. 실물이 블록을 놓쳐도 "잡음" 값이 나오지만, 그런 에피소드는 3-3 에서 빠진다
-  →
+  → 값 변환은 `common/proprio.py` `fingers` (10/29). 닫히는 동안은 직선으로 잇는다(임의 판단). 닫히는 시간은 손목 영상이 와야 잰다
 - [ ] **Action(k)** — 시뮬 따라가기의 action k
   →
-- [ ] **짝 규칙** — `Image(t_k)`·`Proprio(t_k)` 는 action k 를 내기 **전** 상태다. LIBERO 재생성 데이터와 같은 순서로 맞춘다 (0절)
+- [ ] **짝 규칙** — `Image(t_k)`·`Proprio(t_k)` 는 action k 를 내기 **전** 상태다. LIBERO 재생성 데이터와 같은 순서로 맞춘다 ([DATASET_HDF5.md](DATASET_HDF5.md) 2절)
   →
 
 ### 3-3. 검증
@@ -194,9 +177,9 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
   - 먼저 10/5 실물 `run_gcode --stream` 기록(로봇 노트북 `data/gcode_run/`)으로 잰다. 넘는 구간이 접근인지 집기인지도 본다
   - 넘으면 (1) 스텝마다 시뮬을 저장해 두고 다음 스텝에 목표에 도착하는 action 을 찾는다 — 저장했다 되돌렸을 때 같은 결과가 나오는지 먼저 확인한다
     (2) 그래도 넘는 에피소드는 표시하고 뺀다
-  →
+  → **가짜 실물 기록(10/5 실측 속도)으로 위치 최대 8.2 mm(움직일 때), 집는 순간 2.2 mm, 자세 0.68°** (10/29). 10/5 실물 기록으로는 아직 — [FOLLOW.md](FOLLOW.md) 4절
 - [ ] **속도** — Mirobot 속도를 시뮬 크기(÷ 0.663)로 키워도 Panda action 한계(±1) 안에서 따라가는지
-  →
+  → 가짜 기록(2.34배 느림)에서는 시뮬이 블록을 집어 들었다 (10/29). 실물 기록으로 다시 본다 — [FOLLOW.md](FOLLOW.md) 4절
 - [ ] **시뮬·실물 결과 — 둘 다 성공한 것만 학습 (10/28)** — 시뮬 성공은 W6 pick up 판정(블록이 들림, 손가락이 잡고 있음, 다른 블록 1 cm 안),
   실물 성공은 2번 기록. 결과가 다른 에피소드는 표시해서 보관한다 — 4단계 실패 감지 데이터로 쓴다 ([계획 7절](../plan/UROP_프로젝트_계획.md#7-failure-detection-설계))
   →
@@ -214,13 +197,13 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
 
 ### 4-1. Panda 시뮬 — 실물 없이 지금
 
-- [ ] **기록 스크립트** — `pickup.py` 를 돌리며 step 마다 두 카메라(256×256, `np.flipud`), `robot_states`, `actions` 를 모은다.
-  `on_step` 은 action **뒤** 관측을 넘기므로 앞 관측과 짝짓는다 (0절 짝 규칙). 두 카메라 렌더링은 `panda_cameras/two_view_video.py` 와 같다
-  →
-- [ ] **`robot_states`** — `robot0_gripper_qpos`(2) + `robot0_eef_pos`(3) + `robot0_eef_quat`(4, `xyzw`) 를 그대로 이어 붙인다 (`regenerate_libero_dataset.py:222`)
-  →
-- [ ] **성공한 에피소드만** — LIBERO 재생성 데이터도 성공한 것만 남겼다 (`regenerate_libero_dataset.py:299-300`)
-  →
+- [x] **기록 스크립트** — `pickup.py` 를 돌리며 step 마다 두 카메라(256×256, `np.flipud`), `robot_states`, `actions` 를 모은다.
+  `on_step` 은 action **뒤** 관측을 넘기므로 앞 관측과 짝짓는다 ([DATASET_HDF5.md](DATASET_HDF5.md) 2절). 두 카메라 렌더링은 `panda_cameras/two_view_video.py` 와 같다
+  → **`tools/pickup_to_hdf5.py` (10/29).** 시험판 3색 × seed 0–1 = 6/6 성공, 짝 순서 확인 — [DATASET_HDF5.md](DATASET_HDF5.md) 4·6절
+- [x] **`robot_states`** — `robot0_gripper_qpos`(2) + `robot0_eef_pos`(3) + `robot0_eef_quat`(4, `xyzw`) 를 그대로 이어 붙인다 (`regenerate_libero_dataset.py:222`)
+  → 그대로 이어 붙였다. 쿼터니언 norm 1, 시작 자세가 `xyzw` top-down 으로 읽힌다 (10/29) — [DATASET_HDF5.md](DATASET_HDF5.md) 6절
+- [x] **성공한 에피소드만** — LIBERO 재생성 데이터도 성공한 것만 남겼다 (`regenerate_libero_dataset.py:299-300`)
+  → `pickup_success` 로 거른다 (10/29). 시험판은 6/6 성공
 - [ ] **배치** — seed 마다 무작위 위치·색 순서 (W6 `work_region`). 90개를 세 색에 어떻게 나눌지 (예: 색마다 30 seed)
   →
 - [ ] **1번 환경 수정 뒤 다시 뽑기** — 카메라 위치·색·테이블이 바뀌면 이전 영상은 쓸 수 없다
@@ -246,16 +229,17 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
   예: `MIROBOT_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5` → "pick up the red block on the table".
   **실행할 때 넣는 문장과 글자 하나까지 같아야 한다** — T5 임베딩을 문장으로 찾는다. 지금 W6 문장은 `tasks.py` "Pick up the red block on the table." (대문자·마침표),
   BDDL `:language` 는 마침표 없음이라 이미 둘이 다르다. 하나로 정한다
-  →
+  → 잠정 `pick up the <색> block on the table` 로 시험판을 만들었고, 로더가 파일 이름에서 그대로 되살렸다 (10/29).
+  확정과 실행 쪽(`tasks.py`·BDDL) 문장 맞추기는 남았다
 - [ ] **폴더와 비율** — Panda 시뮬과 Mirobot 실물을 다른 폴더에 둔다. 로더는 step 단위로 고르게 뽑으므로 **90/10 은 에피소드 수가 아니라 step 수 비율**로 나온다.
   실물 에피소드가 더 길면(Mirobot 이 느리면) 실물 비중이 커진다. 5번과 맞춘다
   →
 - [ ] **no-op 거르기** — LIBERO 재생성 데이터는 위치·회전 칸이 모두 0 에 가깝고(문턱 1e-4) 그리퍼가 앞 step 과 같은 action 을 뺐다 (`regenerate_libero_dataset.py:89, 209`).
   우리도 같은 규칙을 쓸지. 시뮬 pick up 의 grasp 단계, 실물에서 멈춰 있는 칸이 영향을 받는다
-  →
+  → Panda 시뮬 시험판은 이 규칙으로 0개였다 (10/29). 실물은 아직
 - [ ] **더 남길 것** — 로더는 안 읽지만 상위집합 기록 원칙([계획 6절](../plan/UROP_프로젝트_계획.md#로깅-스키마-상위집합-기록-원칙))대로
   `obs/joint_states`, `obs/ee_states`, Mirobot 원본 값(Cartesian mm·deg, 관절각, `M4 S`, 시각), seed, 시뮬·실물 성공 여부, 따라가기 오차를 같이 남길지
-  →
+  → Panda 시뮬은 `obs/joint_states`·`gripper_states`·`ee_states`, `phases`, seed 를 남긴다 (10/29, 임의 판단). Mirobot 쪽은 실물 때
 - [ ] **저장 위치** — `data/` 아래 (git 제외, `*.hdf5` 도 제외). HDF5 는 커밋하지 않고 만드는 스크립트를 남긴다 (`tools/demos_to_hdf5.py` 와 같은 원칙)
   →
 
@@ -263,13 +247,14 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
 
 - [ ] **Cosmos 로더로 읽기** — `LIBERODataset(data_dir=…)` 로 에피소드 수, step 수, 지시문 목록(`unique_commands`), 한 칸의 모양을 확인한다.
   `t5_text_embeddings_path=""` 면 만드는 데까지는 T5 없이 된다
-  →
+  → **`tools/check_cosmos_dataset.py` (10/29).** 에피소드 6, step 880, 지시문 3개, 샘플 모양 정상 (T5 는 가짜) — [DATASET_HDF5.md](DATASET_HDF5.md) 5·6절
 - [ ] **T5 임베딩** — 우리 지시문은 기존 `libero_t5_embeddings.pkl` 에 없다. 새로 만들려면 `google-t5/t5-11b` 인코더가 필요하다 (`get_t5_emb.py:25`).
   **크기가 커서 받기 전에 확인한다**
   →
 - [ ] **`dataset_statistics.json`** — `data_dir` 에 처음 한 번 계산해 저장하고 다음부터는 읽기만 한다. **데이터를 바꾸면 지워야 다시 계산된다.**
   Panda·Mirobot 이 한 통계로 정규화된다 — 5번과 공유
-  →
+  → **우리 데이터로 계산하면 회전 action 이 x·z 약 36–39배, y 약 5배 크게 펴지고, 쿼터니언 칸은 작은 흔들림이 부풀려진다** (10/29).
+  우리 값은 LIBERO 통계 범위 안이라 LIBERO 통계를 그대로 쓸 수 있다. 5번과 정한다 — [DATASET_HDF5.md](DATASET_HDF5.md) 7절
 - [ ] **되돌려 보기** — HDF5 에서 에피소드 하나를 꺼내 두 카메라 그림 + Proprio 숫자 + action 을 영상으로 만든다 (3-3 과 같은 영상을 HDF5 에서)
   →
 
@@ -278,4 +263,5 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
 - 외부 영상을 시뮬로 채우는 것 — 정책이 블록 위치를 시뮬 화면에서 읽을 수 있어서, 언어 준수율이 실물 인식이 아니라 시뮬 화면으로 풀릴 수 있다.
   보고서에 한계로 적을지, 고정 카메라를 더할지 (USB 웹캠도 `robot/camera_bridge.py` 로 받을 수 있다) (2절)
 - 90/10 은 에피소드 비율인가 step 비율인가 (4-3)
+- 정규화 통계 — 우리 데이터로 새로 계산할지, LIBERO 통계를 그대로 쓸지. 새로 계산하면 회전 action 이 수십 배 크게 펴진다 (4-4)
 - Panda 시뮬 HDF5 와 라벨 만들기(시뮬 따라가기)는 누가 (2절)
