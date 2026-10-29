@@ -42,6 +42,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W7 | [W7/CHECKLIST.md](W7/CHECKLIST.md) | D405 컬러 영상 확인과 첫 MP4 촬영의 진행 상태·촬영 기록 |
 | W7 | [W7/SETUP_D405_WINDOWS.md](W7/SETUP_D405_WINDOWS.md) | Windows에서 D405 Viewer 다운로드·실행, 컬러 영상 확인과 MP4 시험 녹화 |
 | W9 | [W9/CHECKLIST.md](W9/CHECKLIST.md) | 10/28 action plan **3·4번 작업 목록** — 0.05초 격자 시간 동기화, Cosmos LIBERO 로더가 읽는 HDF5 형식과 검증 |
+| W9 | [W9/MIROBOT_DATA_COLLECTION.md](W9/MIROBOT_DATA_COLLECTION.md) | **통합 수집 절차** — 색 보정·영상1부터 자동 번호 촬영·0.05초 정렬·서버 HDF5·통계·실제 T5 준비와 검사 |
 | W9 | [W9/WORKLOG.md](W9/WORKLOG.md) | **작업 기록** — 시간 순서 목차. 항목마다 왜·한 것·대표 결과·주제 문서 링크. 10/29 부터 |
 | W9 | [W9/DATASET_HDF5.md](W9/DATASET_HDF5.md) | **Cosmos LIBERO 형식 HDF5** — 로더가 읽는 형식, 짝 맞추기, 파일 이름 = 지시문, 만드는·확인하는 도구, 시험판 결과, 정규화 통계 문제 |
 | W9 | [W9/FOLLOW.md](W9/FOLLOW.md) | **시뮬 Panda 따라가기** — Mirobot 에피소드의 외부 영상·action·proprio. (나) 방식의 이유, 한 칸 앞 목표, proprio 변환(B'), 따라가기 오차와 남은 결정 |

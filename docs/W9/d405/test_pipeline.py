@@ -26,6 +26,8 @@ from .prepare import gripper_track, nearest_indices, prepare, slerp
 from .robot_capture import validate_gcode
 from .train import training_command
 from .teleop import TeleopSession
+from .capture_storage import read_image, reserve_episode, write_image
+from .preview import create_review
 from .color_calibration import (D65, RGB_XYZ, adapt_xyz, apply_rgb, decode_srgb, encode_srgb,
                                 fit_matrix, lab_to_xyz, xyz_to_lab)
 
@@ -53,6 +55,45 @@ class PipelineTests(unittest.TestCase):
         for name, rows in [('frames', frames), ('robot', events)]:
             (ep/(name+'.jsonl')).write_text(''.join(json.dumps(r)+'\n' for r in rows), encoding='utf-8')
         return ep
+
+    def test_numbering_continues_after_highest_reserved_episode(self):
+        (self.root/'영상1').mkdir()
+        (self.root/'영상3').mkdir()  # Includes incomplete captures; never reuse their number.
+        (self.root/'chart_001').mkdir()
+        (self.root/'영상_notes').mkdir()
+        self.assertEqual(reserve_episode(self.root).name, '영상4')
+        self.assertEqual(reserve_episode(self.root).name, '영상5')
+        self.assertEqual(reserve_episode(self.root/'new').name, '영상1')
+
+    def test_korean_episode_images_and_numbered_mp4(self):
+        ep = reserve_episode(self.root)
+        (ep/'rgb').mkdir()
+        image = np.zeros((48, 64, 3), dtype=np.uint8)
+        image[:, :, 2] = 200
+        rows = []
+        for k in range(4):
+            name = f'rgb/{k:08d}.png'
+            write_image(ep/name, image)
+            rows.append(dict(file=name, t_s=k/20))
+        np.testing.assert_array_equal(read_image(ep/rows[0]['file']), image)
+        self.assertEqual(wrist_image(ep/rows[0]['file']).shape, (256, 256, 3))
+        (ep/'frames.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows), encoding='utf-8')
+        out = create_review(ep)
+        self.assertEqual(out.name, '영상1.mp4')
+        # Decode through an ASCII path to check the actual video, not only its filename.
+        copy = self.root/'decode.mp4'
+        copy.write_bytes(out.read_bytes())
+        reader = cv2.VideoCapture(str(copy))
+        try:
+            self.assertTrue(reader.isOpened())
+            self.assertEqual(int(reader.get(cv2.CAP_PROP_FRAME_COUNT)), 4)
+            ok, frame = reader.read()
+            self.assertTrue(ok)
+            self.assertEqual(frame.shape, image.shape)
+        finally:
+            reader.release()
+        with self.assertRaises(FileExistsError):
+            create_review(ep)
 
     def test_grid_has_one_extra_target_and_gripper_switch_is_not_shifted(self):
         aligned, report = prepare(self.fixture())
@@ -325,8 +366,9 @@ class PipelineTests(unittest.TestCase):
         config = SimpleNamespace(enable_device=lambda serial: None, enable_stream=lambda *args: None)
         for corrected in (False, True):
             with self.subTest(corrected=corrected):
-                out = self.root/('with_profile' if corrected else 'raw_capture')
-                argv = ['capture', '--out', str(out), '--seconds', '.02']
+                out = self.root/'with_profile' if corrected else self.root/'recordings'/'영상1'
+                argv = ['capture', '--seconds', '.02']
+                argv += ['--out', str(out)] if corrected else ['--out-root', str(out.parent)]
                 if corrected:
                     correction = self.root/'correction.json'
                     correction.write_text(json.dumps(dict(format='w9-color/1', matrix=np.eye(3).tolist(),
@@ -341,6 +383,7 @@ class PipelineTests(unittest.TestCase):
                 self.assertTrue(metadata['complete'])
                 self.assertGreater(len(list((out/'rgb').glob('*.png'))), 0)
                 self.assertEqual((out/'color_profile.json').exists(), corrected)
+                self.assertTrue((out/('review.mp4' if corrected else '영상1.mp4')).is_file())
 
 
 if __name__ == '__main__':

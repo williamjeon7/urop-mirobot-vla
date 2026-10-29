@@ -16,7 +16,9 @@ from pathlib import Path
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--list', action='store_true', help='List RealSense devices and RGB profiles; no robot motion')
-    p.add_argument('--out', type=Path)
+    output = p.add_mutually_exclusive_group()
+    output.add_argument('--out', type=Path, help='Explicit new episode folder (e.g. chart_001)')
+    output.add_argument('--out-root', type=Path, help='Numbered episode parent; default docs/W9/data/raw')
     p.add_argument('--serial', help='D405 serial; required if more than one D405 is connected')
     p.add_argument('--width', type=int, default=640)
     p.add_argument('--height', type=int, default=480)
@@ -95,15 +97,18 @@ def main():
                 for row in profiles:
                     print('  RGB profile:', row)
         return
-    if not a.out:
-        p.error('--out is required.')
     candidates = [d for d in devices if 'D405' in d.get_info(rs.camera_info.name)
                   and (not a.serial or d.get_info(rs.camera_info.serial_number) == a.serial)]
     if len(candidates) != 1:
         p.error(f'Expected one D405, found {len(candidates)}. Check USB / --serial / --list.')
     dev = candidates[0]
     serial_number = dev.get_info(rs.camera_info.serial_number)
-    a.out.mkdir(parents=True, exist_ok=False)  # never overwrite an episode
+    from .capture_storage import reserve_episode, write_image
+    if a.out is None:
+        a.out = reserve_episode(a.out_root or Path(__file__).resolve().parents[1] / 'data' / 'raw')
+    else:
+        a.out.mkdir(parents=True, exist_ok=False)  # never overwrite an episode
+    print('Recording folder:', a.out, flush=True)
     (a.out / 'rgb').mkdir()
     source_gcode = a.mapping_gcode if a.teleop else a.gcode
     if source_gcode:
@@ -149,8 +154,7 @@ def main():
                         continue
                     image = np.asanyarray(frame.get_data())
                     name = f'rgb/{index:08d}.png'
-                    if not cv2.imwrite(str(a.out / name), cv2.cvtColor(image, cv2.COLOR_RGB2BGR)):
-                        raise OSError('PNG write failed.')
+                    write_image(a.out / name, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
                     log.write(json.dumps(dict(file=name, t_s=(receipt_ns-clock_ns)/1e9,
                                              device_ms=frame.get_timestamp(),
                                              domain=str(frame.get_frame_timestamp_domain()),
@@ -234,6 +238,8 @@ def main():
     if not meta['complete']:
         raise RuntimeError(meta.get('error', 'Incomplete capture'))
     print('Saved:', a.out, '(real_success still needs review)')
+    from .preview import create_review
+    create_review(a.out)
 
 
 if __name__ == '__main__':

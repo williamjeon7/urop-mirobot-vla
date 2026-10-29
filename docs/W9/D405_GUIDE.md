@@ -1,4 +1,8 @@
-# D405 설치 → 녹화 → 0.05초 타임스텝 → Cosmos Policy 학습
+# D405 설치 → 녹화 → 0.05초 타임스텝 → Cosmos Policy 학습 데이터 준비
+
+자동 번호 촬영을 포함한 최신 전체 실행 절차는 [통합 수집 가이드](MIROBOT_DATA_COLLECTION.md)에 모았습니다. 아래 직접 이름 지정 예시도 사용할 수 있습니다. 정상 촬영 종료 시 MP4가 자동 생성되므로 `preview`는 MP4가 없을 때만 실행합니다.
+
+현재 범위는 Cosmos Policy LIBERO가 읽는 HDF5·정규화 통계·실제 T5 임베딩의 준비·검사까지입니다. 파인튜닝 실행과 정책 평가는 후속 작업입니다.
 
 **가지고 계신 Calibrite ColorChecker Classic Mini와 `inverse_kinematics.py`를 사용하는 주 절차는 [COLORCHECKER_MINI.md](COLORCHECKER_MINI.md)입니다.** 이 문서는 설치·데이터 변환 전체를 설명합니다.
 처음에는 **1~3번으로 카메라만 확인**하세요. 실물 학습 데이터는 4번부터 만듭니다.
@@ -220,7 +224,7 @@ data/demo_0/robot_states          (T,9)          손가락2+위치3+쿼터니언
 
 파일 하나당 실물 에피소드 하나입니다. 여러 에피소드를 같은 suite 폴더에 두면 됩니다. `SCENE1` 뒤 파일 이름이 지시문이므로 임의로 바꾸지 마세요. 실물 관절각·XYZ mm를 `actions`에 직접 넣으면 안 됩니다.
 
-## 7. HDF5 검사와 파인튜닝 — [서버: OASYS Bash]
+## 7. HDF5 검사와 학습 데이터 준비 완료 — [서버: OASYS Bash]
 
 OASYS의 기존 Cosmos 환경에서 구조 확인:
 
@@ -235,7 +239,7 @@ cosmos-policy/.venv/bin/python -m tools.check_cosmos_dataset \
   --data-dir docs/W9/data/hdf5 --recompute-stats
 ```
 
-이 기존 검사기는 모양 확인에 **가짜 T5**를 임시로 사용합니다. 학습 임베딩은 따로 만들어야 합니다. 이후의 서버 환경 설치·실제 T5·체크포인트 다운로드·학습 실행은 [D405_TRAINING.md](D405_TRAINING.md)를 순서대로 따르세요.
+이 기존 검사기는 모양 확인에 **가짜 T5**를 임시로 사용합니다. 학습 임베딩은 따로 만들어야 합니다. [D405_TRAINING.md](D405_TRAINING.md)의 1~3절에서 서버 환경·최종 데이터 통계·실제 T5 임베딩과 검사를 마치면 이번 데이터 준비 범위가 끝납니다. 4절 이후의 정책 체크포인트 다운로드·학습 실행은 후속 작업입니다.
 
 Panda 시뮬 HDF5도 섞는다면 `docs/W9/data/hdf5/panda_sim/` 아래에 둡니다. 90개/10개 에피소드가 step 비율 90/10을 보장하지 않습니다. `check_dataset`의 suite별 step 수를 확인하고 원하는 혼합 비율은 서버 로더 설정에서 별도로 결정하세요.
 

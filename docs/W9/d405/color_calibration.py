@@ -158,7 +158,8 @@ def main():
     if (a.mode == 'fit' and a.corners is None and sys.platform.startswith('linux')
             and not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'))):
         p.error('No GUI display. Supply --corners path/to/corners.json over headless SSH.')
-    image = cv2.imread(str(a.image))
+    from .capture_storage import read_image, write_image
+    image = read_image(a.image)
     if image is None:
         raise ValueError('Input image is unreadable.')
     if a.out.exists():
@@ -167,8 +168,7 @@ def main():
     a.out.parent.mkdir(parents=True, exist_ok=True)
     if a.mode == 'apply':
         corrected = apply_rgb(rgb, load_profile(a.profile))
-        if not cv2.imwrite(str(a.out), cv2.cvtColor(corrected, cv2.COLOR_RGB2BGR)):
-            raise OSError('Corrected image write failed.')
+        write_image(a.out, cv2.cvtColor(corrected, cv2.COLOR_RGB2BGR))
         return
     if not a.confirm_edition:
         p.error('Confirm chart edition against the reference, then add --confirm-edition.')
@@ -186,9 +186,9 @@ def main():
                    width=camera['width'], height=camera['height'], fps=camera['fps'],
                    image_sha256=hashlib.sha256(a.image.read_bytes()).hexdigest(), report=report)
     a.out.write_text(json.dumps(profile, indent=2), encoding='utf-8')
-    cv2.imwrite(str(a.out.with_suffix('.patches.png')), cv2.cvtColor(flat, cv2.COLOR_RGB2BGR))
+    write_image(a.out.with_suffix('.patches.png'), cv2.cvtColor(flat, cv2.COLOR_RGB2BGR))
     comparison = np.hstack([rgb, apply_rgb(rgb, profile)])
-    cv2.imwrite(str(a.out.with_suffix('.comparison.png')), cv2.cvtColor(comparison, cv2.COLOR_RGB2BGR))
+    write_image(a.out.with_suffix('.comparison.png'), cv2.cvtColor(comparison, cv2.COLOR_RGB2BGR))
     print(json.dumps(report, indent=2))
     print('Saved profile and raw|corrected comparison:', a.out)
 

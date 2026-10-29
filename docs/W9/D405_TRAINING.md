@@ -1,5 +1,7 @@
 # D405 HDF5를 Cosmos Policy LIBERO에 파인튜닝하기
 
+**현재 작업은 1~3절의 학습 데이터 준비·검사까지입니다.** HDF5·정규화 통계·실제 지시문 T5 임베딩을 준비한 뒤 멈춥니다. 4절 이후 정책 체크포인트 다운로드·파인튜닝·평가는 후속 작업으로 남겨 둡니다.
+
 **이 문서는 전부 [서버: OASYS Linux Bash]에서 실행합니다.** Windows 노트북에서 촬영·색 보정·키보드 녹화·영상 검토를 마치고, 원본 `raw/`와 `calibration/`을 전송한 다음 시작합니다. 전송 절차는 [D405_GUIDE.md 6절](D405_GUIDE.md#6-서버에서-외부-영상action-생성--hdf5)을 따릅니다.
 
 서버에서 `cd ~/UROP` 후 기존 `cosmos-policy/.venv/bin/python`으로 실행합니다. 로컬의 `Scripts/python.exe`나 수집용 W9 환경으로 학습하지 않습니다. W9 수집 환경 설치는 CUDA·모델 가중치 준비와 별개입니다.

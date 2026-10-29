@@ -17,12 +17,13 @@ import numpy as np
 from common.rotation import quat_xyzw_to_wxyz
 from common.servo import pose_gap, servo_action
 from .prepare import input_hashes, read_jsonl
+from .capture_storage import read_image
 
 REPO = Path(__file__).resolve().parents[3]
 
 
 def wrist_image(path, rotate=0, color_profile=None):
-    image = cv2.imread(str(path))
+    image = read_image(path)
     if image is None:
         raise ValueError(f'Unreadable RGB PNG: {path}')
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -131,13 +132,15 @@ def main():
         raise ValueError('Follow error exceeds limits; inspect export_report.json. No HDF5 written.')
     a.out.mkdir(parents=True, exist_ok=True)
     ep_id = a.episode.name
+    if ep_id.startswith('영상') and ep_id[2:].isascii() and ep_id[2:].isdigit():
+        ep_id = 'video' + ep_id[2:]
     if not ep_id.isascii() or not all(c.isalnum() or c in '_-' for c in ep_id):
         raise ValueError('Use an ASCII episode directory name with letters/digits/_/-.')
     path = a.out/f"MIROBOT_{ep_id}_SCENE1_{instruction.replace(' ', '_')}_demo.hdf5"
     temp = path.with_suffix('.hdf5.partial')
     if path.exists() or temp.exists():
         raise FileExistsError(f'Output exists: {path} or {temp}')
-    attrs = dict(seed=meta['seed'], source_episode=ep_id, real_success=True,
+    attrs = dict(seed=meta['seed'], source_episode=a.episode.name, real_success=True,
                  simulated_success=True, dt=0.05, wrist_rotate_ccw=a.rotate,
                  image_orientation='upright RGB, no overlay',
                  color_profile_applied=bool(color_profile),

@@ -13,4 +13,4 @@ if ($LASTEXITCODE -ne 0) { throw 'Package installation failed.' }
 & $python -m pip freeze | Set-Content -Encoding utf8 (Join-Path $w9 'installed-packages.local.txt')
 & $python -m docs.W9.d405.capture --list
 if ($LASTEXITCODE -ne 0) { throw 'D405 device query failed.' }
-Write-Host 'Installed. Read docs/W9/D405_GUIDE.md. No robot commands were sent.'
+Write-Host 'Installed. Read docs/W9/MIROBOT_DATA_COLLECTION.md. No robot commands were sent.'

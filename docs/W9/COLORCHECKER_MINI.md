@@ -1,5 +1,7 @@
 # Calibrite ColorChecker Classic Mini로 D405 색 보정하기
 
+색 보정부터 자동 번호 촬영·데이터 변환까지 한 번에 진행하려면 [통합 수집 가이드](MIROBOT_DATA_COLLECTION.md)를 따릅니다. 아래는 직접 출력 이름을 지정하는 상세 예시입니다. 정상 촬영 종료 시 MP4가 자동 생성되므로 `preview` 명령은 MP4가 없을 때만 실행합니다.
+
 **사용할 순서: 색상표 촬영 → 네 모서리 선택 → 보정 확인 → 같은 설정으로 키보드 조작·학습 영상 수집.**
 여기서 말하는 색상표는 가지고 계신 **Calibrite ColorChecker Classic Mini, 24패치**입니다. OpenCV `applyColorMap`이나 깊이 영상의 가짜 색상은 사용하지 않습니다.
 
