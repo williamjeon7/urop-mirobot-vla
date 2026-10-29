@@ -17,11 +17,29 @@ from common.workspace import grip_to_flange
 DT = 0.05
 
 
-def input_hashes(episode):
+def _input_texts(episode):
+    """Known text inputs, with Git's LF/CRLF checkout differences removed."""
     names = ['metadata.json', 'source.gcode', 'reference.jsonl', 'frames.jsonl', 'robot.jsonl']
     if (Path(episode)/'color_profile.json').exists():
         names.append('color_profile.json')
-    return {name: hashlib.sha256((Path(episode)/name).read_bytes()).hexdigest() for name in names}
+    return {name: (Path(episode)/name).read_bytes().replace(b'\r\n', b'\n') for name in names}
+
+
+def input_hashes(episode):
+    """Hash canonical LF text so reports survive Windows/Linux Git checkouts."""
+    return {name: hashlib.sha256(content).hexdigest()
+            for name, content in _input_texts(episode).items()}
+
+
+def input_hashes_match(episode, recorded):
+    """Accept canonical hashes and legacy raw CRLF hashes, without hiding edits."""
+    texts = _input_texts(episode)
+    if not isinstance(recorded, dict) or recorded.keys() != texts.keys():
+        return False
+    return all(recorded[name] in (
+        hashlib.sha256(content).hexdigest(),
+        hashlib.sha256(content.replace(b'\n', b'\r\n')).hexdigest(),
+    ) for name, content in texts.items())
 
 
 def read_jsonl(path):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import io
 import os
 import runpy
@@ -21,8 +22,8 @@ import numpy as np
 
 from common.rotation import quat_from_axis_deg
 from .check_dataset import check
-from .export_hdf5 import wrist_image, write_demo
-from .prepare import gripper_track, nearest_indices, prepare, slerp
+from .export_hdf5 import main as export_main, wrist_image, write_demo
+from .prepare import gripper_track, input_hashes, input_hashes_match, nearest_indices, prepare, slerp
 from .robot_capture import validate_gcode
 from .train import training_command
 from .teleop import TeleopSession
@@ -144,6 +145,79 @@ class PipelineTests(unittest.TestCase):
         self.assertAlmostEqual(report['robot_hz_median'], 20)
         # Position is interpolated from physical measurement, not all-zero placeholder labels.
         self.assertGreater(np.linalg.norm(aligned['positions'][-1]-aligned['positions'][0]), 0)
+
+    def test_input_hashes_are_portable_between_lf_and_crlf_checkouts(self):
+        ep = self.fixture()
+        (ep/'color_profile.json').write_bytes(b'{\n  "matrix": []\n}\n')
+        expected = {name: hashlib.sha256((ep/name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+                    for name in input_hashes(ep)}
+        for name in expected:
+            path = ep/name
+            path.write_bytes(path.read_bytes().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
+        self.assertEqual(input_hashes(ep), expected)
+        self.assertTrue(input_hashes_match(ep, expected))
+
+    def test_input_hashes_accept_legacy_crlf_reports(self):
+        ep = self.fixture()
+        recorded = {name: hashlib.sha256((ep/name).read_bytes().replace(b'\r\n', b'\n')
+                                        .replace(b'\n', b'\r\n')).hexdigest()
+                    for name in input_hashes(ep)}
+        self.assertNotEqual(recorded, input_hashes(ep))
+        self.assertTrue(input_hashes_match(ep, recorded))
+        for name in recorded:
+            path = ep/name
+            path.write_bytes(path.read_bytes().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
+        self.assertTrue(input_hashes_match(ep, recorded))
+
+    def test_input_hashes_reject_substantive_edits_to_any_input(self):
+        ep = self.fixture()
+        (ep/'color_profile.json').write_bytes(b'{\n  "matrix": []\n}\n')
+        canonical = input_hashes(ep)
+        legacy = {name: hashlib.sha256((ep/name).read_bytes().replace(b'\r\n', b'\n')
+                                      .replace(b'\n', b'\r\n')).hexdigest()
+                  for name in canonical}
+        for name in canonical:
+            with self.subTest(input=name):
+                path = ep/name
+                original = path.read_bytes()
+                path.write_bytes(original + b' ')
+                self.assertFalse(input_hashes_match(ep, canonical))
+                self.assertFalse(input_hashes_match(ep, legacy))
+                path.write_bytes(original)
+
+    def test_input_hashes_require_exact_input_key_set(self):
+        ep = self.fixture()
+        (ep/'color_profile.json').write_bytes(b'{}\n')
+        recorded = input_hashes(ep)
+        for missing in recorded:
+            with self.subTest(missing=missing):
+                self.assertFalse(input_hashes_match(ep, {k: v for k, v in recorded.items() if k != missing}))
+        self.assertFalse(input_hashes_match(ep, dict(recorded, extra='unused')))
+        self.assertFalse(input_hashes_match(ep, None))
+        (ep/'color_profile.json').unlink()
+        self.assertFalse(input_hashes_match(ep, recorded))
+
+    def test_export_checks_legacy_hashes_and_rejects_changed_inputs_before_simulator(self):
+        ep = self.fixture()
+        aligned, report = prepare(ep)
+        report['input_sha256'] = {
+            name: hashlib.sha256((ep/name).read_bytes().replace(b'\r\n', b'\n')
+                                 .replace(b'\n', b'\r\n')).hexdigest()
+            for name in report['input_sha256']}
+        np.savez_compressed(ep/'aligned.npz', **aligned)
+        (ep/'alignment_report.json').write_text(json.dumps(report), encoding='utf-8')
+        args = ['export_hdf5', str(ep), '--out', str(self.root/'hdf5'),
+                '--real-success', '--layout-confirmed']
+        def simulator_unavailable(**kwargs):
+            raise RuntimeError('simulator boundary reached')
+        with patch('sys.argv', args), patch.dict(os.environ), patch.dict('sys.modules', {
+                'preview': SimpleNamespace(create_env=simulator_unavailable)}):
+            with self.assertRaisesRegex(RuntimeError, 'simulator boundary reached'):
+                export_main()
+            with (ep/'robot.jsonl').open('ab') as log:
+                log.write(b' ')
+            with self.assertRaisesRegex(ValueError, 'Capture inputs changed'):
+                export_main()
 
     def test_missing_state_interval_is_rejected(self):
         ep = self.fixture()
@@ -448,6 +522,7 @@ class PipelineTests(unittest.TestCase):
             return SimpleNamespace(get_color_frame=lambda: frame)
         pipeline = SimpleNamespace(start=lambda config: profile, wait_for_frames=wait_for_frames, stop=lambda: None)
         config = SimpleNamespace(enable_device=lambda serial: None, enable_stream=lambda *args: None)
+        video_writer = cv2.VideoWriter
         for mode in ('raw', 'corrected', 'teleop'):
             corrected = mode != 'raw'
             teleop = mode == 'teleop'
@@ -479,7 +554,12 @@ class PipelineTests(unittest.TestCase):
                     self.assertGreater(count, 0)
                     time.sleep(.02)
                     self.assertEqual(len(list((out/'rgb').glob('*.png'))), count)
-                with patch('sys.argv', argv), patch.object(rs, 'context', return_value=SimpleNamespace(
+                # The fake camera runs much faster than a D405. Use its requested
+                # 30 fps for the real codec, and simulate the mocked teleop's TTY.
+                with patch('sys.argv', argv), patch('sys.stdin.isatty', return_value=True), \
+                        patch.object(cv2, 'VideoWriter', side_effect=lambda path, codec, fps, size:
+                                     video_writer(path, codec, 30., size)), \
+                        patch.object(rs, 'context', return_value=SimpleNamespace(
                         query_devices=lambda: [device])), patch.object(rs, 'pipeline', return_value=pipeline), \
                         patch.object(rs, 'config', return_value=config), \
                         (patch('docs.W9.d405.teleop.run', side_effect=fake_teleop) if teleop else nullcontext()):

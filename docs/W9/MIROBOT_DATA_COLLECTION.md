@@ -3,7 +3,7 @@
 > **절차** · 확인 2026-10-29 · 기준 W9 D405 수집 코드, Cosmos 로더 설계 `cosmos-policy@18a2acc`
 > Windows에서 색 보정·키보드 촬영·0.05초 시간 정렬을 하고, OASYS에서 Cosmos Policy LIBERO용 데이터를 준비한다.
 
-이번 작업은 **촬영 → 타임스텝 정렬 → 학습용 HDF5·통계·실제 T5 임베딩 준비와 검사**까지입니다. 모델 파인튜닝·정책 평가·실물 추론은 후속 작업입니다. 아래는 실행 방법이며, 실제 장비 촬영이나 서버 검증이 완료됐다는 기록은 아닙니다.
+이번 작업은 **촬영 → 타임스텝 정렬 → 학습용 HDF5·통계·실제 T5 임베딩 준비와 검사**까지입니다. 모델 파인튜닝·정책 평가·실물 추론은 후속 작업입니다. 아래는 실행 방법이며, 이번 영상1~10의 로컬 후처리 결과는 5-3절에 기록했습니다. 서버 검증은 아직 완료하지 않았습니다.
 
 ## 1. 어디서 무엇을 실행하나
 
@@ -72,7 +72,7 @@ RealSense Viewer는 녹화 전에 닫습니다. Python과 동시에 카메라를
 
 서버도 최신 `color_calibration.py`와 `color_refinement.py`를 사용해야 합니다. 기존 v1 프로필도 계속 읽을 수 있습니다. 비교한 root-polynomial 방식의 근거는 [Finlayson 등의 원 논문](https://research-portal.uea.ac.uk/en/publications/colour-correction-using-root-polynomial-regression/)이며, 현재 데이터에서는 교차검증 결과를 보고 affine을 채택했습니다.
 
-이 파일들은 원본과 함께 Git에 커밋·push하고 서버에서 pull합니다(6절). PNG·MP4는 Git LFS로 관리합니다. 다음은 조건이 바뀌어 **새 보정이 필요할 때**의 절차입니다.
+이 파일들은 원본과 함께 Git에 커밋·push하고 서버에서 pull합니다(6절). PNG·MP4·NPZ·검토용 JPG는 Git LFS로 관리합니다. 다음은 조건이 바뀌어 **새 보정이 필요할 때**의 절차입니다.
 
 ### 3-1. 조명·배치 준비
 
@@ -204,14 +204,45 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color red --
 
 한 번 실행에 F8~F9 구간 하나입니다. `Esc`나 `Ctrl+C`는 수집 중단이며 정상 완료로 표시하지 않습니다. 이미 보낸 이동을 즉시 취소하는 비상정지가 아니므로 물리 비상정지에 접근할 수 있게 합니다. 자동 G-code 모드의 Z 하한 검사는 이 키보드 모드에 적용되지 않고 기존 조작기의 이동 범위를 사용합니다.
 
-## 5. 영상 확인·0.05초 타임스텝 정렬 — 로컬 PowerShell
+## 5. Alignment: 영상 확인·0.05초 타임스텝 정렬 — 로컬 PowerShell
+
+### 5-1. 영상 검토와 alignment 실행
+
+여기서 **alignment는 PNG 프레임·로봇 상태·집게 명령을 같은 20Hz 시간축에 맞추는 후처리**입니다. 프로젝트 루트 `C:\mirobot-vla`에서 실행합니다. MP4를 여는 명령과 alignment 명령은 별개입니다.
+
+**이번 영상1~10은 5-3절의 70ms 기준으로 이미 정렬했습니다.** 기존 결과를 사용할 때는 이 절의 기본 40ms 명령을 다시 실행하지 않고 6절로 진행합니다. 아래 명령은 새 촬영분의 기본 품질 검사에 사용합니다.
 
 아래 `영상1`은 **방금 터미널에 출력된 폴더명**으로 바꿉니다. PowerShell에서 영상을 열어 목표 블록을 실제로 잡아 들었는지, 손목 화면·색 보정·블록 배치가 정상인지 확인합니다.
 
 ```powershell
 Start-Process "docs/W9/data/raw/영상1/영상1.mp4"
+```
+
+확인 후 아래 명령이 실제 alignment를 수행합니다.
+
+```powershell
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.prepare "docs/W9/data/raw/영상1"
 ```
+
+영상1~10을 한꺼번에 정렬하고 실패한 번호를 확인하려면:
+
+```powershell
+cd C:\mirobot-vla
+$failedEpisodes = @()
+foreach ($episodeNumber in 1..10) {
+    & docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.prepare "docs/W9/data/raw/영상$episodeNumber"
+    if ($LASTEXITCODE -ne 0) { $failedEpisodes += $episodeNumber }
+}
+if ($failedEpisodes.Count -gt 0) {
+    Write-Warning "Alignment 실패: 영상 $($failedEpisodes -join ', ')"
+} else {
+    Write-Host "영상1~10 alignment 완료"
+}
+```
+
+성공하면 각 원본 폴더에 `aligned.npz`와 `alignment_report.json`이 생깁니다. 실패한 에피소드는 학습용 정렬이 완료된 것이 아닙니다. `Camera frame too far from grid`는 가장 가까운 PNG도 정렬 시각과 기본 허용값 40ms보다 멀다는 뜻입니다. 원본의 프레임 누락·실제 저장 속도를 확인하고, 통과만을 위해 허용값을 늘리지 않습니다.
+
+### 5-2. 출력과 품질 검사
 
 MP4 생성에 실패했거나 중단된 기록을 검토해야 한다면 PNG를 보존한 상태에서 다시 만들 수 있습니다. 기존 MP4는 덮어쓰지 않습니다.
 
@@ -244,9 +275,40 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.preview "docs/W9/data/raw/영�
 
 **`aligned.npz`는 아직 학습용 HDF5가 아닙니다.** 다음 서버 작업에서 외부 영상과 Panda action을 생성합니다.
 
+### 5-3. 이번 영상1~10의 후처리 결과와 재현 방법
+
+2026-10-29 수집한 영상1~10은 사용자가 실물 집기 성공을 확인했습니다. 각 `metadata.json`에 `real_success: true`와 확인 출처를 기록했습니다. 원본 PNG·MP4·로봇 로그는 유지했습니다.
+
+실제 PNG 저장 속도는 약 10~11fps여서 기본 40ms 프레임 차이 검사는 10개 모두 실패했습니다. 이번 배치는 저장 프레임 간격(최대 약 139ms)에 맞춰 **프레임 허용 차이만 명시적으로 70ms**로 선택해 정렬했습니다. 로봇 공백 기준은 기존 150ms를 유지했습니다. 이것은 기본 품질 기준을 통과한 결과와 구별해야 합니다. 실제 가장 가까운 프레임 차이는 약 55~67ms이며, 원본의 시간 해상도가 향상된 것은 아닙니다. 다음 촬영에서는 실제 저장 속도를 높이고 기본 40ms 기준을 다시 확인합니다.
+
+다음 명령으로 PNG 전체 디코딩·MP4 프레임 수·보정 프로필·정렬 배열·입력 해시를 검사하고 동일한 결과를 재현할 수 있습니다. 기존 파생 결과를 재생성하므로 현재 결과를 유지하려면 재실행하지 않아도 됩니다.
+
+```powershell
+docs/W9/.venv/Scripts/python.exe docs/W9/data/postprocess/finish_local.py --max-frame-ms 70 --real-success-reviewed
+```
+
+`--real-success-reviewed`는 검토 완료 사실을 기록하는 옵션입니다. 새 촬영분에 성공 확인 없이 사용하지 않습니다. 각 에피소드에 `aligned.npz`, `alignment_report.json`, `postprocess_report.json`을 만들고, 전체 결과는 `docs/W9/data/postprocess/summary.json`에 저장합니다. 보고서의 `accepted_max_frame_ms`, `default_frame_limit_passed`, `steps_exceeding_default_frame_limit`, `repeated_frames`를 서버에서도 함께 확인합니다.
+
+로컬에서 PNG 전체 디코딩, MP4 전체 디코딩과 PNG 개수 일치, 보정 프로필 로드를 검사했습니다. 정렬 결과의 배열 길이·형상·유한값·쿼터니언 정규화·입력 SHA256도 확인했습니다. 보정된 검토용 스냅샷은 `docs/W9/data/postprocess/videoN_review.jpg`에 있습니다.
+
+| 영상 | action 수 | 최대 프레임 차이(ms) | 기본 40ms 초과 step 수 |
+| --- | ---: | ---: | ---: |
+| 1 | 322 | 63.6 | 59 |
+| 2 | 399 | 57.9 | 51 |
+| 3 | 366 | 57.8 | 34 |
+| 4 | 341 | 57.7 | 41 |
+| 5 | 383 | 56.8 | 41 |
+| 6 | 529 | 67.1 | 85 |
+| 7 | 584 | 57.5 | 65 |
+| 8 | 461 | 54.6 | 53 |
+| 9 | 480 | 55.5 | 60 |
+| 10 | 518 | 61.9 | 54 |
+
+합계 **4,383 actions**입니다. 로컬 후처리는 완료했으며 **Panda 추종·HDF5 생성·Cosmos 로더 검사·T5 생성은 아직 실행하지 않았습니다.** 서버에서는 아래 6절부터 이어 갑니다.
+
 ## 6. 원본과 보정 파일 공유 — Git push → pull
 
-**Windows에서 촬영·정렬 → Git commit·push → OASYS에서 Git pull** 순서입니다. `docs/W9/data/`는 Git 추적 대상으로 설정돼 있고, PNG·MP4는 `.gitattributes`에 따라 Git LFS로 관리합니다. 별도 파일 전송이나 `git add -f`는 필요하지 않습니다.
+**Windows에서 촬영·정렬 → Git commit·push → OASYS에서 Git pull** 순서입니다. `docs/W9/data/`는 Git 추적 대상으로 설정돼 있고, PNG·MP4·NPZ·검토용 JPG는 `.gitattributes`에 따라 Git LFS로 관리합니다. 별도 파일 전송이나 `git add -f`는 필요하지 않습니다.
 
 **실행 위치 확인:** `PS C:\...>`는 로컬 Windows PowerShell, `<USER>@OASYS:~/UROP$`는 서버 Bash입니다. 서버에서는 아래 6-2절을 실행합니다. 로컬 촬영·업로드는 Windows 시작 메뉴에서 PowerShell을 열어 실행하세요. Windows 경로 `C:\mirobot-vla`는 노트북의 실제 저장소 경로로 바꿉니다.
 
@@ -261,6 +323,7 @@ cd "C:\mirobot-vla"
 git lfs install
 git branch --show-current
 git add -- "docs/W9/data/raw/영상1" docs/W9/data/calibration
+git add -- docs/W9/data/postprocess
 git diff --cached --stat
 git status --short
 ```
@@ -272,7 +335,7 @@ git commit -m "Add Mirobot episode 1 and calibration"
 git push
 ```
 
-push 과정에서 PNG·MP4의 LFS 데이터도 업로드됩니다. 오류 없이 완료됐는지 확인합니다. 추가 촬영분도 새 에피소드 폴더를 같은 방식으로 커밋합니다. 다른 노트북에서 같은 영상 번호를 만들었다면 먼저 폴더명을 구분합니다.
+push 과정에서 PNG·MP4·NPZ·검토용 JPG의 LFS 데이터도 업로드됩니다. 오류 없이 완료됐는지 확인합니다. 영상1~10 전체를 올릴 때는 `git add -- docs/W9/data/raw docs/W9/data/calibration docs/W9/data/postprocess`로 원본과 후처리 결과를 함께 추가합니다. 추가 촬영분도 새 에피소드 폴더를 같은 방식으로 커밋합니다. 다른 노트북에서 같은 영상 번호를 만들었다면 먼저 폴더명을 구분합니다.
 
 ### 6-2. 서버 OASYS Bash: pull·파일 확인
 
@@ -289,13 +352,27 @@ ls -lh "docs/W9/data/raw/영상1/"
 ls -lh docs/W9/data/calibration/classic_mini.json
 ```
 
-`git pull`이 로컬 변경이나 브랜치 분기로 중단되면 해당 변경부터 정리합니다. `git lfs pull`은 PNG·MP4의 실제 내용을 내려받습니다.
+`git pull`이 로컬 변경이나 브랜치 분기로 중단되면 해당 변경부터 정리합니다. `git lfs pull`은 PNG·MP4·NPZ·검토용 JPG의 실제 내용을 내려받습니다.
 
 `영상1`은 업로드한 에피소드 이름으로 바꾸세요. 폴더에 `rgb/`, `metadata.json`, `frames.jsonl`, `robot.jsonl`, `reference.jsonl`, `source.gcode`, `color_profile.json`이 있어야 합니다. 5절 정렬을 마쳤다면 `aligned.npz`와 `alignment_report.json`도 확인합니다. 파일이 준비되면 7절로 진행합니다.
+
+이번 영상1~10은 이미 계산된 `aligned.npz`를 사용합니다. 각 에피소드의 `postprocess_report.json`과 전체 `docs/W9/data/postprocess/summary.json`도 함께 확인합니다. 서버에서 `prepare`를 옵션 없이 다시 실행하면 이번 배치는 기본 40ms 검사에서 실패합니다.
+
+입력 해시 검사는 Windows의 CRLF와 Linux의 LF 줄바꿈 차이를 허용하므로 Git으로 옮겼다는 이유만으로 다시 정렬할 필요는 없습니다. 원본 로그·metadata·reference·보정의 실제 내용이 바뀌었다면 정렬을 다시 해야 합니다.
 
 ### 6-3. 원본만 올라온 경우: 서버에서 정렬
 
 `export_hdf5`에서 `FileNotFoundError: .../aligned.npz`가 발생하면 정렬 결과가 준비되지 않은 상태입니다. 로컬에서 생성한 두 정렬 파일을 커밋·push하고 서버에서 pull하거나, 원본이 모두 있는 서버에서 직접 정렬할 수 있습니다. 이 작업에는 카메라·로봇 연결이나 시뮬레이터가 필요하지 않습니다.
+
+**이번 영상1~10을 재현할 때만** 다음 명령을 실행합니다. 기존 파생 결과를 재생성하며, 5-3절에 기록한 70ms 허용 차이를 명시합니다. 이미 기록된 성공 확인은 유지하므로 `--real-success-reviewed`를 다시 지정할 필요는 없습니다.
+
+```bash
+cd ~/UROP
+cosmos-policy/.venv/bin/python docs/W9/data/postprocess/finish_local.py \
+  --max-frame-ms 70
+```
+
+**새 촬영분**을 서버에서 정렬할 때는 다음 기본 40ms 명령을 사용합니다. `영상1`은 새 에피소드 폴더명으로 바꿉니다.
 
 ```bash
 cd ~/UROP
@@ -304,6 +381,17 @@ ls -lh "docs/W9/data/raw/영상1/aligned.npz" "docs/W9/data/raw/영상1/alignmen
 ```
 
 `prepare`가 정상 종료해 두 파일이 생성된 경우에만 7절을 실행합니다. `Camera frame too far from grid`는 실제 카메라 프레임과 20Hz 관측 시각의 차이가 기본 40ms를 초과했다는 뜻입니다. 이 경우 정렬 파일을 생성하지 않습니다. 원본 수신 속도·프레임 공백을 확인하고 촬영 조건을 개선한 뒤 다시 수집합니다. 누락 파일을 임의로 만들거나, 검사 통과만을 위해 오차 한계를 높이지 않습니다.
+
+### 6-4. 선택 사항 — 로컬 PowerShell: scp로 직접 전송
+
+Git LFS 대신 직접 복사할 때만 사용합니다. 먼저 서버에서 `mkdir -p ~/UROP/docs/W9/data`로 받을 폴더를 만들고, 아래 `OASYS_HOST`를 평소 쓰는 실제 SSH 주소·별칭으로 바꿉니다.
+
+```powershell
+cd C:\mirobot-vla
+scp -r docs/W9/data/raw docs/W9/data/calibration docs/W9/data/postprocess <USER>@OASYS_HOST:~/UROP/docs/W9/data/
+```
+
+`.venv`는 보내지 않습니다. 이 명령은 raw 전체를 복사하므로 이후 추가 촬영분은 해당 에피소드 폴더만 서버의 `docs/W9/data/raw/`로 보내도 됩니다. 서로 다른 노트북·저장 위치에서 같은 번호를 만들었다면 서버의 기존 폴더와 충돌하지 않도록 구분해서 보관합니다.
 
 **이후 명령은 서버 Bash에서 실행합니다.**
 
@@ -321,6 +409,8 @@ cosmos-policy/.venv/bin/python -m docs.W9.d405.export_hdf5 \
 ```
 
 `--real-success`는 검토 영상에서 **실물 목표 블록 집기 성공**을 확인했다는 뜻입니다. `--layout-confirmed`는 **실물 배치와 좌표 보정이 reference와 일치**함을 확인했다는 뜻입니다. 확인한 에피소드에만 지정합니다.
+
+이번 영상1~10은 모두 같은 seed 2/reference를 사용합니다. 실물 집기 성공은 확인됐지만 실물 배치와 reference 배치·좌표 매핑의 일치는 별도로 검증하지 않았습니다. 위치를 옮긴 에피소드는 해당 실물 배치와 맞는 reference/매핑이 필요한지 먼저 확인합니다. reference를 수정하면 입력 해시가 바뀌므로 alignment도 다시 계산해야 합니다. `--layout-confirmed`를 일괄로 가정하지 않습니다.
 
 변환 시 Panda가 실물 궤적을 따라가며 외부 RGB와 OSC_POSE action을 생성합니다. 손목 RGB는 실물 D405 영상입니다. 실물 관절각이나 XYZ(mm)를 그대로 action으로 넣지 않습니다.
 

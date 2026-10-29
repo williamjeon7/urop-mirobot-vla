@@ -16,7 +16,7 @@ import numpy as np
 
 from common.rotation import quat_xyzw_to_wxyz
 from common.servo import pose_gap, servo_action
-from .prepare import input_hashes, read_jsonl
+from .prepare import input_hashes_match, read_jsonl
 from .capture_storage import read_image
 
 REPO = Path(__file__).resolve().parents[3]
@@ -79,7 +79,7 @@ def main():
     with np.load(a.episode/'aligned.npz', allow_pickle=False) as aligned:
         aligned = {k: aligned[k] for k in aligned.files}
     report = json.loads((a.episode/'alignment_report.json').read_text(encoding='utf-8'))
-    if report.get('input_sha256') != input_hashes(a.episode):
+    if not input_hashes_match(a.episode, report.get('input_sha256')):
         raise ValueError('Capture inputs changed after alignment. Run prepare again.')
     instruction = f"pick up the {meta['color']} block on the table"
     # Lazy simulator import: --help and image/HDF5 checks work on a CPU laptop.

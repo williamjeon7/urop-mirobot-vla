@@ -9,7 +9,7 @@
   "initial_s": 40.0,
   "open_s": 40.0,
   "closed_s": 60.0,
-  "real_success": null,
+  "real_success": true,
   "complete": true,
   "robot": true,
   "teleop": true,
@@ -53,5 +53,10 @@
     "Sharpness": 50.0
   },
   "profile_settle_frames": 15,
-  "teleop_recording_mode": "buttons_or_f8_f9_after_initial_idle"
+  "teleop_recording_mode": "buttons_or_f8_f9_after_initial_idle",
+  "real_success_review": {
+    "source": "user explicitly confirmed successful gripper pickup for all ten recordings",
+    "date": "2026-10-29",
+    "layout_reference_match": "not independently confirmed"
+  }
 }
