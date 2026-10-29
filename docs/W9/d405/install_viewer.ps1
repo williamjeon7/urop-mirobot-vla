@@ -1,4 +1,5 @@
 # Download the official portable Viewer into W9; does not run an installer or move the robot.
+# Windows only. OASYS/Linux capture works without Viewer; see D405_GUIDE.md.
 $ErrorActionPreference = 'Stop'
 $w9 = Split-Path $PSScriptRoot -Parent
 $downloads = Join-Path $w9 'downloads'

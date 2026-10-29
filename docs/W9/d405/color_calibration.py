@@ -8,6 +8,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import sys
 from pathlib import Path
 
 import cv2
@@ -153,6 +155,9 @@ def main():
     apply.add_argument('--profile', type=Path, required=True)
     apply.add_argument('--out', type=Path, required=True)
     a = p.parse_args()
+    if (a.mode == 'fit' and a.corners is None and sys.platform.startswith('linux')
+            and not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'))):
+        p.error('No GUI display. Supply --corners path/to/corners.json over headless SSH.')
     image = cv2.imread(str(a.image))
     if image is None:
         raise ValueError('Input image is unreadable.')

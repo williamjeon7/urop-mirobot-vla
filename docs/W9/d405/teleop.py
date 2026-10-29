@@ -1,11 +1,14 @@
 """Optional recording adapter for the user's existing inverse_kinematics.py.
 
-One serial reader owns all I/O. The original key mapping and COM setting stay
-in robot/inverse_kinematics.py. No serial port opens just by importing this file.
+One serial reader owns all I/O. W9 can override the serial port and use Linux
+terminal keys while retaining the original motion mapping and homing behavior.
+No serial port opens just by importing this file.
 """
 from __future__ import annotations
 
 import json
+import os
+from contextlib import nullcontext
 import queue
 import runpy
 import threading
@@ -16,9 +19,10 @@ from tools.probe_mirobot import fields, find_field, is_error, is_ok, is_status, 
 
 
 class TeleopSession:
-    def __init__(self, out, clock_ns, stop, initial_s):
+    def __init__(self, out, clock_ns, stop, initial_s, port=None, keyboard=None):
         self.out, self.clock_ns, self.stop = out, clock_ns, stop
         self.initial_s = initial_s
+        self.port, self.keyboard = port, keyboard
         self.requests = queue.Queue()
         self.started, self.ended = False, False
         self.closed = threading.Event()
@@ -36,6 +40,12 @@ class TeleopSession:
 
     def open_serial(self, *args, **kwargs):
         import serial
+        if self.port:
+            if args:
+                args = (self.port, *args[1:])
+                kwargs.pop('port', None)
+            else:
+                kwargs['port'] = self.port
         kwargs['timeout'] = 0.005
         kwargs['write_timeout'] = 1
         self.ser = serial.Serial(*args, **kwargs)
@@ -127,7 +137,11 @@ class TeleopSession:
         return request['ok']
 
     def tick(self):
-        import keyboard
+        keyboard = self.keyboard
+        if keyboard is None:
+            import keyboard
+        else:
+            keyboard.poll()
         if self.stop.is_set():
             raise RuntimeError('Capture stopped.') from self.failure
         if not self.started and keyboard.is_pressed('f8'):
@@ -155,12 +169,19 @@ class TeleopSession:
         self.emit('complete')
 
 
-def run(out, clock_ns, stop, initial_s):
-    session = TeleopSession(out, clock_ns, stop, initial_s)
-    try:
-        path = Path(__file__).resolve().parents[3]/'robot/inverse_kinematics.py'
-        runpy.run_path(str(path), init_globals={'_w9_session': session}, run_name='__main__')
-        session.finish()
-    finally:
-        session.close()
-        session.log.close()
+def run(out, clock_ns, stop, initial_s, port=None):
+    if os.name == 'posix':
+        from .terminal_keyboard import TerminalKeyboard
+        keyboard_context = TerminalKeyboard()
+    else:
+        keyboard_context = nullcontext(None)
+    with keyboard_context as keyboard:
+        session = TeleopSession(out, clock_ns, stop, initial_s, port=port, keyboard=keyboard)
+        try:
+            path = Path(__file__).resolve().parents[3]/'robot/inverse_kinematics.py'
+            runpy.run_path(str(path), init_globals={'_w9_session': session, '_w9_keyboard': keyboard},
+                           run_name='__main__')
+            session.finish()
+        finally:
+            session.close()
+            session.log.close()

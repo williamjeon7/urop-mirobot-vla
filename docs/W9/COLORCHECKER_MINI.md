@@ -3,7 +3,7 @@
 **사용할 순서: 색상표 촬영 → 네 모서리 선택 → 보정 확인 → 같은 설정으로 키보드 조작·학습 영상 수집.**
 여기서 말하는 색상표는 가지고 계신 **Calibrite ColorChecker Classic Mini, 24패치**입니다. OpenCV `applyColorMap`이나 깊이 영상의 가짜 색상은 사용하지 않습니다.
 
-## 1. 촬영 준비
+## 1. 촬영 준비 — [로컬: Windows 노트북]
 
 1. 학습 영상을 모을 때 쓸 조명·카메라 장착 위치·해상도를 먼저 정합니다.
 2. 블록이 놓일 위치에 ColorChecker를 놓습니다. 조명은 고르게 비추고 반사광·그림자·집게 가림을 피합니다.
@@ -15,22 +15,41 @@ Mini는 표준 Classic 24패치 배열의 소형 제품입니다. 기준값은 �
 
 출처: [Calibrite Classic Mini 제품 설명](https://calibrite.com/product/colorchecker-classic-mini/?noredirect=en-GB), [X-Rite 기준값·제조 시기 안내](https://www.xrite.com/service-support/new_color_specifications_for_colorchecker_sg_and_classic_charts), [원본 Lab 파일 미러](https://babelcolor.com/index_htm_files/ColorChecker24_After_Nov2014.txt).
 
-## 2. 색상표를 3초 촬영
+## 2. 색상표를 3초 촬영 — [로컬: Windows PowerShell]
 
-PowerShell에서:
+이 문서의 1~6절은 D405와 Mirobot이 연결된 **Windows 노트북에서 실행**합니다. 노트북의 시작 메뉴에서 PowerShell을 여세요. VS Code Remote의 OASYS 터미널은 서버 작업용입니다. 로컬 저장소가 `C:\mirobot-vla`라고 가정하며 실제 경로에 맞춰 바꿉니다.
+
+최초 1회, Python 3.10과 저장소가 준비된 노트북에서 설치합니다.
 
 ```powershell
 cd C:\mirobot-vla
+powershell -ExecutionPolicy Bypass -File docs/W9/d405/setup.ps1
+```
+
+설치 스크립트가 D405를 조회합니다. 다시 확인하려면:
+
+```powershell
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --list
+```
+
+Windows에서 `RealSense devices: 0`이면 노트북의 USB 연결과 Viewer 종료 여부를 확인합니다. D405가 조회되면 3초 촬영합니다.
+
+```powershell
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --out docs/W9/data/raw/chart_001 --seconds 3 --preview
 ```
+
+결과는 로컬 저장소의 `docs/W9/data/raw/chart_001/`에 저장됩니다. 기존 폴더는 덮어쓰지 않으므로 재촬영은 `chart_002`처럼 새 이름을 사용합니다. 이 단계에서는 서버에 접속할 필요가 없습니다.
 
 프로그램은 자동 노출·화이트밸런스가 안정화될 시간을 주고, 지원하는 설정을 고정합니다. D405는 일반 웹캠과 센서 구성이 다르므로 센서 번호를 임의로 고르지 않고 지원 옵션을 조회합니다. 게인·감마 등 지원 설정도 기록하며 보정 프로필을 쓸 때 복원합니다.
 
 색 보정에는 RGB PNG를 씁니다. 임의의 PNG가 필요하면 `rgb/00000010.png`처럼 녹화 중간 프레임을 고르세요. 흔들림·반사광이 있는 프레임은 제외합니다.
 
-## 3. 색상표의 네 모서리 선택
+## 3. 색상표의 네 모서리 선택 — [로컬: Windows PowerShell]
+
+같은 로컬 PowerShell에서 실행합니다:
 
 ```powershell
+cd C:\mirobot-vla
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.color_calibration fit --image docs/W9/data/raw/chart_001/rgb/00000010.png --camera-metadata docs/W9/data/raw/chart_001/metadata.json --out docs/W9/data/calibration/classic_mini.json --confirm-edition
 ```
 
@@ -60,7 +79,7 @@ docs/W9/data/calibration/
 
 `comparison.png`를 열어보세요. **먼저 `patches.png`가 6×4칸으로 정확히 잘렸는지** 확인해야 합니다. 패치 순서가 다르면 숫자만 좋아 보여도 잘못된 프로필입니다.
 
-## 4. 보정 결과 판단
+## 4. 보정 결과 판단 — [로컬: Windows 노트북]
 
 보고서의 `heldout_mean_before`와 `heldout_mean_after`를 비교합니다. 계산에 쓰지 않은 6패치에서도 색 오차가 줄어야 프로필을 저장합니다. 오차는 **CIE76 ΔE**이며 CIEDE2000이 아닙니다.
 
@@ -78,20 +97,31 @@ docs/W9/data/calibration/
 다른 이미지에 직접 적용해 확인하려면:
 
 ```powershell
+cd C:\mirobot-vla
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.color_calibration apply --image docs/W9/data/raw/chart_001/rgb/00000020.png --profile docs/W9/data/calibration/classic_mini.json --out docs/W9/data/calibration/check_second_frame.png
 ```
 
-## 5. inverse_kinematics.py로 조작하면서 녹화
+<a id="5-inverse_kinematicspy로-조작하면서-녹화"></a>
 
-기존 조작 코드는 `robot/inverse_kinematics.py`입니다. **COM3와 기존 키 조작을 유지**했습니다. 녹화 시에만 W9 어댑터를 통해 같은 시리얼 연결에서 상태를 계속 받습니다. `inverse_kinematics.py`를 별도 터미널에서 동시에 실행하지 마세요.
+## 5. inverse_kinematics.py로 조작하면서 녹화 — [로컬: Windows PowerShell]
+
+D405와 Mirobot USB 시리얼을 **둘 다 Windows 노트북에 연결**합니다. 실제 로봇 COM 포트를 확인하세요. D405는 RealSense SDK로 열며 COM 포트를 지정하지 않습니다.
+
+```powershell
+docs/W9/.venv/Scripts/python.exe -m serial.tools.list_ports -v
+```
+
+아래 `COM3`는 로봇 포트 예시입니다. 장치 관리자 또는 위 조회 결과에 맞춰 바꿉니다.
+
+기존 조작 코드는 `robot/inverse_kinematics.py`입니다. **기존 동작 키를 사용하며, W9에서는 `--port`로 Windows 로봇 COM 포트를 지정**합니다. 녹화 시에만 W9 어댑터를 통해 같은 시리얼 연결에서 상태를 계속 받습니다. `inverse_kinematics.py`를 별도 터미널에서 동시에 실행하지 마세요.
 
 아래 예는 **red / seed 2** 장면과 기존 좌표 변환을 사용합니다. 블록을 실제로 해당 보정·배치에 맞춰 놓아야 합니다. `mapping-gcode`는 좌표 변환 머리말만 사용하며 그 궤적은 실행하지 않습니다. reference는 시뮬 초기 자세·배치의 기준입니다.
 
 ```powershell
-docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --out docs/W9/data/raw/red_s2_001 --color red --seed 2 --reference docs/W6/poses/pickup-red-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --execute --preview
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --out docs/W9/data/raw/red_s2_001 --color red --seed 2 --reference docs/W6/poses/pickup-red-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --execute --preview
 ```
 
-이 명령은 **원래 조작 코드를 실행하므로 시작 시 호밍·초기 위치 이동이 일어납니다.** 먼저 작업 공간을 준비하세요. `--execute` 없이 실행하면 실제 조작을 시작하지 않습니다. 포트는 기존 파일의 COM3를 사용하며, teleop 모드에서 `--port`는 사용하지 않습니다. 자동 G-code 수집기의 Z 하한 검사는 이 키보드 조작 모드에 적용되지 않습니다. 기존 조작 코드의 이동 범위를 사용합니다.
+이 명령은 **원래 조작 코드를 실행하므로 시작 시 호밍·초기 위치 이동이 일어납니다.** 먼저 작업 공간을 준비하세요. `--execute` 없이 실행하면 실제 조작을 시작하지 않습니다. teleop에서도 `--port COM3`처럼 실제 로봇 포트를 지정합니다. Windows에서는 기존 `keyboard` 입력을 사용하므로 F8/F9와 조작 키를 누릅니다. 자동 G-code 수집기의 Z 하한 검사는 이 키보드 조작 모드에 적용되지 않습니다. 기존 조작 코드의 이동 범위를 사용합니다.
 
 순서:
 
@@ -117,7 +147,7 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --out docs/W9/
 
 조명·노출·화이트밸런스·게인·카메라를 바꾸면 색상표를 다시 찍고 새 프로필을 만드세요. 프로필은 카메라 시리얼·해상도·fps를 검사하고 저장된 설정을 복원합니다. 다른 카메라나 다른 해상도에는 그대로 쓰지 않습니다.
 
-## 6. 학습 데이터로 연결
+## 6. 영상 검토·시간 정렬까지 완료 — [로컬: Windows PowerShell]
 
 ```powershell
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.preview docs/W9/data/raw/red_s2_001
@@ -127,3 +157,9 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.prepare docs/W9/data/raw/red_s2
 `prepare`는 F8~F9 구간만 0.05초 간격으로 맞춥니다. 초기·종료 호밍은 제외합니다. 이후 서버에서 [D405_GUIDE.md의 6번](D405_GUIDE.md#6-서버에서-외부-영상action-생성--hdf5), [학습 안내](D405_TRAINING.md)를 따릅니다.
 
 현재 프로젝트는 외부 영상을 시뮬 Panda로 생성하므로, 자유 조작이 시뮬 작업 공간 밖으로 나가거나 실물 블록 배치가 다르면 변환이 거부될 수 있습니다. reference의 초기 배치와 좌표 보정을 맞춘 집기 에피소드를 수집하세요. 시뮬이 따라가며 같은 블록을 잡아 들 수 있어야 성공 데이터로 저장합니다.
+
+## 7. 서버로 전환 — [로컬 → OASYS]
+
+**여기까지 로컬에서 끝낸 뒤 서버 작업으로 전환합니다.** `review.mp4`와 `alignment_report.json`을 확인한 후 원본 에피소드 폴더 전체와 `data/calibration/`을 OASYS로 보냅니다. `data/`는 Git으로 전송되지 않습니다.
+
+[D405_GUIDE.md 6절](D405_GUIDE.md#6-서버에서-외부-영상action-생성--hdf5)의 **[서버] 폴더 준비 → [로컬] scp 전송 → [서버] HDF5 생성** 순서를 따릅니다. 이후 시뮬·T5·학습은 OASYS의 기존 Cosmos/LIBERO 환경에서 실행합니다.

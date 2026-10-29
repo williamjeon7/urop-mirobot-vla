@@ -1,8 +1,10 @@
 # D405 HDF5를 Cosmos Policy LIBERO에 파인튜닝하기
 
-카메라 수집·보정은 Windows W9 환경, 시뮬·학습은 Linux GPU 서버에서 수행합니다. **이 PC에 CUDA 학습 환경이나 모델 가중치를 설치·다운로드한 것은 아닙니다.** 서버에 접속해 설치해야 합니다.
+**이 문서는 전부 [서버: OASYS Linux Bash]에서 실행합니다.** Windows 노트북에서 촬영·색 보정·키보드 녹화·영상 검토를 마치고, 원본 `raw/`와 `calibration/`을 전송한 다음 시작합니다. 전송 절차는 [D405_GUIDE.md 6절](D405_GUIDE.md#6-서버에서-외부-영상action-생성--hdf5)을 따릅니다.
 
-## 1. 서버 환경
+서버에서 `cd ~/UROP` 후 기존 `cosmos-policy/.venv/bin/python`으로 실행합니다. 로컬의 `Scripts/python.exe`나 수집용 W9 환경으로 학습하지 않습니다. W9 수집 환경 설치는 CUDA·모델 가중치 준비와 별개입니다.
+
+## 1. 서버 환경 — [서버: OASYS Bash]
 
 기존 `cosmos-policy/.venv`와 LIBERO 에셋이 있는 서버라면 재설치하지 말고 그 환경을 쓰세요. 이 저장소와 `docs/W6/rgb_blocks` 및 에셋이 필요합니다. CPU용 W9 requirements로 Cosmos 환경을 덮어쓰지 마세요.
 
@@ -23,9 +25,9 @@ uv sync --extra cu128 --group libero --python 3.10
 
 **이후 예시**는 서버의 저장소 루트에서 `cosmos-policy/.venv/bin/python`을 사용합니다. W9/vendor에 설치했다면 경로를 `docs/W9/vendor/cosmos-policy/.venv/bin/python`으로 바꾸세요. 외부 체크아웃에 설치된 패키지가 import되도록 공식 설치 환경을 사용합니다.
 
-## 2. HDF5 만들기와 실제 로더 확인
+## 2. HDF5 만들기와 실제 로더 확인 — [서버: OASYS Bash]
 
-원본 에피소드 전체를 서버의 `docs/W9/data/raw/`로 옮기세요. 서버에서:
+Windows 노트북에서 전송한 원본이 OASYS의 `docs/W9/data/raw/`에 있는지 확인합니다. 이후 모든 명령은 서버 저장소 루트에서 실행합니다:
 
 ```bash
 cosmos-policy/.venv/bin/python -m docs.W9.d405.export_hdf5 \
@@ -40,7 +42,7 @@ cosmos-policy/.venv/bin/python -m tools.check_cosmos_dataset \
 
 실물+시뮬 데이터를 혼합했다면 전체 폴더에 대해 통계를 계산합니다. 정규화 통계는 정책 실행의 역정규화에도 같은 파일을 사용해야 합니다. 기존 LIBERO 통계 유지와 새 데이터 통계 사용은 별도 실험 선택이며 현재 train 도구는 이 데이터 폴더의 통계를 사용합니다. 기존 설계 논점은 [DATASET_HDF5.md 7절](DATASET_HDF5.md#7-정규화-통계-문제)을 보세요.
 
-## 3. 실제 지시문 T5 임베딩
+## 3. 실제 지시문 T5 임베딩 — [서버: OASYS Bash]
 
 새로운 지시문(예: `pick up the red block on the table`)은 기존 LIBERO 임베딩에 없을 수 있습니다. 단어·대소문자·마침표까지 일치해야 합니다.
 
@@ -65,7 +67,7 @@ cosmos-policy/.venv/bin/python -m docs.W9.d405.check_dataset docs/W9/data/hdf5 \
 
 학습 도구는 누락·잘못된 모양·0으로 채운 가짜 임베딩을 거부합니다.
 
-## 4. LIBERO Policy 체크포인트
+## 4. LIBERO Policy 체크포인트 — [서버: OASYS Bash]
 
 기존 서버 캐시의 가중치가 있다면 그 로컬 `.pt` 경로를 사용합니다. 새로 받아야 하면 서버에서:
 
@@ -77,7 +79,7 @@ hf download nvidia/Cosmos-Policy-LIBERO-Predict2-2B \
 
 모델 저장소의 접근 조건·로그인이 필요한 경우 해당 계정에서 먼저 준비합니다. 기본 Video2World가 아니라 **LIBERO Policy 가중치에서 이어 학습**하도록 아래 도구가 `checkpoint.load_path`를 명시합니다.
 
-## 5. 명령을 먼저 확인한 뒤 실행
+## 5. 명령을 먼저 확인한 뒤 실행 — [서버: OASYS Bash]
 
 ```bash
 cosmos-policy/.venv/bin/python -m docs.W9.d405.train \
@@ -93,7 +95,7 @@ cosmos-policy/.venv/bin/python -m docs.W9.d405.train \
 
 도구는 DataLoader와 DistributedSampler의 데이터 경로를 함께 바꾸고, 기본 설정에 들어 있는 별도 rollout 데이터 경로를 비웁니다. 사용자 성공 데모만 학습 대상으로 삼는 출발 설정입니다. 실패·가치 함수 학습의 비율을 설계하려면 별도로 설정해야 합니다.
 
-## 6. 실행 전에 남겨둘 것
+## 6. 실행 전에 남겨둘 것 — [서버: OASYS Bash]
 
 - 데이터 구분은 프레임이 아닌 **에피소드·배치(seed) 단위**로 합니다. 같은 에피소드의 이웃 프레임을 검증 데이터로 나누면 안 됩니다. 검증 에피소드는 학습 폴더 밖에 두세요.
 - 데이터·T5·통계·색 보정 프로필·카메라 설정·학습 config·checkpoint를 함께 보관합니다.
@@ -101,4 +103,4 @@ cosmos-policy/.venv/bin/python -m docs.W9.d405.train \
 - 추론에서도 D405 RGB에 같은 색 보정→crop/회전→resize를 적용합니다. 시뮬용 이미지 flip을 실물 RGB에 무조건 적용하지 마세요.
 - loss 감소와 실제 집기 성공률을 따로 확인합니다. 학습된 action은 Panda OSC_POSE이며 Mirobot 관절각이나 G-code로 바로 보내지 않습니다. 기존 변환·실행 파이프라인을 사용합니다.
 
-서버에서의 실제 학습·시뮬 검증은 아직 실행하지 않았습니다. Windows에서의 설치·카메라 시험·CPU 테스트 결과는 [D405_INSTALLATION.md](D405_INSTALLATION.md)를 보세요.
+서버에서의 실제 학습·시뮬 검증은 아직 실행하지 않았습니다. 현재 OASYS 설치·검증 결과와 이전 Windows 시험 기록은 [D405_INSTALLATION.md](D405_INSTALLATION.md)를 보세요.

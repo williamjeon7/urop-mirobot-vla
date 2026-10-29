@@ -1,6 +1,9 @@
 import serial
 import time
-import keyboard
+if globals().get('_w9_keyboard') is not None:
+    keyboard = _w9_keyboard
+else:
+    import keyboard
 
 # 시리얼 포트 초기화
 # ser = serial.Serial(port="/dev/ttyUSB0", baudrate=115200, timeout=1)

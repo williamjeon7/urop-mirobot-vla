@@ -4,9 +4,11 @@ from __future__ import annotations
 import argparse
 import importlib.metadata
 import json
+import os
 import queue
 import shutil
 import threading
+import sys
 import time
 from pathlib import Path
 
@@ -28,7 +30,7 @@ def main():
     p.add_argument('--teleop', action='store_true', help='Use existing robot/inverse_kinematics.py; F8/F9 mark episode')
     p.add_argument('--mapping-gcode', type=Path, help='Coordinate mapping header only; not executed in teleop mode')
     p.add_argument('--color-profile', type=Path, help='Fixed Classic Mini correction; raw PNG remains unmodified')
-    p.add_argument('--port', default='COM4')
+    p.add_argument('--port', help='Robot serial device, e.g. /dev/serial/by-id/... (not the D405)')
     p.add_argument('--execute', action='store_true', help='Execute G-code; omission means validate only')
     p.add_argument('--gripper-seconds', type=float, default=1.0, help='Measured servo transition/hold seconds')
     p.add_argument('--initial-s', type=float, default=40, help='Actual gripper command before capture')
@@ -44,6 +46,8 @@ def main():
         if not a.execute:
             print('Teleop launch requires --execute. Original inverse_kinematics.py homes on start and q exit.')
             return
+        if os.name == 'posix' and not sys.stdin.isatty():
+            p.error('Teleop needs an interactive terminal; use SSH with -t or VS Code terminal.')
         ref = json.loads(a.reference.read_text(encoding='utf-8').splitlines()[0])['meta']
         if ref['seed'] != a.seed or ref['task'] != a.color:
             p.error('Reference seed/task differ from --seed/--color.')
@@ -66,6 +70,15 @@ def main():
             p.error('Reference seed/task differ from --seed/--color.')
     elif a.execute and not a.teleop:
         p.error('--execute requires --gcode.')
+
+    if (a.teleop or entries) and a.execute and not a.port:
+        if os.name == 'nt':
+            a.port = 'COM3' if a.teleop else 'COM4'
+        else:
+            p.error('Specify the robot serial device with --port /dev/serial/by-id/...')
+    if a.preview and sys.platform.startswith('linux') and not (
+            os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):
+        p.error('No GUI display. Remove --preview when capturing over headless SSH.')
 
     import cv2
     import numpy as np
@@ -110,6 +123,7 @@ def main():
                 initial_s=a.initial_s, open_s=a.open_s, closed_s=a.closed_s,
                 real_success=None, complete=False, robot=bool(entries or a.teleop), teleop=a.teleop,
                 width=a.width, height=a.height, fps=a.fps, timestamp_basis='host receipt; NOT exposure time',
+                robot_port=a.port,
                 packages={n: importlib.metadata.version(n) for n in
                           ['pyrealsense2', 'numpy', 'opencv-python', 'pyserial', 'h5py']})
     meta_path = a.out / 'metadata.json'
@@ -195,7 +209,7 @@ def main():
         if a.teleop:
             from .teleop import run
             print('Original IK controller: F8 start / F9 end / q exits (original homing remains).')
-            run(a.out, clock_ns, stop, a.initial_s)
+            run(a.out, clock_ns, stop, a.initial_s, port=a.port)
         elif entries:
             from .robot_capture import run_robot
             run_robot(a.port, entries, a.out, clock_ns, stop, a.gripper_seconds, a.initial_s)

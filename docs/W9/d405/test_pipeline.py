@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import json
+import io
+import os
+import runpy
 import queue
 import tempfile
 import time
@@ -10,6 +13,7 @@ import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
 from pathlib import Path
+from contextlib import redirect_stderr
 
 import cv2
 import h5py
@@ -189,7 +193,8 @@ class PipelineTests(unittest.TestCase):
                     return b''
             def close(self):
                 self.is_open = False
-        session = TeleopSession(self.root, time.perf_counter_ns(), threading.Event(), 40)
+        session = TeleopSession(self.root, time.perf_counter_ns(), threading.Event(), 40,
+                               port='/dev/serial/by-id/test-robot')
         self.addCleanup(session.log.close)
         self.addCleanup(session.close)
         with patch('serial.Serial', FakeSerial):
@@ -206,6 +211,98 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(any(r['kind'] == 'state' for r in rows))
         self.assertEqual([r['cmd'] for r in rows if r['kind'] == 'command'], ['G90', '?', 'M4 S60'])
         self.assertEqual(rows[-1]['kind'], 'complete')
+
+    def test_teleop_linux_port_overrides_original_controller_port(self):
+        session = TeleopSession(self.root, time.perf_counter_ns(), threading.Event(), 40,
+                               port='/dev/serial/by-id/test-robot')
+        self.addCleanup(session.log.close)
+        self.addCleanup(session.close)
+        with patch('serial.Serial') as serial, patch('threading.Thread'):
+            session.open_serial(port='COM3', baudrate=115200)
+            self.assertEqual(serial.call_args.kwargs['port'], '/dev/serial/by-id/test-robot')
+            session.open_serial('COM3', 115200)
+            self.assertEqual(serial.call_args.args[0], '/dev/serial/by-id/test-robot')
+            self.assertNotIn('port', serial.call_args.kwargs)
+
+    @unittest.skipUnless(os.name == 'posix', 'Linux/SSH terminal input')
+    def test_terminal_keys_fragmented_arrows_and_restore_after_error(self):
+        import pty
+        import termios
+        from .terminal_keyboard import TerminalKeyboard
+        master, slave = pty.openpty()
+        self.addCleanup(os.close, master)
+        stream = os.fdopen(slave, 'rb', buffering=0)
+        self.addCleanup(stream.close)
+        saved = termios.tcgetattr(slave)
+        with self.assertRaisesRegex(RuntimeError, 'test interruption'):
+            with TerminalKeyboard(stream) as keys:
+                os.write(master, b'\x1b[')
+                keys.poll()
+                self.assertFalse(keys.is_pressed('up'))
+                os.write(master, b'Aw[')
+                keys.poll()
+                self.assertTrue(keys.is_pressed('up'))
+                self.assertTrue(keys.is_pressed('w'))
+                self.assertFalse(keys.is_pressed('w'))
+                self.assertTrue(keys.is_pressed('f8'))
+                os.write(master, b'\x1b[20~')
+                keys.poll()
+                self.assertTrue(keys.is_pressed('f9'))
+                os.write(master, b'\x1b[15~')  # Unsupported F5 must not move J4/J5.
+                keys.poll()
+                self.assertFalse(keys.is_pressed('1'))
+                self.assertFalse(keys.is_pressed('5'))
+                raise RuntimeError('test interruption')
+        self.assertEqual(termios.tcgetattr(slave), saved)
+
+    def test_original_controller_uses_injected_keyboard_without_global_hooks(self):
+        from unittest.mock import Mock
+        keyboard = Mock()
+        keyboard.is_pressed.side_effect = lambda key: key == 'q'
+        session = Mock()
+        # Run the actual controller with fake I/O: every setup/home/exit command
+        # goes to the recorder mock, never to real hardware.
+        with patch.dict('sys.modules', {'keyboard': None}), patch('serial.Serial') as serial, \
+                patch('time.sleep'):
+            runpy.run_path(str(REPO/'robot/inverse_kinematics.py'),
+                           init_globals={'_w9_session': session, '_w9_keyboard': keyboard})
+        serial.assert_not_called()
+        session.tick.assert_called_once()
+        self.assertEqual(session.send_gcode.call_args_list[-1].args, ('M30',))
+
+    @unittest.skipUnless(os.name == 'posix', 'OASYS Linux preflight')
+    def test_linux_capture_rejects_missing_robot_port_before_device_access(self):
+        from .capture import main
+        args = ['capture', '--gcode', str(REPO/'trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode'),
+                '--reference', str(REPO/'docs/W6/poses/pickup-red-s2.jsonl'),
+                '--seed', '2', '--execute']
+        error = io.StringIO()
+        with patch('sys.argv', args), patch('pyrealsense2.context') as context, \
+                patch('serial.Serial') as serial, redirect_stderr(error):
+            with self.assertRaises(SystemExit) as caught:
+                main()
+        self.assertEqual(caught.exception.code, 2)
+        self.assertIn('--port', error.getvalue())
+        context.assert_not_called()
+        serial.assert_not_called()
+
+    @unittest.skipUnless(os.name == 'posix', 'OASYS Linux preflight')
+    def test_headless_capture_and_chart_fit_report_gui_requirement(self):
+        from .capture import main as capture_main
+        from .color_calibration import main as fit_main
+        for main, args, hint in [
+            (capture_main, ['capture', '--out', 'unused', '--preview'], '--preview'),
+            (fit_main, ['color_calibration', 'fit', '--image', 'unused.png',
+                        '--camera-metadata', 'unused.json', '--out', 'unused-profile.json'], '--corners'),
+        ]:
+            with self.subTest(command=args[0]), patch('sys.argv', args), \
+                    patch('sys.platform', 'linux'), patch.dict(os.environ, {}, clear=True), \
+                    patch('cv2.imshow') as show, redirect_stderr(io.StringIO()) as error:
+                with self.assertRaises(SystemExit) as caught:
+                    main()
+                self.assertEqual(caught.exception.code, 2)
+                self.assertIn(hint, error.getvalue())
+                show.assert_not_called()
 
     def test_capture_keeps_colour_correction_separate_from_sdk_stream_profile(self):
         import pyrealsense2 as rs

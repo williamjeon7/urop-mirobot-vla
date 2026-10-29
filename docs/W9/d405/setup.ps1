@@ -1,3 +1,4 @@
+# Run on the Windows laptop connected to D405/Mirobot, in local PowerShell.
 $ErrorActionPreference = 'Stop'
 $w9 = Split-Path $PSScriptRoot -Parent
 $repo = Split-Path (Split-Path $w9 -Parent) -Parent
