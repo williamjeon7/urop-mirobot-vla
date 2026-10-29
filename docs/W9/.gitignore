@@ -1,0 +1,6 @@
+# Local recordings, calibration metadata, installed tools and weights stay in W9.
+data/
+.venv/
+vendor/
+downloads/
+installed-packages.local.txt

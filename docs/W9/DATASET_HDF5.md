@@ -7,6 +7,9 @@
 할 일과 상태는 [CHECKLIST.md](CHECKLIST.md) 4절, 시간 순서 기록은 [WORKLOG.md](WORKLOG.md).
 Mirobot 에피소드의 외부 영상·action·proprio 를 만드는 방법은 [FOLLOW.md](FOLLOW.md).
 
+실물 D405 수집 코드와 설치·실행 방법: [D405_GUIDE.md](D405_GUIDE.md).
+Calibrite Classic Mini 색상표 보정과 기존 키보드 조작으로 수집: [COLORCHECKER_MINI.md](COLORCHECKER_MINI.md).
+
 ## 0. 한눈에
 
 - **목표** — Panda 시뮬 90 + Mirobot 실물 10 에피소드를 로더가 읽는 HDF5 로 (10/28 action plan 4·5번)
