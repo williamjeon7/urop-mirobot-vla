@@ -1,0 +1,6 @@
+{"t_wall": 1791702447.5481887, "t_perf": 2099832.9206063, "kind": "run_gcode_open", "port": "COM4", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "auto": false, "z_floor": 66.0, "via": "probe_mirobot"}
+{"t_wall": 1791702447.5691767, "t_perf": 2099832.9380088, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.016506599728018045}
+{"t_wall": 1791702447.571244, "t_perf": 2099832.9429423, "kind": "send", "cmd": "M20", "lines": ["ok"], "elapsed_s": 0.004584900103509426}
+{"t_wall": 1791702447.5793493, "t_perf": 2099832.9481923, "kind": "send", "cmd": "M4 S40", "lines": ["ok"], "elapsed_s": 0.004973500035703182}
+{"t_wall": 1791702448.8960552, "t_perf": 2099834.2651004, "kind": "send", "cmd": "G0 X202.23 Y-0.00 Z231.21 A0.00 B2.93 C0.03", "lines": ["ok"], "elapsed_s": 0.02266100002452731}
+{"t_wall": 1791702450.7099478, "t_perf": 2099836.0852761, "kind": "waypoint", "label": "c01s0001", "cmd": "G0 X202.23 Y-0.00 Z231.21 A0.00 B2.93 C0.03", "commanded": [202.23, -0.0, 231.21, 0.0, 2.93, 0.03], "reported": [202.22, 0.0, 230.928, 0.0, 2.926, 0.0], "settle_s": 1.8197001996450126}

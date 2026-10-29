@@ -31,7 +31,7 @@ docs/**/*.pdf
 # ─────────────────────────────────────────────────────────────
 # 데이터셋 / 실행 산출물
 # ─────────────────────────────────────────────────────────────
-data/
+# Project data is tracked; large W9 binary assets use Git LFS (.gitattributes).
 # LIBERO 영상·PNG (tools/libero_*.py) — *.mp4 만으로는 PNG 가 빠진다
 rollouts/
 logs/

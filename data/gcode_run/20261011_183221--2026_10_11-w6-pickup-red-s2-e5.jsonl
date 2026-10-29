@@ -1,0 +1,4 @@
+{"t_wall": 1791711141.2638552, "t_perf": 2108526.6356657, "kind": "run_gcode_open", "port": "COM4", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "auto": false, "z_floor": 66.0, "via": "probe_mirobot"}
+{"t_wall": 1791711141.2697294, "t_perf": 2108526.6413778, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004497000016272068}
+{"t_wall": 1791711141.2765045, "t_perf": 2108526.6464533, "kind": "send", "cmd": "M20", "lines": ["ok"], "elapsed_s": 0.0041692000813782215}
+{"t_wall": 1791711141.2828999, "t_perf": 2108526.6521698, "kind": "send", "cmd": "M4 S40", "lines": ["ok"], "elapsed_s": 0.005165199749171734}

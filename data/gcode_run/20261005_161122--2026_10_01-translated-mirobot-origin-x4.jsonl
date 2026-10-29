@@ -1,0 +1,5 @@
+{"t_wall": 1791184284.6543434, "t_perf": 1581674.0635779, "kind": "run_gcode_open", "port": "COM4", "gcode": "trajectories\\2026_10_01-translated-mirobot-origin-x4.gcode", "auto": true, "z_floor": 66.0}
+{"t_wall": 1791184284.6579325, "t_perf": 1581674.0685895, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004306599963456392}
+{"t_wall": 1791184284.660191, "t_perf": 1581674.0731715, "kind": "send", "cmd": "M20", "lines": ["ok"], "elapsed_s": 0.004309199983254075}
+{"t_wall": 1791184284.6842215, "t_perf": 1581674.0969081, "kind": "stream_send", "index": 1, "label": "c01s0001", "cmd": "G0 X203.05 Y0.00 Z231.38 A-0.00 B2.91 C0.02", "commanded": [203.05, 0.0, 231.38, -0.0, 2.91, 0.02], "t_s": 0.00037589995190501213}
+{"t_wall": 1791184285.0632372, "t_perf": 1581674.4732238, "kind": "stream", "total_s": 0.3766908999532461, "poll_hz": 20.0, "misses": 0, "sent": [{"index": 1, "label": "c01s0001", "commanded": [203.05, 0.0, 231.38, -0.0, 2.91, 0.02], "t_s": 0.0004}], "rows": []}

@@ -1,5 +1,8 @@
-# Local recordings, calibration metadata, installed tools and weights stay in W9.
-data/
+# Recordings and calibration assets are versioned; installed tools stay local.
+!data/
+!data/**
+data/**/__pycache__/
+data/**/*.pyc
 .venv/
 vendor/
 downloads/

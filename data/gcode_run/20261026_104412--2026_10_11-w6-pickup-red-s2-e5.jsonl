@@ -1,0 +1,5 @@
+{"t_wall": 1792979054.9312782, "t_perf": 3376442.3568963, "kind": "run_gcode_open", "port": "COM3", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "auto": true, "z_floor": 66.0}
+{"t_wall": 1792979054.9372318, "t_perf": 3376442.3626985, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004704299848526716}
+{"t_wall": 1792979054.9514408, "t_perf": 3376442.3770477, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.013677800074219704}
+{"t_wall": 1792979054.9569178, "t_perf": 3376442.3824432, "kind": "send", "cmd": "M4 S40", "lines": ["ok"], "elapsed_s": 0.004870399832725525}
+{"t_wall": 1792979054.984186, "t_perf": 3376442.4151112, "kind": "send", "cmd": "G0 X202.25 Y-0.01 Z231.98 A0.00 B2.93 C0.03", "lines": ["Error,A106,Locked status of each axis"], "elapsed_s": 0.027460900135338306}

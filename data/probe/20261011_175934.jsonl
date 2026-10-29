@@ -1,0 +1,32 @@
+{"t_wall": 1791709176.5354595, "t_perf": 2106561.9043166, "kind": "open", "port": "COM4", "boot": []}
+{"t_wall": 1791709180.7004032, "t_perf": 2106566.0701234, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.019280000124126673}
+{"t_wall": 1791709194.3401663, "t_perf": 2106579.7154064, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 13.644339499995112}
+{"t_wall": 1791709194.3705947, "t_perf": 2106579.7392819, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.021930900402367115}
+{"t_wall": 1791709194.3746521, "t_perf": 2106579.7508059, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.01036110008135438}
+{"t_wall": 1791709444.5549147, "t_perf": 2106829.9238097, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "log": "data\\gcode_run\\20261011_180212--2026_10_11-w6-pickup-red-s2-e5.jsonl", "auto": false, "waypoints": 13}
+{"t_wall": 1791709455.4967692, "t_perf": 2106840.8700079, "kind": "raw", "lines": [[42.3, "<Idle,Angle(ABCDXYZ):0.063,-55.101,14.363,0.000,-14.367,23.948,30.859,Cartesian coordinate(XYZ RxRyRz):181.528,-46.481,74.856,0.000,-0.293,0.000,Pump PWM:60,Valve PWM:0,Motion_MODE:1>"]]}
+{"t_wall": 1791709483.0726972, "t_perf": 2106868.4485083, "kind": "send", "cmd": "X 181.53 Y -46.48 Z 94.86", "lines": ["ok"], "elapsed_s": 0.01889159996062517}
+{"t_wall": 1791709489.3565607, "t_perf": 2106874.7405417, "kind": "send", "cmd": "X 181.53 Y -46.48 Z 104.86", "lines": ["ok"], "elapsed_s": 0.01993980025872588}
+{"t_wall": 1791709526.563044, "t_perf": 2106911.944011, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005739700049161911}
+{"t_wall": 1791709821.3994904, "t_perf": 2107206.7729713, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "log": "data\\gcode_run\\20261011_180533--2026_10_11-w6-pickup-red-s2-e5.jsonl", "auto": false, "waypoints": 21}
+{"t_wall": 1791709823.0269277, "t_perf": 2107208.3991071, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005572000052779913}
+{"t_wall": 1791709867.229231, "t_perf": 2107252.6008728, "kind": "send", "cmd": "G0 X200 Y0 Z150 A0 B0 C0", "lines": ["ok"], "elapsed_s": 0.017948399763554335}
+{"t_wall": 1791709889.3102243, "t_perf": 2107274.6824598, "kind": "send", "cmd": "G0 X200 Y0 Z66 A0 B0 C0", "lines": ["ok"], "elapsed_s": 0.017629600130021572}
+{"t_wall": 1791709893.2723129, "t_perf": 2107278.6419678, "kind": "send", "cmd": "M4 S70", "lines": ["ok"], "elapsed_s": 0.005385000258684158}
+{"t_wall": 1791710172.6768768, "t_perf": 2107558.0462445, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.023952000308781862}
+{"t_wall": 1791710186.3726027, "t_perf": 2107571.7456452, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 13.697924199979752}
+{"t_wall": 1791710186.3894622, "t_perf": 2107571.76045, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.01406640000641346}
+{"t_wall": 1791710186.4131107, "t_perf": 2107571.7820587, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.021033800207078457}
+{"t_wall": 1791710807.1420784, "t_perf": 2108192.5216707, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.01566189993172884}
+{"t_wall": 1791711143.8508165, "t_perf": 2108529.2203195, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "log": "data\\gcode_run\\20261011_183221--2026_10_11-w6-pickup-red-s2-e5.jsonl", "auto": false, "waypoints": 0}
+{"t_wall": 1791711173.2508204, "t_perf": 2108558.6195682, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "log": "data\\gcode_run\\20261011_183232--2026_10_11-w6-pickup-red-s2-e5.jsonl", "auto": true, "waypoints": 31}
+{"t_wall": 1791711351.7164707, "t_perf": 2108737.0902758, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005256600212305784}
+{"t_wall": 1791711419.0482078, "t_perf": 2108804.4198741, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-green-s2-e5.gcode", "log": "data\\gcode_run\\20261011_183637--2026_10_11-w6-pickup-green-s2-e5.jsonl", "auto": true, "waypoints": 33}
+{"t_wall": 1791711426.2083073, "t_perf": 2108811.5879894, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005497300066053867}
+{"t_wall": 1791711489.3496916, "t_perf": 2108874.7185722, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-blue-s2-e5.gcode", "log": "data\\gcode_run\\20261011_183747--2026_10_11-w6-pickup-blue-s2-e5.jsonl", "auto": true, "waypoints": 32}
+{"t_wall": 1791711607.5734386, "t_perf": 2108992.9425718, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-blue-s2-e5.gcode", "log": "data\\gcode_run\\20261011_183825--2026_10_11-w6-pickup-blue-s2-e5.jsonl", "auto": false, "waypoints": 14}
+{"t_wall": 1791711610.9766326, "t_perf": 2108996.350136, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005783900152891874}
+{"t_wall": 1791711799.1129203, "t_perf": 2109184.4821225, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-green-s2-e5.gcode", "log": "data\\gcode_run\\20261011_184256--2026_10_11-w6-pickup-green-s2-e5.jsonl", "auto": true, "waypoints": 33}
+{"t_wall": 1791711834.7722101, "t_perf": 2109220.1409915, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-green-s2-e5.gcode", "log": "data\\gcode_run\\20261011_184333--2026_10_11-w6-pickup-green-s2-e5.jsonl", "auto": true, "waypoints": 33}
+{"t_wall": 1791711860.7256517, "t_perf": 2109246.0952743, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005384199786931276}
+{"t_wall": 1791711981.9306526, "t_perf": 2109367.3009801, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-blue-s2-e5.gcode", "log": "data\\gcode_run\\20261011_184600--2026_10_11-w6-pickup-blue-s2-e5.jsonl", "auto": true, "waypoints": 32}

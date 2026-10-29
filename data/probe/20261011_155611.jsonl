@@ -1,0 +1,9 @@
+{"t_wall": 1791701774.0594273, "t_perf": 2099159.428209, "kind": "open", "port": "COM4", "boot": []}
+{"t_wall": 1791701783.480593, "t_perf": 2099168.8603852, "kind": "raw", "lines": [[39.6, "<Idle,Angle(ABCDXYZ):0.000,0.000,0.000,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,0.000,Pump PWM:30,Valve PWM:0,Motion_MODE:1>"]]}
+{"t_wall": 1791701789.4981942, "t_perf": 2099174.8720721, "kind": "send", "cmd": "G0 X198.67 Y0.00 Z210.72 A0.00 B0.00 C0.00", "lines": ["ok"], "elapsed_s": 0.02083250042051077}
+{"t_wall": 1791701790.3950107, "t_perf": 2099175.7734528, "kind": "raw", "lines": [[0.0, "<Idle,Angle(ABCDXYZ):0.000,-6.841,0.000,0.000,0.000,-0.624,7.469,Cartesian coordinate(XYZ RxRyRz):198.672,0.000,210.431,0.000,0.000,0.000,Pump PWM:30,Valve PWM:0,Motion_MODE:1>"]]}
+{"t_wall": 1791701796.4875133, "t_perf": 2099181.8571809, "kind": "send", "cmd": "G0 X198.67 Y0.00 Z230.72 A0.00 B0.00 C0.00", "lines": ["ok"], "elapsed_s": 0.020821300335228443}
+{"t_wall": 1791701797.321366, "t_perf": 2099182.6905295, "kind": "raw", "lines": [[0.0, "<Idle,Angle(ABCDXYZ):0.000,-0.091,0.000,0.000,0.000,-0.018,0.109,Cartesian coordinate(XYZ RxRyRz):198.668,0.000,230.449,0.000,0.000,0.000,Pump PWM:30,Valve PWM:0,Motion_MODE:1>"]]}
+{"t_wall": 1791701801.2076025, "t_perf": 2099186.5771317, "kind": "send", "cmd": "M4 S70", "lines": ["ok"], "elapsed_s": 0.005478400271385908}
+{"t_wall": 1791701804.5873623, "t_perf": 2099189.9641061, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005986599717289209}
+{"t_wall": 1791701856.6570165, "t_perf": 2099242.0287459, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-reach-red-s2-e5.gcode", "log": "data\\gcode_run\\20261011_155714--2026_10_11-w6-reach-red-s2-e5.jsonl", "auto": false, "waypoints": 23}

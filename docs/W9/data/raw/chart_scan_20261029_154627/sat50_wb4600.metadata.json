@@ -1,0 +1,19 @@
+{
+  "format": "w9-chart-snapshot/1",
+  "serial": "262422272124",
+  "width": 640,
+  "height": 480,
+  "fps": 30,
+  "locked_camera_options": {
+    "Exposure": 33000.0,
+    "White Balance": 4600.0,
+    "Gain": 16.0,
+    "Gamma": 300.0,
+    "Saturation": 50.0,
+    "Brightness": 0.0,
+    "Contrast": 50.0,
+    "Hue": 0.0,
+    "Sharpness": 50.0
+  },
+  "device_ms": 1793256392692.224
+}

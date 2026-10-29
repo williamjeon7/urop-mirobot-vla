@@ -1,0 +1,10 @@
+{"t_wall": 1791160138.8366773, "t_perf": 1557527.1596599, "kind": "run_gcode_open", "port": "COM4", "gcode": "trajectories\\2026_10_05-candidate-pair-check.gcode", "auto": false}
+{"t_wall": 1791160140.5358586, "t_perf": 1557528.860155, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.006014799932017922}
+{"t_wall": 1791160154.1551754, "t_perf": 1557542.4879298, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 13.627159799914807}
+{"t_wall": 1791160154.1710045, "t_perf": 1557542.5022232, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.013702099910005927}
+{"t_wall": 1791160154.183652, "t_perf": 1557542.5069272, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004156600218266249}
+{"t_wall": 1791160154.187869, "t_perf": 1557542.5113823, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.0041726999916136265}
+{"t_wall": 1791160154.1930609, "t_perf": 1557542.516109, "kind": "send", "cmd": "M20", "lines": ["ok"], "elapsed_s": 0.004249700112268329}
+{"t_wall": 1791160159.984491, "t_perf": 1557548.3076224, "kind": "send", "cmd": "G0 X198.67 Y0.00 Z230.72 A0.00 B0.00 C0.00", "lines": ["ok"], "elapsed_s": 0.0403006998822093}
+{"t_wall": 1791160160.3218756, "t_perf": 1557548.6446013, "kind": "waypoint", "label": "home", "cmd": "G0 X198.67 Y0.00 Z230.72 A0.00 B0.00 C0.00", "commanded": [198.67, 0.0, 230.72, 0.0, 0.0, 0.0], "reported": [198.668, 0.0, 230.449, 0.0, 0.0, 0.0], "settle_s": 0.33665630011819303}
+{"t_wall": 1791160164.1303039, "t_perf": 1557552.45508, "kind": "send", "cmd": "G0 X123.15 Y0.01 Z230.63 A-0.01 B3.28 C0.02", "lines": ["Error,A102,Soft limit:Y"], "elapsed_s": 0.03370229993015528}

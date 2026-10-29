@@ -1,0 +1,7 @@
+{"t_wall": 1791701014.8344736, "t_perf": 2098400.2033828, "kind": "open", "port": "COM4", "boot": []}
+{"t_wall": 1791701024.2723722, "t_perf": 2098409.6519218, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.006290100049227476}
+{"t_wall": 1791701037.9296064, "t_perf": 2098423.3027198, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 13.649939300026745}
+{"t_wall": 1791701037.9477484, "t_perf": 2098423.3169482, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.013479500077664852}
+{"t_wall": 1791701037.9576564, "t_perf": 2098423.3265442, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004570499993860722}
+{"t_wall": 1791701119.1942267, "t_perf": 2098504.5698319, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005393399856984615}
+{"t_wall": 1791701122.2383542, "t_perf": 2098507.6071815, "kind": "grip", "cmd": "M4 S30", "before": "<Idle,Angle(ABCDXYZ):0.000,0.000,0.000,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,0.000,Pump PWM:0,Valve PWM:0,Motion_MODE:1>", "after": "<Idle,Angle(ABCDXYZ):0.000,0.000,0.000,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,0.000,Pump PWM:30,Valve PWM:0,Motion_MODE:1>", "changed": ["Pump PWM"]}

@@ -1,0 +1,20 @@
+{"t_wall": 1791701986.5738068, "t_perf": 2099371.9427085, "kind": "open", "port": "COM4", "boot": []}
+{"t_wall": 1791702101.7267675, "t_perf": 2099487.0964778, "kind": "send", "cmd": "G0 X200 Y0 Z66 A0 B0 C0", "lines": ["ok"], "elapsed_s": 0.017830499913543463}
+{"t_wall": 1791702107.1000333, "t_perf": 2099492.4693783, "kind": "send", "cmd": "M4 S70", "lines": ["ok"], "elapsed_s": 0.00541710015386343}
+{"t_wall": 1791702135.2037303, "t_perf": 2099520.5829199, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.006168299820274115}
+{"t_wall": 1791702148.8512127, "t_perf": 2099534.2206115, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 13.637011099606752}
+{"t_wall": 1791702148.8647835, "t_perf": 2099534.239845, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.013672399800270796}
+{"t_wall": 1791702148.8647835, "t_perf": 2099534.2444316, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004308899864554405}
+{"t_wall": 1791702281.358259, "t_perf": 2099666.7278977, "kind": "send", "cmd": "G0 X200 Y0 Z68 A0 B0 C0", "lines": ["ok"], "elapsed_s": 0.016993200406432152}
+{"t_wall": 1791702286.6769161, "t_perf": 2099672.046538, "kind": "send", "cmd": "M4 S70", "lines": ["ok"], "elapsed_s": 0.005184299778193235}
+{"t_wall": 1791702293.141919, "t_perf": 2099678.5126133, "kind": "send", "cmd": "G0 X200 Y0 Z70 A0 B0 C0", "lines": ["ok"], "elapsed_s": 0.01709769992157817}
+{"t_wall": 1791702300.2574964, "t_perf": 2099685.6261506, "kind": "send", "cmd": "G0 X200 Y0 Z90 A0 B0 C0", "lines": ["ok"], "elapsed_s": 0.016661799978464842}
+{"t_wall": 1791702315.7575154, "t_perf": 2099701.1267102, "kind": "send", "cmd": "G0 X200 Y0 Z66 A0 B0 C0", "lines": ["ok"], "elapsed_s": 0.017109400127083063}
+{"t_wall": 1791702452.370122, "t_perf": 2099837.7433546, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "log": "data\\gcode_run\\20261011_160727--2026_10_11-w6-pickup-red-s2-e5.jsonl", "auto": false, "waypoints": 1}
+{"t_wall": 1791702481.8627927, "t_perf": 2099867.2463045, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "log": "data\\gcode_run\\20261011_160741--2026_10_11-w6-pickup-red-s2-e5.jsonl", "auto": true, "waypoints": 31}
+{"t_wall": 1791702925.6167164, "t_perf": 2100310.9873387, "kind": "run", "gcode": "trajectories\\2026_10_11-w6-pickup-red-s2-e5.gcode", "log": "data\\gcode_run\\20261011_160825--2026_10_11-w6-pickup-red-s2-e5.jsonl", "auto": false, "waypoints": 20}
+{"t_wall": 1791702927.8671696, "t_perf": 2100313.2382633, "kind": "send", "cmd": "M4 S30", "lines": ["ok"], "elapsed_s": 0.005523299798369408}
+{"t_wall": 1791702940.2220578, "t_perf": 2100325.5921622, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.006088700145483017}
+{"t_wall": 1791702953.9276388, "t_perf": 2100339.3073032, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 13.714328200090677}
+{"t_wall": 1791702953.9520133, "t_perf": 2100339.3221477, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.013718499802052975}
+{"t_wall": 1791702953.9520133, "t_perf": 2100339.3271508, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.0044514997862279415}

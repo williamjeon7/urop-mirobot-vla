@@ -1,0 +1,2 @@
+{"t_wall": 1791163735.214706, "t_perf": 1561123.5376846, "kind": "open", "port": "COM4", "boot": []}
+{"t_wall": 1791163736.7305965, "t_perf": 1561125.0556188, "kind": "raw", "lines": [[42.3, "<Idle,Angle(ABCDXYZ):0.000,-47.385,14.045,0.000,-14.036,55.089,-7.703,Cartesian coordinate(XYZ RxRyRz):239.996,-60.000,53.714,0.000,0.000,0.000,Pump PWM:30,Valve PWM:0,Motion_MODE:1>"]]}

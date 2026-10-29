@@ -1,0 +1,5 @@
+{"t_wall": 1791162608.6606822, "t_perf": 1559996.983635, "kind": "run_gcode_open", "port": "COM4", "gcode": "trajectories\\2026_10_05-scale-start-poses.gcode", "auto": false}
+{"t_wall": 1791162608.6641092, "t_perf": 1559996.9905571, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.006271000020205975}
+{"t_wall": 1791162608.670704, "t_perf": 1559996.9955452, "kind": "send", "cmd": "M20", "lines": ["ok"], "elapsed_s": 0.00468800007365644}
+{"t_wall": 1791162608.6945505, "t_perf": 1559997.0173076, "kind": "send", "cmd": "G0 X198.67 Y0.00 Z230.72 A0.00 B0.00 C0.00", "lines": ["ok"], "elapsed_s": 0.021408400032669306}
+{"t_wall": 1791162610.5938587, "t_perf": 1559998.9231396, "kind": "waypoint", "label": "home", "cmd": "G0 X198.67 Y0.00 Z230.72 A0.00 B0.00 C0.00", "commanded": [198.67, 0.0, 230.72, 0.0, 0.0, 0.0], "reported": [198.668, 0.0, 230.449, 0.0, 0.0, 0.0], "settle_s": 1.8994416000787169}

@@ -1,0 +1,7 @@
+{"t_wall": 1789267988.6380844, "t_mono": 847209.406, "kind": "open", "port": "COM4", "boot": []}
+{"t_wall": 1789268005.7578, "t_mono": 847226.515, "kind": "raw", "lines": [[31.0, "<Idle,Angle(ABCDXYZ):120.000,21.000,119.997,0.000,-29.990,0.000,30.000,Cartesian coordinate(XYZ RxRyRz):169.318,-75.051,181.996,10.211,-126.358,52.839,Pump PWM:0,Valve PWM:0,Motion_MODE:0>"]]}
+{"t_wall": 1789268013.0518744, "t_mono": 847233.812, "kind": "raw", "lines": [[47.0, "<Idle,Angle(ABCDXYZ):120.000,21.000,119.997,0.000,-29.990,0.000,30.000,Cartesian coordinate(XYZ RxRyRz):169.318,-75.051,181.996,10.211,-126.358,52.839,Pump PWM:0,Valve PWM:0,Motion_MODE:0>"]]}
+{"t_wall": 1789268581.318779, "t_mono": 847802.078, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.0}
+{"t_wall": 1789268592.7868147, "t_mono": 847813.546, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 11.46799999999348}
+{"t_wall": 1789268592.8134995, "t_mono": 847813.578, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.03200000000651926}
+{"t_wall": 1789268592.8134995, "t_mono": 847813.578, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.0}

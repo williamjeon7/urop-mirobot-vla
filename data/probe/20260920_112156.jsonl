@@ -1,0 +1,5 @@
+{"t_wall": 1789870919.020764, "t_perf": 268319.7678617, "kind": "open", "port": "COM4", "boot": []}
+{"t_wall": 1789870922.1253476, "t_perf": 268322.8765629, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.00668489997042343}
+{"t_wall": 1789870935.3161373, "t_perf": 268336.0639543, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 13.18645729997661}
+{"t_wall": 1789870935.323103, "t_perf": 268336.0786485, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.013925399980507791}
+{"t_wall": 1789870935.334813, "t_perf": 268336.0837695, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.0044169999891892076}
