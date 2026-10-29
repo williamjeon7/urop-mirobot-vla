@@ -157,8 +157,8 @@ def main():
                 cv2.destroyAllWindows()
     try:
         profile = pipe.start(config)
-        color_profile = profile.get_stream(rs.stream.color).as_video_stream_profile()
-        intr = color_profile.get_intrinsics()
+        color_stream_profile = profile.get_stream(rs.stream.color).as_video_stream_profile()
+        intr = color_stream_profile.get_intrinsics()
         meta['intrinsics'] = dict(width=intr.width, height=intr.height, fx=intr.fx, fy=intr.fy,
                                   ppx=intr.ppx, ppy=intr.ppy, coeffs=intr.coeffs, model=str(intr.model))
         # Auto exposure/WB settle before recording; lock supported controls.

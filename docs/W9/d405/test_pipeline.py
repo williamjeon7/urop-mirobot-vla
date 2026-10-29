@@ -8,6 +8,7 @@ import time
 import threading
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 from pathlib import Path
 
 import cv2
@@ -205,6 +206,44 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(any(r['kind'] == 'state' for r in rows))
         self.assertEqual([r['cmd'] for r in rows if r['kind'] == 'command'], ['G90', '?', 'M4 S60'])
         self.assertEqual(rows[-1]['kind'], 'complete')
+
+    def test_capture_keeps_colour_correction_separate_from_sdk_stream_profile(self):
+        import pyrealsense2 as rs
+        from .capture import main as capture_main
+        intr = SimpleNamespace(width=640, height=480, fx=1., fy=1., ppx=0., ppy=0.,
+                               coeffs=[0.]*5, model='test')
+        stream = SimpleNamespace(get_intrinsics=lambda: intr)
+        device = SimpleNamespace(get_info=lambda key: 'D405' if key == rs.camera_info.name else 'TEST_SERIAL')
+        sensor = SimpleNamespace(supports=lambda option: True, get_option=lambda option: 10.,
+                                 set_option=lambda option, value: None)
+        profile = SimpleNamespace(get_stream=lambda kind: SimpleNamespace(as_video_stream_profile=lambda: stream),
+                                  get_device=lambda: SimpleNamespace(query_sensors=lambda: [sensor]))
+        frame = SimpleNamespace(get_data=lambda: np.zeros((480, 640, 3), np.uint8),
+                                get_timestamp=lambda: time.perf_counter()*1000,
+                                get_frame_timestamp_domain=lambda: 'test', get_frame_number=lambda: 1)
+        def wait_for_frames(timeout):
+            time.sleep(.001)
+            return SimpleNamespace(get_color_frame=lambda: frame)
+        pipeline = SimpleNamespace(start=lambda config: profile, wait_for_frames=wait_for_frames, stop=lambda: None)
+        config = SimpleNamespace(enable_device=lambda serial: None, enable_stream=lambda *args: None)
+        for corrected in (False, True):
+            with self.subTest(corrected=corrected):
+                out = self.root/('with_profile' if corrected else 'raw_capture')
+                argv = ['capture', '--out', str(out), '--seconds', '.02']
+                if corrected:
+                    correction = self.root/'correction.json'
+                    correction.write_text(json.dumps(dict(format='w9-color/1', matrix=np.eye(3).tolist(),
+                        camera_serial='TEST_SERIAL', width=640, height=480, fps=30,
+                        camera_options={'Exposure': 10., 'White Balance': 10.})), encoding='utf-8')
+                    argv += ['--color-profile', str(correction)]
+                with patch('sys.argv', argv), patch.object(rs, 'context', return_value=SimpleNamespace(
+                        query_devices=lambda: [device])), patch.object(rs, 'pipeline', return_value=pipeline), \
+                        patch.object(rs, 'config', return_value=config):
+                    capture_main()
+                metadata = json.loads((out/'metadata.json').read_text(encoding='utf-8'))
+                self.assertTrue(metadata['complete'])
+                self.assertGreater(len(list((out/'rgb').glob('*.png'))), 0)
+                self.assertEqual((out/'color_profile.json').exists(), corrected)
 
 
 if __name__ == '__main__':
