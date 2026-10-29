@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""W9 4-1 Panda 시뮬 pick up → Cosmos LIBERO 로더가 읽는 HDF5. (conda `libero`, W6 LIBERO)
+"""W9 4-1 Panda 시뮬 pick up → Cosmos LIBERO 로더가 읽는 HDF5. (`cosmos-policy/.venv` — 10/29 실행 환경 통일)
 
 배경 — W6 pick up 은 화면 표시와 손 좌표 JSONL(`--log`)만 남겼고, Cosmos 가 학습할 때 읽는 형식으로 저장하는 기능이 없었다.
 설계·결정·결과는 `docs/W9/DATASET_HDF5.md`.
 
-    conda activate libero
-    python -m tools.pickup_to_hdf5 --colors red --seeds 0-2
-    python -m tools.pickup_to_hdf5 --count 30                    # 색마다 성공 30개가 될 때까지 seed 0, 1, 2, …
+    cosmos-policy/.venv/bin/python -m tools.pickup_to_hdf5 --colors red --seeds 0-2   # conda `libero`(Python 3.8)에서도 돈다
+    cosmos-policy/.venv/bin/python -m tools.pickup_to_hdf5 --count 30                    # 색마다 성공 30개가 될 때까지 seed 0, 1, 2, …
 
 W6 `docs/W6/rgb_blocks/pickup.py` 의 `run_pickup` 을 그대로 돌리며 step 마다 두 카메라와 손 상태를 모은다.
-형식은 `docs/W9/CHECKLIST.md` 0절 표 — `cosmos_policy/datasets/libero_dataset.py:173-212` 가 읽는 그대로다.
+형식은 `docs/W9/DATASET_HDF5.md` 1절 표 — `cosmos_policy/datasets/libero_dataset.py:173-212` 가 읽는 그대로다.
 
     <out>/<prefix>_SCENE1_pick_up_the_<색>_block_on_the_table_demo.hdf5   ← 파일 이름이 곧 지시문
       data/demo_<i>/obs/agentview_rgb      (T, 256, 256, 3) uint8, 위아래 바로 (np.flipud)

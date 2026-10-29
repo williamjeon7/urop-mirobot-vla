@@ -422,6 +422,7 @@ action 재학습이어도 실물 배치의 기준과 시뮬 평가에 쓴다. �
 - [ ] **`data/gcode_run/` 을 서버로 옮긴다** — 로봇 노트북에만 있다. 오면 바로 되는 것 둘
   - [ ] `F` 수치화 (W4 5-1-1) — `F` 의 근거가 아직 **눈**이다
   - [ ] 보고 `Z` 오프셋 98 waypoint 확인 (W4 5-2)
+  → **옮겼다 (10/29)** — `scp` 로 서버 `data/gcode_run.zip` (41개, 9/20–10/11), `data/gcode_run/` 에 풀었다. W9 FOLLOW.md 4-3절에서 쓴다.
   → **묶었다 (10/5), 옮기기는 아직.** `gcode_run.zip` (로봇 노트북 저장소 루트) — 9/20~10/5 기록 21개. 서버 `UROP/data/` 에 풀면 `data/gcode_run/` 이 된다. 이 zip 은 gitignore 가 아니라 커밋하지 않도록 주의
 - [x] **`--stream` 누적 확인** (W4 5-2) — ① 이 action 재학습이면 chunk 를 연속 실행하게 되어 **실제로 쓰는 모습이 이것**이다 (2-5)
   → **누적 추세 없음 (10/5).** 번역 1157줄(A 궤적 4회)을 `--home --stream` 으로, 기록 `data/gcode_run/20261005_161137--2026_10_01-translated-mirobot-origin-x4.jsonl`. 자세한 숫자는 [PIPELINE.md](PIPELINE.md) 4-3

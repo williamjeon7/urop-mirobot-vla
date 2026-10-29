@@ -11,7 +11,7 @@ Mirobot 에피소드의 외부 영상·action·proprio 를 만드는 방법은 [
 
 - **목표** — Panda 시뮬 90 + Mirobot 실물 10 에피소드를 로더가 읽는 HDF5 로 (10/28 action plan 4·5번)
 - **된 것** — Panda 시뮬 쪽 도구가 있고, **90개(색마다 30)를 만들었다** (10/29, 6-2절). 1번 환경 수정 뒤 같은 명령으로 다시 만든다
-- **남은 것** — 지시문 확정(3절), no-op 거르기, 정규화 통계(7절, 5번과), Mirobot 쪽([FOLLOW.md](FOLLOW.md))
+- **남은 것** — no-op 거르기(Mirobot 데이터를 보고), 정규화 통계(7절, 5번과), Mirobot 쪽([FOLLOW.md](FOLLOW.md))
 
 ## 1. 목표 형식 — Cosmos LIBERO 로더가 읽는 것
 
@@ -52,8 +52,8 @@ Mirobot 에피소드의 외부 영상·action·proprio 를 만드는 방법은 [
   | W6 BDDL `:language` | "Pick up the red block on the table" — 대문자 |
   | 시험판 파일 이름 (10/29) | "pick up the red block on the table" — 소문자·마침표 없음 |
 
-- **잠정 (10/29, 임의 판단 — 확정 전)** — 소문자·마침표 없음. 체크포인트의 LIBERO 지시문 40개가 모두 이 모양이다(`libero_t5_embeddings.pkl` 열쇠).
-  확정하면 실행 쪽(`tasks.py`·BDDL)을 같은 문장으로 맞춘다
+- **확정 (10/29, 사용자 결정)** — **소문자·마침표 없음**: `pick up the <색> block on the table`. 체크포인트의 LIBERO 지시문 40개가 모두 이 모양이다(`libero_t5_embeddings.pkl` 열쇠).
+  W6 `tasks.py`·BDDL 은 고치지 않는다 — HDF5 는 지시문을 파일 이름에서만 가져온다. 대신 **정책을 실행하는 스크립트는 BDDL·`tasks.py` 의 문장이 아니라 이 문장을 넘긴다**
 - **T5** — 우리 지시문은 기존 `libero_t5_embeddings.pkl` 에 없다. 새로 만들려면 `google-t5/t5-11b` 인코더가 필요하다 (`get_t5_emb.py:25`). **크기가 커서 받기 전에 확인한다**
 
 ## 4. `tools/pickup_to_hdf5.py` — Panda 시뮬 pick up → HDF5
@@ -71,12 +71,11 @@ Mirobot 에피소드의 외부 영상·action·proprio 를 만드는 방법은 [
 - **동작** — 색 × seed 마다 W6 장면을 새로 만들고 `run_pickup` 을 돌린다. step 마다 두 카메라(256×256, `np.flipud`), `robot_states`, 로더가 안 읽는 상태값을
   모으고(`on_step`), action 은 `record` 에서 꺼낸다. **대상 블록을 집어 든** 에피소드만(`target_picked`) 색별 파일 하나에 `demo_0`, `demo_1`, … 로 쓴다.
   `--count N` 이면 색마다 성공이 N 개가 될 때까지 seed 0, 1, 2, … 를 이어 간다 (실패는 건너뜀)
-- **실행** — conda `libero` 에서
+- **실행** — `cosmos-policy/.venv` 에서 (10/29 실행 환경 통일. conda `libero` 에서도 돈다)
 
   ```bash
-  conda activate libero
-  python -m tools.pickup_to_hdf5 --count 30                              # 본 생성 — 색마다 성공 30개
-  python -m tools.pickup_to_hdf5 --colors red green blue --seeds 0-1      # 시험판
+  cosmos-policy/.venv/bin/python -m tools.pickup_to_hdf5 --count 30                              # 본 생성 — 색마다 성공 30개
+  cosmos-policy/.venv/bin/python -m tools.pickup_to_hdf5 --colors red green blue --seeds 0-1      # 시험판
   ```
 
   기본 출력은 `data/hdf5/panda_sim` — 폴더 이름(`panda_sim`)이 로더의 묶음 이름이 된다. 데이터는 `data/`(git 제외)
@@ -84,14 +83,14 @@ Mirobot 에피소드의 외부 영상·action·proprio 를 만드는 방법은 [
 
   | 항목 | 정한 것 | 누가 · 언제 | 이유 |
   | --- | --- | --- | --- |
-  | 지시문 문장 | 소문자·마침표 없음 | 임의 판단 10/29, **확정 전** | 3절 |
+  | 지시문 문장 | 소문자·마침표 없음 | 10/29 사용자 결정 (처음엔 임의 판단) | 3절 |
   | 파일 이름·폴더 | `PANDA_SIM_SCENE1_…`, `data/hdf5/panda_sim` | 임의 판단 10/29 | 폴더 이름이 묶음 이름이 된다 |
   | 로더가 안 읽는 키 | `obs/joint_states`·`gripper_states`·`ee_states`(위치 + axis-angle), `phases` 를 남긴다 | 임의 판단 10/29 | 상위집합 기록 원칙 ([계획 6절](../plan/UROP_프로젝트_계획.md#로깅-스키마-상위집합-기록-원칙)) |
   | 영상 저장 | 원본 uint8 (JPEG 아님) | action plan 4번 | 로더는 둘 다 읽는다. 원본은 에피소드 하나에 약 57 MB |
-  | no-op | 거르지 않고 세기만 | 임의 판단 10/29 | 거를지는 미정 (CHECKLIST 4-3). LIBERO 재생성은 걸렀다 (`regenerate_libero_dataset.py:89, 209`) |
+  | no-op | 지금은 거르지 않고 세기만. **Mirobot 데이터를 만든 뒤 비율을 보고 정한다** | 10/29 사용자 결정 | Panda 90개는 0개라 결과가 같다. Mirobot 은 기다리는 구간에서 생길 수 있다. LIBERO 재생성은 걸렀다 (`regenerate_libero_dataset.py:89, 209`) |
   | 성공한 것만 | **대상 블록을 집어 들었는가만** 본다 (`target_picked`) | 성공만 남기는 것은 LIBERO 재생성과 같음. 판정 범위는 **10/29 사용자 결정** | 아래 "성공 판정" |
-  | 색마다 개수·seed | 30개, seed 0–29 를 세 색이 같이 쓴다 | 임의 판단 10/29 | 같은 seed = 같은 블록 배치 — 한 배치를 지시문만 바꿔 세 번 쓴다 (6-2절) |
-  | 실행 환경 | conda `libero` (Python 3.8, W6 pick up 과 같은 환경). 그래서 `common/` 을 쓰지 않는다 | 임의 판단 10/29 | [FOLLOW.md](FOLLOW.md) 5절의 환경 통일 결정에 따라 바뀔 수 있다 |
+  | 색마다 개수·seed | 30개, seed 0–29 를 세 색이 같이 쓴다 | 10/29 사용자 결정 (처음엔 임의 판단) | 같은 seed = 같은 블록 배치 — 한 배치를 지시문만 바꿔 세 번 쓴다 (6-2절). 언어 준수율을 직접 가르치는 짝이다 (LIBERO-Goal 과 같은 생각). 다양성이 모자라면 일부 seed 를 색마다 따로 쓴다 |
+  | 실행 환경 | **`.venv`** — 따라가기·로더·학습과 같은 환경. 처음엔 conda `libero`(W6 pick up 환경)로 만들었다 | 10/29 사용자 결정 | 두 환경의 렌더링이 미세하게 다르다 ([FOLLOW.md](FOLLOW.md) 5-3). 지금 90개는 conda `libero` 로 만든 것 — 1번 환경 수정 뒤 `.venv` 로 다시 만든다. 도구는 Python 3.8 에서도 돌게 `common/` 을 쓰지 않는다 |
 
 **성공 판정 (10/29 사용자 결정)** — 성공은 "원하는 블록을 집어 들었는가" 만 본다: 처음엔 안 든 상태에서(`Up` 아님) 손가락이 잡고,
 확인 구간(30 스텝) 내내 `Up` 이고 계속 잡고 있다. W6 `pickup_success` 에 있던 **"다른 블록이 1 cm 넘게 밀리면 실패" 는 뺐다.**
@@ -100,7 +99,7 @@ Mirobot 에피소드의 외부 영상·action·proprio 를 만드는 방법은 [
 - 계획서 채점표도 "성공" 과 "간섭(다른 블록을 건드렸는가)" 을 **따로 기록하는 항목**으로 둔다 (`plan/운영기준.md`). 간섭은 성공 조건에 섞지 않고
   에피소드마다 `others_max_move_m`(다른 블록이 움직인 최대 거리)와 `other_blocks_in_place`(옛 판정)로 **기록만** 남긴다
 - 10/8 잡는 높이를 바꾼 뒤로 이 조건 때문에 빠진 에피소드는 없었다. 90개에서도 최대 4.3 mm 라 결과는 같다
-- W6 `pickup.py` 의 `pickup_success`(W6 뷰어·문서가 쓴다)는 그대로 두었다
+- W6 `pickup.py` 의 `pickup_success`(W6 뷰어·문서가 쓴다)는 **그대로 둔다** (10/29 사용자 결정) — W6 의 기록(59/60, 60/60)·문서와 코드가 어긋나지 않게
 
 ## 5. `tools/check_cosmos_dataset.py` — Cosmos 로더로 읽어 보기
 
