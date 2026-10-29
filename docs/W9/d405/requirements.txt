@@ -1,0 +1,6 @@
+numpy==1.26.4
+opencv-python==4.10.0.84
+h5py==3.12.1
+pyserial==3.5
+keyboard==0.13.5
+pyrealsense2==2.59.1.11053

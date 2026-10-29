@@ -4,11 +4,14 @@ import keyboard
 
 # 시리얼 포트 초기화
 # ser = serial.Serial(port="/dev/ttyUSB0", baudrate=115200, timeout=1)
-ser = serial.Serial(port="COM4", baudrate=115200, timeout=1)
+ser = (_w9_session.open_serial(port="COM3", baudrate=115200, timeout=1)
+       if "_w9_session" in globals() else serial.Serial(port="COM3", baudrate=115200, timeout=1))
 
 time.sleep(2)  # 연결 안정화 대기
 
 def send_gcode(command):
+    if "_w9_session" in globals():
+        return _w9_session.send_gcode(command)
     ser.write((command + "\n").encode())
     print(f"📤 명령 전송: {command}")
     response = []
@@ -74,6 +77,8 @@ print("  q: 종료")
 print("키를 누르고 있으면 계속 움직입니다!")
 
 while True:
+    if "_w9_session" in globals():
+        _w9_session.tick()  # W9 녹화에서만 F8 시작 / F9 종료, 기존 키 조작 유지
     if keyboard.is_pressed("w"):  # X 증가
         current_x += step_linear
         send_gcode(f"G0 X{current_x} Y{current_y} Z{current_z} A{current_a} B{current_b} C{current_c}")
