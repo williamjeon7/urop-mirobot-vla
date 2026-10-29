@@ -287,29 +287,54 @@ docs/W9/.venv/Scripts/python.exe docs/W9/data/postprocess/finish_local.py --max-
 
 `--real-success-reviewed`는 검토 완료 사실을 기록하는 옵션입니다. 새 촬영분에 성공 확인 없이 사용하지 않습니다. 각 에피소드에 `aligned.npz`, `alignment_report.json`, `postprocess_report.json`을 만들고, 전체 결과는 `docs/W9/data/postprocess/summary.json`에 저장합니다. 보고서의 `accepted_max_frame_ms`, `default_frame_limit_passed`, `steps_exceeding_default_frame_limit`, `repeated_frames`를 서버에서도 함께 확인합니다.
 
-서버 인수인계와 명령은 [SERVER_HANDOFF.md](data/postprocess/SERVER_HANDOFF.md)에 정리했습니다. **실물 집기 성공 확인은 reference 배치 일치 확인과 별개**이며, 후자는 서버 HDF5 변환 전에 확인합니다.
+로컬에서 PNG 전체 디코딩, MP4 전체 디코딩과 PNG 개수 일치, 보정 프로필 로드를 검사했습니다. 정렬 결과의 배열 길이·형상·유한값·쿼터니언 정규화·입력 SHA256도 확인했습니다. 보정된 검토용 스냅샷은 `docs/W9/data/postprocess/videoN_review.jpg`에 있습니다.
+
+| 영상 | action 수 | 최대 프레임 차이(ms) | 기본 40ms 초과 step 수 |
+| --- | ---: | ---: | ---: |
+| 1 | 322 | 63.6 | 59 |
+| 2 | 399 | 57.9 | 51 |
+| 3 | 366 | 57.8 | 34 |
+| 4 | 341 | 57.7 | 41 |
+| 5 | 383 | 56.8 | 41 |
+| 6 | 529 | 67.1 | 85 |
+| 7 | 584 | 57.5 | 65 |
+| 8 | 461 | 54.6 | 53 |
+| 9 | 480 | 55.5 | 60 |
+| 10 | 518 | 61.9 | 54 |
+
+합계 **4,383 actions**입니다. 로컬 후처리는 완료했으며 **Panda 추종·HDF5 생성·Cosmos 로더 검사·T5 생성은 아직 실행하지 않았습니다.** 서버에서는 아래 6절부터 이어 갑니다.
 
 ## 6. 원본과 보정 파일 전송 — 로컬에서 서버로
 
-### 6-1. 서버 Bash: 받을 폴더 준비
+### 6-1. 서버 Bash: Git LFS로 받기
 
-OASYS의 SSH 또는 VS Code Remote 터미널에서:
+OASYS의 SSH 또는 VS Code Remote 터미널에서 실행합니다. 서버 프로젝트의 Git 작업 트리가 깨끗한 상태이며 Git LFS가 설치되어 있어야 합니다.
 
 ```bash
 cd ~/UROP
-mkdir -p docs/W9/data
+git pull --ff-only
+git lfs pull
 ```
 
-### 6-2. 로컬 PowerShell: 전송
+현재 `data/`는 Git에 포함하며 PNG·MP4·NPZ·검토용 JPG는 Git LFS로 관리합니다. 위 명령으로 원본과 로컬 후처리 결과를 함께 받습니다. 이미 계산된 `aligned.npz`를 그대로 사용하면 됩니다.
 
-`OASYS_HOST`를 평소 쓰는 실제 SSH 주소·별칭으로 바꿉니다.
+서버에서 `prepare`를 옵션 없이 다시 실행하면 이번 배치는 기본 40ms 검사에서 실패합니다. 재현이 필요한 경우에만 다음 명령을 실행합니다. 기존 파생 결과는 재생성됩니다.
+
+```bash
+cosmos-policy/.venv/bin/python docs/W9/data/postprocess/finish_local.py \
+  --max-frame-ms 70 --real-success-reviewed
+```
+
+### 6-2. 선택 사항 — 로컬 PowerShell: scp로 직접 전송
+
+Git LFS 대신 직접 복사할 때만 사용합니다. 먼저 서버에서 `mkdir -p ~/UROP/docs/W9/data`로 받을 폴더를 만들고, 아래 `OASYS_HOST`를 평소 쓰는 실제 SSH 주소·별칭으로 바꿉니다.
 
 ```powershell
 cd C:\mirobot-vla
-scp -r docs/W9/data/raw docs/W9/data/calibration <USER>@OASYS_HOST:~/UROP/docs/W9/data/
+scp -r docs/W9/data/raw docs/W9/data/calibration docs/W9/data/postprocess <USER>@OASYS_HOST:~/UROP/docs/W9/data/
 ```
 
-현재 `data/`는 Git에 포함하며 PNG·MP4·NPZ는 Git LFS로 관리합니다. 이번 촬영분은 서버에서 `git pull --ff-only` 후 `git lfs pull`로 받을 수 있습니다. 위 `scp`는 Git LFS 대신 직접 복사할 때 사용하는 방법입니다. `.venv`는 보내지 않습니다. 이 명령은 raw 전체를 복사하므로 이후 추가 촬영분은 해당 에피소드 폴더만 서버의 `docs/W9/data/raw/`로 보내도 됩니다. 서로 다른 노트북·저장 위치에서 같은 번호를 만들었다면 서버의 기존 폴더와 충돌하지 않도록 구분해서 보관합니다.
+`.venv`는 보내지 않습니다. 이 명령은 raw 전체를 복사하므로 이후 추가 촬영분은 해당 에피소드 폴더만 서버의 `docs/W9/data/raw/`로 보내도 됩니다. 서로 다른 노트북·저장 위치에서 같은 번호를 만들었다면 서버의 기존 폴더와 충돌하지 않도록 구분해서 보관합니다.
 
 **이후 명령은 서버 Bash에서 실행합니다.**
 
@@ -327,6 +352,8 @@ cosmos-policy/.venv/bin/python -m docs.W9.d405.export_hdf5 \
 ```
 
 `--real-success`는 검토 영상에서 **실물 목표 블록 집기 성공**을 확인했다는 뜻입니다. `--layout-confirmed`는 **실물 배치와 좌표 보정이 reference와 일치**함을 확인했다는 뜻입니다. 확인한 에피소드에만 지정합니다.
+
+이번 영상1~10은 모두 같은 seed 2/reference를 사용합니다. 실물 집기 성공은 확인됐지만 실물 배치와 reference 배치·좌표 매핑의 일치는 별도로 검증하지 않았습니다. 위치를 옮긴 에피소드는 해당 실물 배치와 맞는 reference/매핑이 필요한지 먼저 확인합니다. reference를 수정하면 입력 해시가 바뀌므로 alignment도 다시 계산해야 합니다. `--layout-confirmed`를 일괄로 가정하지 않습니다.
 
 변환 시 Panda가 실물 궤적을 따라가며 외부 RGB와 OSC_POSE action을 생성합니다. 손목 RGB는 실물 D405 영상입니다. 실물 관절각이나 XYZ(mm)를 그대로 action으로 넣지 않습니다.
 
