@@ -163,7 +163,7 @@ MP4는 검토용입니다. 학습 변환에는 **PNG·JSONL·metadata·reference
 
 ### 4-2. 키보드 조작·녹화 시작
 
-`COM3`와 집게 값을 실제 장비에 맞추세요. `--initial-s 40`은 녹화 전 실제 집게 상태, `--open-s 40`과 `--closed-s 60`은 열림·잡기 명령값입니다. **`--gripper-seconds 1.0`은 예시**이므로 촬영으로 측정한 실제 집게 이동 시간을 입력합니다.
+`COM3`는 실제 로봇 포트를 확인해 맞추세요. 집게는 현재 조작 코드의 열기 S40·닫기 S60을 사용합니다. 녹화 전에 `←`로 열어 둔 상태에서 `--initial-s 40 --open-s 40 --closed-s 60`을 사용하세요. 이 옵션 자체가 집게를 움직이지는 않습니다. **`--gripper-seconds 1.0`은 `gripper_openclose.mp4`에서 첫 번째 닫기·열기 한 쌍을 제외한 7회 동작의 측정 중앙값(1.0초)**입니다. 측정 구간과 한계는 [그리퍼 측정 기록](GRIPPER_CALIBRATION.md)에 정리했습니다.
 
 ```powershell
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color red --seed 2 --reference docs/W6/poses/pickup-red-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --execute --preview

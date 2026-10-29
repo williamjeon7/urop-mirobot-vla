@@ -107,7 +107,7 @@ G-code 자동 재생을 원할 때만, 기존 방법으로 로봇 호밍·장착
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --out docs/W9/data/raw/red_s2_001 --color red --seed 2 --reference docs/W6/poses/pickup-red-s2.jsonl --gcode trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode --port COM3 --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --execute
 ```
 
-**바꿔야 하는 값:** `COM3`는 예시이므로 실제 Mirobot COM 포트로 바꿉니다. D405는 시리얼 장치가 아닙니다. `initial-s`는 녹화 전 실제 집게 명령값입니다. `open-s` / `closed-s`는 이 G-code의 열림·잡기 값(예에서는 S40/S60)이며, 사용 중인 집게에서 확인하세요. `gripper-seconds 1.0`도 예시입니다. 영상에서 실제 닫힘 시간을 재서 입력하세요. 측정값이 없으면 정확한 그리퍼 proprio가 아닙니다.
+**설정값:** `COM3`는 실제 Mirobot COM 포트로 맞춥니다. D405는 시리얼 장치가 아닙니다. 녹화 전에 집게를 S40으로 열어 두고 `--initial-s 40 --open-s 40 --closed-s 60`을 사용합니다. `--gripper-seconds 1.0`은 `gripper_openclose.mp4`의 첫 번째 닫기·열기 한 쌍을 제외한 7회 동작의 중앙값입니다. 영상의 이동 시간으로 집게 상태를 추정하며 실제 위치 센서값은 아닙니다. [측정 기록](GRIPPER_CALIBRATION.md)을 참고하세요.
 
 수집기는 waypoint마다 도착을 기다립니다. 기존 `--stream`과 달리 이동 사이의 M4 순서를 보존하고, 이동·집기·대기 중 모두 20Hz를 목표로 `?` 상태를 요청합니다. 실제 속도는 포트 응답에 따라 낮아질 수 있습니다. 이 방식으로 수집한 실물 궤적을 기준으로 나중에 라벨을 만듭니다.
 
