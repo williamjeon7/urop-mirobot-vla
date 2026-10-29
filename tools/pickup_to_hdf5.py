@@ -6,7 +6,7 @@
 
     conda activate libero
     python -m tools.pickup_to_hdf5 --colors red --seeds 0-2
-    python -m tools.pickup_to_hdf5 --seeds 0-29 --out data/hdf5/panda_sim
+    python -m tools.pickup_to_hdf5 --count 30                    # 색마다 성공 30개가 될 때까지 seed 0, 1, 2, …
 
 W6 `docs/W6/rgb_blocks/pickup.py` 의 `run_pickup` 을 그대로 돌리며 step 마다 두 카메라와 손 상태를 모은다.
 형식은 `docs/W9/CHECKLIST.md` 0절 표 — `cosmos_policy/datasets/libero_dataset.py:173-212` 가 읽는 그대로다.
@@ -22,7 +22,8 @@ W6 `docs/W6/rgb_blocks/pickup.py` 의 `run_pickup` 을 그대로 돌리며 step 
 **짝** — 칸 t 의 관측은 action t 를 넣기 **전** 것이다 (`regenerate_libero_dataset.py:213-260` 과 같다).
 `run_pickup` 의 `on_step` 은 action 뒤 관측을 주므로 한 칸씩 밀어서 짝짓는다. 마지막 관측은 버린다.
 
-**성공한 것만** 쓴다 (`pickup_success`). 실패·예외는 건너뛰고 끝에 센다.
+**대상 블록을 집어 든 것만** 쓴다 (`target_picked`). W6 `pickup_success` 의 "다른 블록 1 cm 이내" 조건은 빼고 (10/29 결정),
+다른 블록이 움직인 거리는 `others_max_move_m` 로 남긴다 — 채점표의 "간섭" 은 따로 본다. 실패·예외는 건너뛰고 끝에 센다.
 no-op(LIBERO 재생성이 거른 칸)은 거르지 않고 세기만 한다 — 거를지는 CHECKLIST 4-3 에서 정한다.
 지시문은 LIBERO 처럼 소문자·마침표 없음 (CHECKLIST 4-3, 잠정).
 """
@@ -53,7 +54,7 @@ import numpy as np  # noqa: E402
 from robosuite.utils.transform_utils import quat2axisangle  # noqa: E402
 
 from objects import BLOCK_SIZE_MM  # noqa: E402
-from pickup import pickup_success, run_pickup  # noqa: E402
+from pickup import run_pickup  # noqa: E402
 from preview import create_env  # noqa: E402
 
 CAMERAS = ("agentview", "robot0_eye_in_hand")
@@ -110,6 +111,12 @@ def count_noops(actions) -> int:
     return count
 
 
+def target_picked(result) -> bool:
+    """대상 블록을 처음엔 안 든 상태에서 잡아 들고, 확인 구간 내내 들고 있었다. W6 `pickup_success` 에서 다른 블록 조건만 뺀 것."""
+    return (not result["initial_goal"] and result["grasp_confirmed"] and result["still_grasped"]
+            and result["goal_true_throughout_verify"])
+
+
 def record_episode(color: str, seed: int, size: int):
     """pick up 한 번. 성공하면 (칸 목록, 정보), 아니면 (None, 이유)."""
     env = create_env(resolution=size, cameras=CAMERAS, ignore_done=True, task=color, seed=seed)
@@ -123,8 +130,8 @@ def record_episode(color: str, seed: int, size: int):
         return None, str(error)
     finally:
         env.close()
-    if not pickup_success(result):
-        return None, "pickup_success False"
+    if not target_picked(result):
+        return None, "target not picked"
     assert len(frames) == len(record) + 1
     actions = np.array([row["action"] for row in record])
     return {
@@ -132,7 +139,8 @@ def record_episode(color: str, seed: int, size: int):
         "actions": actions,
         "phases": [row["phase"] for row in record],
         "attrs": {"seed": seed, "color": color, "steps": len(record), "noops": count_noops(actions),
-                  "lift_height_m": result["lift_height_m"], "others_max_move_m": result["others_max_move_m"]},
+                  "lift_height_m": result["lift_height_m"], "others_max_move_m": result["others_max_move_m"],
+                  "other_blocks_in_place": result["other_blocks_in_place"]},  # 기록만 — 성공 판정에는 안 쓴다
     }, None
 
 
@@ -166,14 +174,15 @@ def write_file(path: Path, instruction: str, episodes: list, meta: dict) -> None
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--colors", nargs="+", choices=("red", "green", "blue"), default=["red", "green", "blue"])
-    parser.add_argument("--seeds", default="0-2", help="예: 0-29, 0,3,5 (기본 0-2)")
+    parser.add_argument("--seeds", default="0-2", help="예: 0-29, 0,3,5 (기본 0-2). --count 를 주면 쓰지 않는다")
+    parser.add_argument("--count", type=int, help="색마다 성공 에피소드를 이만큼 모은다. seed 0 부터 이어 가며 실패는 건너뛴다")
     parser.add_argument("--out", type=Path, default=Path("data/hdf5/panda_sim"),
                         help="출력 폴더 — 로더의 data_dir 바로 아래 폴더가 묶음(suite) 이름이 된다")
     parser.add_argument("--prefix", default="PANDA_SIM", help="파일 이름 앞부분. 로더는 SCENE 앞을 버린다")
     parser.add_argument("--size", type=int, default=256, help="카메라 해상도 (LIBERO 재생성과 같은 256)")
     args = parser.parse_args()
 
-    seeds = parse_seeds(args.seeds)
+    seeds = range(args.count * 2) if args.count else parse_seeds(args.seeds)  # --count 는 실패가 절반을 넘으면 멈춘다
     args.out.mkdir(parents=True, exist_ok=True)
     meta = {"source": "docs/W6/rgb_blocks/pickup.py run_pickup", "commit": git_commit(),
             "created": time.strftime("%Y-%m-%d %H:%M:%S"), "block_size_mm": BLOCK_SIZE_MM,
@@ -187,6 +196,8 @@ def main() -> int:
         assert command_from_file(path.name) == instruction, path.name
         episodes = []
         for seed in seeds:
+            if args.count and len(episodes) >= args.count:
+                break
             t0 = time.time()
             ep, reason = record_episode(color, seed, args.size)
             if ep is None:
@@ -197,7 +208,8 @@ def main() -> int:
             print("  {} seed {}: {} 칸 (no-op {}), {:.1f}s".format(
                 color, seed, ep["attrs"]["steps"], ep["attrs"]["noops"], time.time() - t0), flush=True)
         if episodes:
-            write_file(path, instruction, episodes, dict(meta, color=color, seeds=args.seeds))
+            used = [ep["attrs"]["seed"] for ep in episodes]
+            write_file(path, instruction, episodes, dict(meta, color=color, seeds=",".join(map(str, used))))
             print("{}: {} 에피소드 → {} ({:.0f} MB)".format(
                 color, len(episodes), path, path.stat().st_size / 1e6), flush=True)
     print("\n실패 {} 개{}".format(len(failed), "" if not failed else ": " + ", ".join(

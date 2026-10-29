@@ -59,7 +59,7 @@ Cosmos LIBERO 로더가 읽는 형식(키·모양, 짝, 파일 이름 = 지시�
 | 라벨(시뮬 Panda 따라가기) | 도착 기준뿐. 시간 기준 모드 없음 | `tools/libero_follow.py`, W5 2-4 |
 | 시뮬 Panda 기록 | step 마다 action·손·관절·그리퍼 JSONL (`pickup.py --log`). **영상은 없다** | [../W6/CHECKLIST.md](../W6/CHECKLIST.md) 3절 |
 | 두 카메라 256 px 렌더링 | 있다 — pick up 하며 두 시점을 step 마다 찍는다 | [panda_cameras/two_view_video.py](panda_cameras/two_view_video.py) |
-| HDF5 | **Panda 시뮬 → LIBERO 형식 도구 있음, Cosmos 로더로 읽힘** (10/29, 시험판 6개) | `tools/pickup_to_hdf5.py`, `tools/check_cosmos_dataset.py`, [DATASET_HDF5.md](DATASET_HDF5.md) |
+| HDF5 | **Panda 시뮬 90개 만듦, Cosmos 로더로 읽힘** (10/29). 1번 환경 수정 뒤 다시 만든다 | `tools/pickup_to_hdf5.py`, `tools/check_cosmos_dataset.py`, [DATASET_HDF5.md](DATASET_HDF5.md) |
 | 좌표·회전 변환 | 있다 — Mirobot ↔ LIBERO 위치 왕복 최대 0.013 mm (W6). proprio 로 쓰려면 조립이 남았다 | 3-2, `common/workspace.py`, `common/rotation.py` |
 
 ## 1. 순서
@@ -180,7 +180,7 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
   → **가짜 실물 기록(10/5 실측 속도)으로 위치 최대 8.2 mm(움직일 때), 집는 순간 2.2 mm, 자세 0.68°** (10/29). 10/5 실물 기록으로는 아직 — [FOLLOW.md](FOLLOW.md) 4절
 - [ ] **속도** — Mirobot 속도를 시뮬 크기(÷ 0.663)로 키워도 Panda action 한계(±1) 안에서 따라가는지
   → 가짜 기록(2.34배 느림)에서는 시뮬이 블록을 집어 들었다 (10/29). 실물 기록으로 다시 본다 — [FOLLOW.md](FOLLOW.md) 4절
-- [ ] **시뮬·실물 결과 — 둘 다 성공한 것만 학습 (10/28)** — 시뮬 성공은 W6 pick up 판정(블록이 들림, 손가락이 잡고 있음, 다른 블록 1 cm 안),
+- [ ] **시뮬·실물 결과 — 둘 다 성공한 것만 학습 (10/28)** — 시뮬 성공은 대상 블록을 집어 들었는가(블록이 들림, 손가락이 잡고 있음). 다른 블록 1 cm 조건은 뺐다 (10/29, [DATASET_HDF5.md](DATASET_HDF5.md) 4절),
   실물 성공은 2번 기록. 결과가 다른 에피소드는 표시해서 보관한다 — 4단계 실패 감지 데이터로 쓴다 ([계획 7절](../plan/UROP_프로젝트_계획.md#7-failure-detection-설계))
   →
 - [ ] **누락** — 에피소드마다 프레임 간격이 1.5 프레임(50 ms)을 넘는 곳, 상태 무응답, 격자 칸 중 앞뒤 상태 기록이 0.1초 넘게 떨어진 칸을 센다
@@ -203,9 +203,9 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
 - [x] **`robot_states`** — `robot0_gripper_qpos`(2) + `robot0_eef_pos`(3) + `robot0_eef_quat`(4, `xyzw`) 를 그대로 이어 붙인다 (`regenerate_libero_dataset.py:222`)
   → 그대로 이어 붙였다. 쿼터니언 norm 1, 시작 자세가 `xyzw` top-down 으로 읽힌다 (10/29) — [DATASET_HDF5.md](DATASET_HDF5.md) 6절
 - [x] **성공한 에피소드만** — LIBERO 재생성 데이터도 성공한 것만 남겼다 (`regenerate_libero_dataset.py:299-300`)
-  → `pickup_success` 로 거른다 (10/29). 시험판은 6/6 성공
+  → 대상 블록을 집어 들었는가만 본다 — W6 의 "다른 블록 1 cm" 조건은 뺐다 (10/29 사용자 결정). 90개 모두 성공 — [DATASET_HDF5.md](DATASET_HDF5.md) 4·6절
 - [ ] **배치** — seed 마다 무작위 위치·색 순서 (W6 `work_region`). 90개를 세 색에 어떻게 나눌지 (예: 색마다 30 seed)
-  →
+  → 잠정 색마다 30개, 세 색이 seed 0–29 를 같이 쓴다 (10/29, 임의 판단). 같은 seed = 같은 배치를 확인했다 — [DATASET_HDF5.md](DATASET_HDF5.md) 6-2절
 - [ ] **1번 환경 수정 뒤 다시 뽑기** — 카메라 위치·색·테이블이 바뀌면 이전 영상은 쓸 수 없다
   →
 
@@ -253,10 +253,10 @@ W5 7-2에서 넘어온 두 조건이다. **(1) 기록마다 시각, (2) 20 Hz �
   →
 - [ ] **`dataset_statistics.json`** — `data_dir` 에 처음 한 번 계산해 저장하고 다음부터는 읽기만 한다. **데이터를 바꾸면 지워야 다시 계산된다.**
   Panda·Mirobot 이 한 통계로 정규화된다 — 5번과 공유
-  → **우리 데이터로 계산하면 회전 action 이 x·z 약 36–39배, y 약 5배 크게 펴지고, 쿼터니언 칸은 작은 흔들림이 부풀려진다** (10/29).
+  → **우리 데이터로 계산하면 회전 action 이 x·z 약 29–32배, y 약 5배 크게 펴지고, 쿼터니언 칸은 작은 흔들림이 부풀려진다** (10/29, 90개 기준).
   우리 값은 LIBERO 통계 범위 안이라 LIBERO 통계를 그대로 쓸 수 있다. 5번과 정한다 — [DATASET_HDF5.md](DATASET_HDF5.md) 7절
-- [ ] **되돌려 보기** — HDF5 에서 에피소드 하나를 꺼내 두 카메라 그림 + Proprio 숫자 + action 을 영상으로 만든다 (3-3 과 같은 영상을 HDF5 에서)
-  →
+- [x] **되돌려 보기** — HDF5 에서 에피소드 하나를 꺼내 두 카메라 그림 + Proprio 숫자 + action 을 영상으로 만든다 (3-3 과 같은 영상을 HDF5 에서)
+  → **`tools/hdf5_to_mp4.py` (10/29).** 색마다 무작위 2개를 서버 `docs/W9/hdf5_check/` 에 (git 제외) — [DATASET_HDF5.md](DATASET_HDF5.md) 6-3절
 
 ## 5. 미팅에 가져갈 질문
 
