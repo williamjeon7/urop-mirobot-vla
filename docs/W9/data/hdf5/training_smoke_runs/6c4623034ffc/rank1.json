@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "rank": 1,
+  "completed_iteration": 1,
+  "loss_values": [
+    15.451937675476074
+  ],
+  "backward_passes": 1,
+  "optimizer_steps": 1,
+  "nonzero_gradient_tensors": 481,
+  "max_gradient_abs": 2.0,
+  "batch_video_shape": [
+    1,
+    3,
+    25,
+    224,
+    224
+  ],
+  "peak_allocated_cuda_bytes": 8233891840,
+  "peak_reserved_cuda_bytes": 8581545984
+}

@@ -1,0 +1,75 @@
+{
+  "generator": "tools/w9_report_figures.py",
+  "source_reports": [
+    "docs/W9/data/hdf5/real_export_summary.json",
+    "docs/W9/data/hdf5/training_smoke.json",
+    "docs/W9/data/raw/영상N/alignment_report.json"
+  ],
+  "total_timesteps": 4383,
+  "preview": {
+    "source": "raw/영상1/frames.jsonl and original PNGs",
+    "source_frames": 166,
+    "source_first_to_last_s": 16.1632063,
+    "preview_duration_s": 16.2,
+    "mp4_display_fps": 20,
+    "gif_display_fps": 5,
+    "note": "1x receipt-clock playback, nearest original PNG at each display time; display fps is not capture fps. No synthesized frames. Original PNG colours, not calibrated HDF5 images."
+  },
+  "assets": [
+    {
+      "file": "alignment_timeline.png",
+      "bytes": 170049,
+      "sha256": "ee32931ec15527aa6bdd3250cafd758877ecdd7daba954aadbdec09336894e55"
+    },
+    {
+      "file": "alignment_timeline.svg",
+      "bytes": 123736,
+      "sha256": "87823f31b25d5f203fd8f3f86b37eca3cb821b5be12351acdd81e467f7369ed8"
+    },
+    {
+      "file": "episode_metrics.csv",
+      "bytes": 1304,
+      "sha256": "b7e5ded2028277b5d145b06be6cee4bb709176543bda42c7c33dca18dc40319a"
+    },
+    {
+      "file": "episode_quality.png",
+      "bytes": 165204,
+      "sha256": "d1cc60c2511cb3fcb65c7bbcd827bb61a81d44c1f6379e929787d6ab3461c8b6"
+    },
+    {
+      "file": "episode_quality.svg",
+      "bytes": 113633,
+      "sha256": "32d73061f66e2e500e7a7c3076d91019661c9187b7a40006f04053171c95343d"
+    },
+    {
+      "file": "training_verification.png",
+      "bytes": 100885,
+      "sha256": "b3206db115655608332e5ef642cb3e47addb9253c19d3f9b6c182b0ecbbf00cb"
+    },
+    {
+      "file": "training_verification.svg",
+      "bytes": 89254,
+      "sha256": "000478f40b5531dea633ba8c4e1c7ff18ac5cc8c2ca2aa95bea66cf8e6d6bd2f"
+    },
+    {
+      "file": "video1_preview.gif",
+      "bytes": 3458244,
+      "sha256": "9f2c74c3cc21b3e3ffa53ff77d19721584d4076729e02f2f714cb80196ec616b"
+    },
+    {
+      "file": "video1_review.mp4",
+      "bytes": 966929,
+      "sha256": "e0ad7c3a28645882b8feebbee1182ecd465a1c37b0acd208aeb3047010727a64"
+    },
+    {
+      "file": "wrist_examples.png",
+      "bytes": 2610499,
+      "sha256": "47bad2738dd130fe6f5e318e20b1b3e99cfcfa97a2ea9a761238043b8998057a"
+    },
+    {
+      "file": "wrist_examples.svg",
+      "bytes": 1562340,
+      "sha256": "5a814f1fe20af5205bfe6b410e1dc168dd44a0ddbdc6b1bd8060be04d8b677fc"
+    }
+  ]
+}

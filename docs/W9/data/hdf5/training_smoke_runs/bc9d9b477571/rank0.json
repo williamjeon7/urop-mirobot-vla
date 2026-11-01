@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "rank": 0,
+  "completed_iteration": 1,
+  "loss_values": [
+    4.79088830947876
+  ],
+  "backward_passes": 1,
+  "optimizer_steps": 1,
+  "nonzero_gradient_tensors": 567,
+  "max_gradient_abs": 0.796875,
+  "batch_video_shape": [
+    1,
+    3,
+    25,
+    224,
+    224
+  ],
+  "pretrained_checkpoint_loaded": true,
+  "pretrained_weight_proof": {
+    "checkpoint": "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt",
+    "parameter_shapes_checked": 567,
+    "tensors": [
+      {
+        "name": "net.x_embedder.proj.1.weight",
+        "shape": [
+          2048,
+          72
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "ff80f03d6b4b648ea2fa2edd012570f5de00a23332497fcbd2ec7b8fa20b664e"
+      },
+      {
+        "name": "net.blocks.0.self_attn.q_proj.weight",
+        "shape": [
+          2048,
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "c98d947586a95f41235e1dd24feccbe55b0c4660d7314ed799550bee3da048d5"
+      },
+      {
+        "name": "net.final_layer.linear.weight",
+        "shape": [
+          64,
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "e37004c0101ba4ccb0301d0dbed37f8722573c2c212b542570b5f27a12e4b870"
+      }
+    ]
+  },
+  "peak_allocated_cuda_bytes": 8219090944,
+  "peak_reserved_cuda_bytes": 8566865920
+}

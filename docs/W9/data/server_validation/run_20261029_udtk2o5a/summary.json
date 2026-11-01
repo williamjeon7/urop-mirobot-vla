@@ -1,0 +1,292 @@
+[
+  {
+    "episode": "영상1",
+    "steps": 322,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      253
+    ],
+    "close_target_xyz": [
+      [
+        -0.23107861586094555,
+        -0.1131224513274048,
+        0.935836266882526
+      ]
+    ],
+    "max_follow_mm": 7.025417686810553,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      28.379546833283833
+    ]
+  },
+  {
+    "episode": "영상2",
+    "steps": 399,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      252
+    ],
+    "close_target_xyz": [
+      [
+        -0.1933801960107711,
+        -0.03011010558069382,
+        0.9315208030297915
+      ]
+    ],
+    "max_follow_mm": 5.01206568228908,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      37.058668990669894
+    ]
+  },
+  {
+    "episode": "영상3",
+    "steps": 366,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      219
+    ],
+    "close_target_xyz": [
+      [
+        -0.2461128452179132,
+        0.06786274509803922,
+        0.9306234286413515
+      ]
+    ],
+    "max_follow_mm": 5.503462084738572,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      92.08684897701873
+    ]
+  },
+  {
+    "episode": "영상4",
+    "steps": 341,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      209
+    ],
+    "close_target_xyz": [
+      [
+        -0.2084372304837894,
+        -0.007493212669683258,
+        0.9355942076357683
+      ]
+    ],
+    "max_follow_mm": 5.35328792396375,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      44.540114337009356
+    ]
+  },
+  {
+    "episode": "영상5",
+    "steps": 383,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      266
+    ],
+    "close_target_xyz": [
+      [
+        -0.21597411413817053,
+        -0.03773470514438639,
+        0.9359161475262905
+      ]
+    ],
+    "max_follow_mm": 11.274118198712925,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      24.13966533857841
+    ]
+  },
+  {
+    "episode": "영상6",
+    "steps": 529,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      359
+    ],
+    "close_target_xyz": [
+      [
+        -0.23863660626718136,
+        0.015043740573152338,
+        0.9315253279166693
+      ]
+    ],
+    "max_follow_mm": 5.203678000871556,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      56.765224428296
+    ]
+  },
+  {
+    "episode": "영상7",
+    "steps": 584,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      418
+    ],
+    "close_target_xyz": [
+      [
+        -0.26877173090565826,
+        0.09050408172299383,
+        0.9372433620409724
+      ]
+    ],
+    "max_follow_mm": 7.844891934944876,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      109.35738143744577
+    ]
+  },
+  {
+    "episode": "영상8",
+    "steps": 461,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      375
+    ],
+    "close_target_xyz": [
+      [
+        -0.14060040717215877,
+        -0.0603212669683258,
+        0.9390487064988713
+      ]
+    ],
+    "max_follow_mm": 8.244169592066045,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      61.0879250988858
+    ]
+  },
+  {
+    "episode": "영상9",
+    "steps": 480,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      336
+    ],
+    "close_target_xyz": [
+      [
+        -0.276342142173964,
+        -0.03767519946439093,
+        0.9345090903326891
+      ]
+    ],
+    "max_follow_mm": 6.450762073760465,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      36.40815498368325
+    ]
+  },
+  {
+    "episode": "영상10",
+    "steps": 518,
+    "mode": "fixed-reference diagnostic only",
+    "real_layout_confirmed": false,
+    "reference_target_xyz": [
+      -0.23219359200151646,
+      -0.07033222886115251,
+      0.93
+    ],
+    "close_steps": [
+      363
+    ],
+    "close_target_xyz": [
+      [
+        -0.26126254895194756,
+        -0.06030467571644042,
+        0.939062281159505
+      ]
+    ],
+    "max_follow_mm": 6.202452165165301,
+    "max_follow_deg": 3.2549741706883095,
+    "grasp_steps": 0,
+    "goal_steps": 0,
+    "success_last_10": false,
+    "close_xy_reference_error_mm": [
+      20.387180791911078
+    ]
+  }
+]

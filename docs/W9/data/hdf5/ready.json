@@ -1,0 +1,25 @@
+{
+  "status": "ready",
+  "target": "blue",
+  "instruction": "pick up the blue block on the table",
+  "observation_mode": "wrist_only",
+  "timestep_s": 0.05,
+  "training_started": true,
+  "training_smoke_report": "~/UROP/docs/W9/data/hdf5/training_smoke.json",
+  "structure": {
+    "files": 10,
+    "episodes": 10,
+    "steps": 4383,
+    "steps_by_suite": {
+      "mirobot_real": 4383
+    },
+    "instructions": [
+      "pick up the blue block on the table"
+    ]
+  },
+  "loader_report": "~/UROP/docs/W9/data/hdf5/loader_validation.json",
+  "t5_embeddings": "~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl",
+  "statistics": "~/UROP/docs/W9/data/hdf5/dataset_statistics.json",
+  "checkpoint": "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt",
+  "train_command_log": "~/UROP/docs/W9/data/hdf5/validation_logs/train_command.log"
+}

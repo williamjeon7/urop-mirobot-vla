@@ -10,12 +10,12 @@
   "timing_note": "Host receipt alignment; camera exposure and serial latency remain uncertain.",
   "interpolation": "linear position; quaternion SLERP; commanded gripper linear travel",
   "input_sha256": {
-    "metadata.json": "b03f65a370b876994bce701f42f78a406956c0f836a5597b32d4fa216c817853",
-    "source.gcode": "949d088f68e8d8cbe06525f7e0633bd2ff4edc00fa94661c10c5e7c89d4dab1b",
-    "reference.jsonl": "e0b9e74a3877ced4d62587e00f8f808fbd4abc383005dd5f29552a3bcff081f8",
-    "frames.jsonl": "2ce76dec6316679690c6ea668a20af2da3fcdde6696b53bf1f862bb056cf6152",
-    "robot.jsonl": "788d8b23493e10ae37ddf980f118cb1e732752dea4c9fa10be8ac8ede55c1d99",
-    "color_profile.json": "111f00057628d717094f5061fd8a23564904e3393eb51186864a1718c70eda44"
+    "metadata.json": "917792bc79a39c497e10915163956e8d64ed535553a31bb0e660eefd967bbd2b",
+    "source.gcode": "fc71acbe54703b99097f08288742ba9f0f1d440bb14c5c7c20f304cde9198aa7",
+    "reference.jsonl": "c6e1b9f3de746afcf98a25010ab26a9d839786cc1665299dc38d48a90a731bd4",
+    "frames.jsonl": "084ead4d578e400c243e321994cbfda83a2cc68bd21b9485b2146e0889c15b6b",
+    "robot.jsonl": "8e53018e2e4387adaaa59ea1d66e4118f7f6009092bf6064da66a76ac8a8aa28",
+    "color_profile.json": "9b6f0dc9ecff939bd69115576400b8a4c118f7d93db75921cdbec70fc81d962c"
   },
   "accepted_max_frame_ms": 70.0,
   "accepted_max_state_gap_ms": 150,

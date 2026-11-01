@@ -1,0 +1,78 @@
+{
+  "status": "passed",
+  "verified_by": "independent verifier using upstream LIBERODataset directly",
+  "episodes": 10,
+  "steps": 4383,
+  "instruction": "pick up the blue block on the table",
+  "t5": {
+    "shape": [
+      1,
+      512,
+      1024
+    ],
+    "dtype": "torch.bfloat16",
+    "valid_tokens": 9,
+    "padding_zero": true,
+    "finite": true,
+    "nonzero_values": 9216,
+    "pickle_sha256": "5cb16f19e4a5f3b8975e7c22eab8d2152c46ea53eabf8e285f6d9f37e8b143ea"
+  },
+  "observation_mode": "wrist_only",
+  "third_person_consumed": false,
+  "sample_indices": [
+    17,
+    613,
+    1271,
+    2137,
+    3299,
+    4361
+  ],
+  "batch_video_shape": [
+    2,
+    3,
+    25,
+    224,
+    224
+  ],
+  "batch_actions_shape": [
+    2,
+    16,
+    7
+  ],
+  "normalized_all_episode_arrays_finite": true,
+  "source_hashes_and_timeline_verified": true,
+  "training_smoke": {
+    "status": "passed",
+    "gpus": 4,
+    "optimizer_steps": 1,
+    "pretrained_checkpoint_loaded": true,
+    "source_weight_hashes_independently_recomputed": true,
+    "source_weight_sha256": {
+      "net.x_embedder.proj.1.weight": "ff80f03d6b4b648ea2fa2edd012570f5de00a23332497fcbd2ec7b8fa20b664e",
+      "net.blocks.0.self_attn.q_proj.weight": "c98d947586a95f41235e1dd24feccbe55b0c4660d7314ed799550bee3da048d5",
+      "net.final_layer.linear.weight": "e37004c0101ba4ccb0301d0dbed37f8722573c2c212b542570b5f27a12e4b870"
+    },
+    "parameter_shapes_checked": 567,
+    "all_rank_proof_files_match": true,
+    "proof_dir": "~/UROP/docs/W9/data/hdf5/training_smoke_runs/bc9d9b477571",
+    "rank_losses": [
+      4.79088830947876,
+      7.2925496101379395,
+      7.795185565948486,
+      4.654483318328857
+    ],
+    "all_rank_gradients_finite_and_nonzero": true
+  },
+  "quality_limits": {
+    "max_follow_mm": 8.244169589780558,
+    "max_follow_deg": 0.4789559202879096,
+    "camera_default_40ms_passed": false,
+    "frame_limit_ms": 70,
+    "follow_5mm_passed": false
+  },
+  "verified_date": "2026-10-30",
+  "timezone": "Asia/Seoul",
+  "final_ready_report": "ready.json",
+  "native_configuration_verified": true,
+  "final_source_provenance_and_timeline_rechecked": true
+}

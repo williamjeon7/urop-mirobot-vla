@@ -1,0 +1,33 @@
+{
+  "steps": 322,
+  "dt": 0.05,
+  "robot_hz_median": 17.778678564155864,
+  "max_robot_gap_ms": 93.95450000000238,
+  "max_frame_error_ms": 63.55729999999937,
+  "repeated_frames": 157,
+  "camera_latency_ms": 0,
+  "skipped_camera_frame_numbers": 78,
+  "timing_note": "Host receipt alignment; camera exposure and serial latency remain uncertain.",
+  "interpolation": "linear position; quaternion SLERP; commanded gripper linear travel",
+  "input_sha256": {
+    "metadata.json": "3d6c28017443b56266952644c2be3cc690bf4fe8f2a2106c65f2b487d74c7618",
+    "source.gcode": "fc71acbe54703b99097f08288742ba9f0f1d440bb14c5c7c20f304cde9198aa7",
+    "reference.jsonl": "c6e1b9f3de746afcf98a25010ab26a9d839786cc1665299dc38d48a90a731bd4",
+    "frames.jsonl": "29ebc1cac542f3032dd02a732d1a9b85dab10068cb9a845ac223910120f592ae",
+    "robot.jsonl": "1d77a87628af6ed9ad71c713c6f1797c49ca7f1bec2f4e9d29137f27b7780893",
+    "color_profile.json": "9b6f0dc9ecff939bd69115576400b8a4c118f7d93db75921cdbec70fc81d962c"
+  },
+  "accepted_max_frame_ms": 70.0,
+  "accepted_max_state_gap_ms": 150,
+  "default_max_frame_ms": 40,
+  "default_frame_limit_passed": false,
+  "steps_exceeding_default_frame_limit": 59,
+  "camera_hz_median": 10.349770493839275,
+  "max_camera_gap_ms": 131.28499999999832,
+  "camera_note": "Nearest existing PNG; repeated frames are retained, no synthesized frames. 20 Hz is the alignment grid, not the measured camera acquisition rate.",
+  "max_follow_mm": 7.025417686810553,
+  "max_follow_deg": 3.2549741706883095,
+  "simulated_success": false,
+  "accepted_follow_mm": 5,
+  "accepted_follow_deg": 2
+}

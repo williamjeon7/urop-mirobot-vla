@@ -1,0 +1,216 @@
+$ ~/UROP/cosmos-policy/.venv/bin/python -m tools.check_cosmos_dataset --data-dir ~/UROP/docs/W9/data/hdf5 --t5 ~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl --statistics ~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/libero_dataset_statistics.json --report ~/UROP/docs/W9/data/hdf5/loader_validation.json
+
+  0%|          | 0/10 [00:00<?, ?it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.10it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.10it/s]
+
+ 10%|█         | 1/10 [00:00<00:08,  1.10it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.59it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.59it/s]
+
+ 20%|██        | 2/10 [00:01<00:05,  1.34it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.79it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.79it/s]
+
+ 30%|███       | 3/10 [00:02<00:04,  1.51it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.30it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.30it/s]
+
+ 40%|████      | 4/10 [00:02<00:04,  1.42it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.42it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.41it/s]
+
+ 50%|█████     | 5/10 [00:03<00:03,  1.42it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.08it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.08it/s]
+
+ 60%|██████    | 6/10 [00:04<00:03,  1.28it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.61it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.61it/s]
+
+ 70%|███████   | 7/10 [00:05<00:02,  1.37it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.68it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.68it/s]
+
+ 80%|████████  | 8/10 [00:05<00:01,  1.46it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.23it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.23it/s]
+
+ 90%|█████████ | 9/10 [00:06<00:00,  1.38it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.11it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.11it/s]
+
+100%|██████████| 10/10 [00:07<00:00,  1.28it/s]
+100%|██████████| 10/10 [00:07<00:00,  1.35it/s]
+Loaded dataset statistics from: ~/UROP/docs/W9/data/hdf5/dataset_statistics.json
+Collecting all actions and proprio...
+
+  0%|          | 0/10 [00:00<?, ?it/s]
+100%|██████████| 10/10 [00:00<00:00, 487709.77it/s]
+Computing dataset statistics...
+Post-normalization dataset statistics saved to: ~/UROP/docs/W9/data/hdf5/dataset_statistics_post_norm.json
+
+에피소드 10, step 4383, 한 epoch 4383
+  묶음 mirobot_real: step 4383 (100%)
+지시문: ['pick up the blue block on the table']
+actions min [-0.938 -0.938 -0.938 -0.258 -0.375 -0.364 -1.   ]
+actions max [0.938 0.938 0.938 0.356 0.375 0.375 1.   ]
+proprio min [-0.005 -0.042 -0.486 -0.331  0.008  0.29  -0.89  -0.562 -0.571]
+proprio max [0.042 0.001 0.21  0.39  1.366 1.    0.909 0.35  0.636]
+
+샘플 0 (실제 T5, wrist_only)
+  video                  (3, 25, 224, 224)  torch.uint8  [0.000, 253.000]
+  actions                (16, 7)  float64  [-1.000, 0.030]
+  t5_text_embeddings     (512, 1024)  torch.bfloat16  [-0.531, 0.562]
+  t5_text_mask           (512,)  torch.int64  [1.000, 1.000]
+  fps                    16
+  padding_mask           (1, 224, 224)  torch.float32  [0.000, 0.000]
+  image_size             (4,)  torch.float32  [224.000, 224.000]
+  proprio                (9,)  float64  [-0.893, 1.000]
+  future_proprio         (9,)  float64  [-0.893, 1.000]
+  __key__                0
+  rollout_data_mask      0
+  rollout_data_success_mask 0
+  world_model_sample_mask 0
+  value_function_sample_mask 0
+  global_rollout_idx     -1
+  action_latent_idx      3
+  value_latent_idx       6
+  current_proprio_latent_idx 1
+  current_wrist_image_latent_idx 2
+  current_image_latent_idx -1
+  future_proprio_latent_idx 4
+  future_wrist_image_latent_idx 5
+  future_image_latent_idx -1
+  value_function_return  np.float32(-0.99329823)
+  next_action_chunk      (16, 7)  float64  [-1.000, 0.005]
+  next_value_function_return np.float32(-0.9921291)
+샘플 583: video (3, 25, 224, 224), actions (16, 7)
+샘플 584: video (3, 25, 224, 224), actions (16, 7)
+샘플 966: video (3, 25, 224, 224), actions (16, 7)
+샘플 967: video (3, 25, 224, 224), actions (16, 7)
+샘플 1288: video (3, 25, 224, 224), actions (16, 7)
+샘플 1289: video (3, 25, 224, 224), actions (16, 7)
+샘플 1749: video (3, 25, 224, 224), actions (16, 7)
+샘플 1750: video (3, 25, 224, 224), actions (16, 7)
+샘플 2148: video (3, 25, 224, 224), actions (16, 7)
+샘플 2149: video (3, 25, 224, 224), actions (16, 7)
+샘플 2191: video (3, 25, 224, 224), actions (16, 7)
+샘플 2677: video (3, 25, 224, 224), actions (16, 7)
+샘플 2678: video (3, 25, 224, 224), actions (16, 7)
+샘플 3043: video (3, 25, 224, 224), actions (16, 7)
+샘플 3044: video (3, 25, 224, 224), actions (16, 7)
+샘플 3384: video (3, 25, 224, 224), actions (16, 7)
+샘플 3385: video (3, 25, 224, 224), actions (16, 7)
+샘플 3864: video (3, 25, 224, 224), actions (16, 7)
+샘플 3865: video (3, 25, 224, 224), actions (16, 7)
+샘플 4382: video (3, 25, 224, 224), actions (16, 7)
+{
+  "status": "passed",
+  "training_ready": true,
+  "observation_mode": "wrist_only",
+  "episodes": 10,
+  "steps": 4383,
+  "instructions": [
+    "pick up the blue block on the table"
+  ],
+  "steps_by_suite": {
+    "mirobot_real": 4383
+  },
+  "real_t5": true,
+  "t5_path": "~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl",
+  "normalization_source": "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/blobs/812c6ca60cf8e5bd8b55186b4fbac220c994bf42",
+  "measured_ranges": {
+    "actions_min": [
+      -0.24252961575984955,
+      -0.312467485666275,
+      -0.27320557832717896,
+      -0.0027646892704069614,
+      -0.016709469258785248,
+      -0.007873314432799816,
+      -1.0
+    ],
+    "actions_max": [
+      0.2088622748851776,
+      0.31127530336380005,
+      0.21659807860851288,
+      0.00410540122538805,
+      0.012395673431456089,
+      0.008506995625793934,
+      1.0
+    ],
+    "actions_constant_axes": [],
+    "proprio_min": [
+      0.019099999219179153,
+      -0.039799999445676804,
+      -0.2839091718196869,
+      -0.11323659867048264,
+      0.9239909052848816,
+      1.0,
+      0.0,
+      0.0,
+      6.123234262925839e-17
+    ],
+    "proprio_max": [
+      0.039799999445676804,
+      -0.019099999219179153,
+      -0.13300968706607819,
+      0.12041611224412918,
+      1.2257286310195923,
+      1.0,
+      0.0,
+      0.0,
+      6.123234262925839e-17
+    ],
+    "proprio_constant_axes": [
+      5,
+      6,
+      7,
+      8
+    ]
+  },
+  "normalized_values_finite": true,
+  "samples_checked": 21,
+  "batch_video_shape": [
+    2,
+    3,
+    25,
+    224,
+    224
+  ],
+  "batch_actions_shape": [
+    2,
+    16,
+    7
+  ]
+}

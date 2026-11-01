@@ -1,0 +1,344 @@
+$ ~/UROP/cosmos-policy/.venv/bin/python -m docs.W9.d405.export_real_hdf5 '~/UROP/docs/W9/data/raw/영상1' '~/UROP/docs/W9/data/raw/영상2' '~/UROP/docs/W9/data/raw/영상3' '~/UROP/docs/W9/data/raw/영상4' '~/UROP/docs/W9/data/raw/영상5' '~/UROP/docs/W9/data/raw/영상6' '~/UROP/docs/W9/data/raw/영상7' '~/UROP/docs/W9/data/raw/영상8' '~/UROP/docs/W9/data/raw/영상9' '~/UROP/docs/W9/data/raw/영상10' --out ~/UROP/docs/W9/data/hdf5/mirobot_real --target blue --real-success --skip-existing
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video1_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 322, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 6.276045904140303, "max_follow_deg": 0.33360069434680634, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video2_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 399, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 5.012065838325437, "max_follow_deg": 0.2991941208687785, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video3_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 366, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 5.503491945931035, "max_follow_deg": 0.3303124190531514, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video4_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 341, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 5.236382479899873, "max_follow_deg": 0.4789559202879096, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video5_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 383, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 6.0429517451608685, "max_follow_deg": 0.25723596263000503, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video6_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 529, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 5.203703552241865, "max_follow_deg": 0.25723596263000503, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video7_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 584, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 7.844891821728728, "max_follow_deg": 0.47424382349758626, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video8_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 461, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 8.244169589780558, "max_follow_deg": 0.4130905834840832, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video9_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 480, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 6.4507617636207275, "max_follow_deg": 0.32551962582793537, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+{"path": "~/UROP/docs/W9/data/hdf5/mirobot_real/MIROBOT_video10_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5", "status": "existing", "steps": 518, "instruction": "pick up the blue block on the table", "warmup_steps": 10, "method": "LIBERO MountedPanda OSC_POSE, empty table, target pose[k+1], 20 Hz", "max_follow_mm": 6.202452169057334, "max_follow_deg": 0.34079260033278713, "follow_position_5mm_passed": false, "follow_rotation_2deg_passed": true, "simulator_images_used": false, "simulator_grasp_evaluated": false}
+Existing real T5 embeddings validated.
+$ ~/UROP/cosmos-policy/.venv/bin/python -m docs.W9.d405.check_dataset ~/UROP/docs/W9/data/hdf5 --t5 ~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl
+{
+  "files": 10,
+  "episodes": 10,
+  "steps": 4383,
+  "steps_by_suite": {
+    "mirobot_real": 4383
+  },
+  "instructions": [
+    "pick up the blue block on the table"
+  ]
+}
+Structure OK. Actual Cosmos loader / model training are separate server checks.
+$ ~/UROP/cosmos-policy/.venv/bin/python -m tools.check_cosmos_dataset --data-dir ~/UROP/docs/W9/data/hdf5 --t5 ~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl --statistics ~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/libero_dataset_statistics.json --report ~/UROP/docs/W9/data/hdf5/loader_validation.json
+
+  0%|          | 0/10 [00:00<?, ?it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.13it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.13it/s]
+
+ 10%|█         | 1/10 [00:00<00:07,  1.13it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.72it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.72it/s]
+
+ 20%|██        | 2/10 [00:01<00:05,  1.41it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  2.04it/s][A
+100%|██████████| 1/1 [00:00<00:00,  2.04it/s]
+
+ 30%|███       | 3/10 [00:01<00:04,  1.64it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.40it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.40it/s]
+
+ 40%|████      | 4/10 [00:02<00:03,  1.54it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.64it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.64it/s]
+
+ 50%|█████     | 5/10 [00:03<00:03,  1.57it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.26it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.26it/s]
+
+ 60%|██████    | 6/10 [00:04<00:02,  1.45it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.80it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.80it/s]
+
+ 70%|███████   | 7/10 [00:04<00:01,  1.55it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.92it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.92it/s]
+
+ 80%|████████  | 8/10 [00:05<00:01,  1.65it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.38it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.38it/s]
+
+ 90%|█████████ | 9/10 [00:05<00:00,  1.55it/s]
+
+  0%|          | 0/1 [00:00<?, ?it/s][A
+
+100%|██████████| 1/1 [00:00<00:00,  1.27it/s][A
+100%|██████████| 1/1 [00:00<00:00,  1.27it/s]
+
+100%|██████████| 10/10 [00:06<00:00,  1.45it/s]
+100%|██████████| 10/10 [00:06<00:00,  1.50it/s]
+Loaded dataset statistics from: ~/UROP/docs/W9/data/hdf5/dataset_statistics.json
+Collecting all actions and proprio...
+
+  0%|          | 0/10 [00:00<?, ?it/s]
+100%|██████████| 10/10 [00:00<00:00, 544714.81it/s]
+Computing dataset statistics...
+Post-normalization dataset statistics saved to: ~/UROP/docs/W9/data/hdf5/dataset_statistics_post_norm.json
+
+에피소드 10, step 4383, 한 epoch 4383
+  묶음 mirobot_real: step 4383 (100%)
+지시문: ['pick up the blue block on the table']
+actions min [-0.938 -0.938 -0.938 -0.258 -0.375 -0.364 -1.   ]
+actions max [0.938 0.938 0.938 0.356 0.375 0.375 1.   ]
+proprio min [-0.005 -0.042 -0.486 -0.331  0.008  0.29  -0.89  -0.562 -0.571]
+proprio max [0.042 0.001 0.21  0.39  1.366 1.    0.909 0.35  0.636]
+
+샘플 0 (실제 T5, wrist_only)
+  video                  (3, 25, 224, 224)  torch.uint8  [0.000, 214.000]
+  actions                (16, 7)  float64  [-1.000, 0.030]
+  t5_text_embeddings     (512, 1024)  torch.bfloat16  [-0.531, 0.562]
+  t5_text_mask           (512,)  torch.int64  [1.000, 1.000]
+  fps                    16
+  padding_mask           (1, 224, 224)  torch.float32  [0.000, 0.000]
+  image_size             (4,)  torch.float32  [224.000, 224.000]
+  proprio                (9,)  float64  [-0.893, 1.000]
+  future_proprio         (9,)  float64  [-0.893, 1.000]
+  __key__                0
+  rollout_data_mask      0
+  rollout_data_success_mask 0
+  world_model_sample_mask 0
+  value_function_sample_mask 0
+  global_rollout_idx     -1
+  action_latent_idx      3
+  value_latent_idx       6
+  current_proprio_latent_idx 1
+  current_wrist_image_latent_idx 2
+  current_image_latent_idx -1
+  future_proprio_latent_idx 4
+  future_wrist_image_latent_idx 5
+  future_image_latent_idx -1
+  value_function_return  np.float32(-0.99329823)
+  next_action_chunk      (16, 7)  float64  [-1.000, 0.005]
+  next_value_function_return np.float32(-0.9921291)
+샘플 583: video (3, 25, 224, 224), actions (16, 7)
+샘플 584: video (3, 25, 224, 224), actions (16, 7)
+샘플 966: video (3, 25, 224, 224), actions (16, 7)
+샘플 967: video (3, 25, 224, 224), actions (16, 7)
+샘플 1288: video (3, 25, 224, 224), actions (16, 7)
+샘플 1289: video (3, 25, 224, 224), actions (16, 7)
+샘플 1749: video (3, 25, 224, 224), actions (16, 7)
+샘플 1750: video (3, 25, 224, 224), actions (16, 7)
+샘플 2148: video (3, 25, 224, 224), actions (16, 7)
+샘플 2149: video (3, 25, 224, 224), actions (16, 7)
+샘플 2191: video (3, 25, 224, 224), actions (16, 7)
+샘플 2677: video (3, 25, 224, 224), actions (16, 7)
+샘플 2678: video (3, 25, 224, 224), actions (16, 7)
+샘플 3043: video (3, 25, 224, 224), actions (16, 7)
+샘플 3044: video (3, 25, 224, 224), actions (16, 7)
+샘플 3384: video (3, 25, 224, 224), actions (16, 7)
+샘플 3385: video (3, 25, 224, 224), actions (16, 7)
+샘플 3864: video (3, 25, 224, 224), actions (16, 7)
+샘플 3865: video (3, 25, 224, 224), actions (16, 7)
+샘플 4382: video (3, 25, 224, 224), actions (16, 7)
+{
+  "status": "passed",
+  "training_ready": true,
+  "observation_mode": "wrist_only",
+  "episodes": 10,
+  "steps": 4383,
+  "instructions": [
+    "pick up the blue block on the table"
+  ],
+  "steps_by_suite": {
+    "mirobot_real": 4383
+  },
+  "real_t5": true,
+  "t5_path": "~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl",
+  "normalization_source": "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/blobs/812c6ca60cf8e5bd8b55186b4fbac220c994bf42",
+  "measured_ranges": {
+    "actions_min": [
+      -0.24252961575984955,
+      -0.312467485666275,
+      -0.27320557832717896,
+      -0.0027646892704069614,
+      -0.016709469258785248,
+      -0.007873314432799816,
+      -1.0
+    ],
+    "actions_max": [
+      0.2088622748851776,
+      0.31127530336380005,
+      0.21659807860851288,
+      0.00410540122538805,
+      0.012395673431456089,
+      0.008506995625793934,
+      1.0
+    ],
+    "actions_constant_axes": [],
+    "proprio_min": [
+      0.019099999219179153,
+      -0.039799999445676804,
+      -0.2839091718196869,
+      -0.11323659867048264,
+      0.9239909052848816,
+      1.0,
+      0.0,
+      0.0,
+      6.123234262925839e-17
+    ],
+    "proprio_max": [
+      0.039799999445676804,
+      -0.019099999219179153,
+      -0.13300968706607819,
+      0.12041611224412918,
+      1.2257286310195923,
+      1.0,
+      0.0,
+      0.0,
+      6.123234262925839e-17
+    ],
+    "proprio_constant_axes": [
+      5,
+      6,
+      7,
+      8
+    ]
+  },
+  "normalized_values_finite": true,
+  "samples_checked": 21,
+  "batch_video_shape": [
+    2,
+    3,
+    25,
+    224,
+    224
+  ],
+  "batch_actions_shape": [
+    2,
+    16,
+    7
+  ]
+}
+$ ~/UROP/cosmos-policy/.venv/bin/python -m docs.W9.d405.train --cosmos-repo ~/UROP/cosmos-policy --data-dir ~/UROP/docs/W9/data/hdf5 --checkpoint ~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt --gpus 4 --dryrun --config-report ~/UROP/docs/W9/data/hdf5/training_config_validation.json
+Working directory: ~/UROP/cosmos-policy
+Train data: {
+  "files": 10,
+  "episodes": 10,
+  "steps": 4383,
+  "steps_by_suite": {
+    "mirobot_real": 4383
+  },
+  "instructions": [
+    "pick up the blue block on the table"
+  ]
+}
+Observation mode: wrist_only
+~/UROP/cosmos-policy/.venv/bin/python -m torch.distributed.run --nproc_per_node=4 --master_port=12341 -m cosmos_policy.scripts.train --config=cosmos_policy/config/config.py -- experiment=cosmos_predict2_2b_480p_libero 'checkpoint.load_path="~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt"' checkpoint.load_training_state=False checkpoint.load_ema_to_reg=False dataloader_train.batch_size=1 dataloader_train.num_workers=2 trainer.grad_accum_iter=8 trainer.max_iter=1000 optimizer.lr=1e-5 job.group=w9_mirobot 'job.name="d405_libero_finetune"' model.config.fsdp_shard_size=4 model.config.state_t=7 model.config.min_num_conditional_frames=3 model.config.max_num_conditional_frames=3 model.config.tokenizer.chunk_duration=25 'dataloader_train.dataset.data_dir="~/UROP/docs/W9/data/hdf5"' 'dataloader_train.dataset.t5_text_embeddings_path="~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl"' 'dataloader_train.dataset.rollout_data_dir=""' dataloader_train.dataset.demonstration_sampling_prob=1.0 dataloader_train.dataset.success_rollout_sampling_prob=0.0 dataloader_train.dataset.use_wrist_images=true dataloader_train.dataset.use_proprio=true dataloader_train.dataset.use_third_person_images=false 'dataloader_train.sampler.dataset.data_dir="~/UROP/docs/W9/data/hdf5"' 'dataloader_train.sampler.dataset.t5_text_embeddings_path="~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl"' 'dataloader_train.sampler.dataset.rollout_data_dir=""' dataloader_train.sampler.dataset.demonstration_sampling_prob=1.0 dataloader_train.sampler.dataset.success_rollout_sampling_prob=0.0 dataloader_train.sampler.dataset.use_wrist_images=true dataloader_train.sampler.dataset.use_proprio=true dataloader_train.sampler.dataset.use_third_person_images=false
+Initial settings are a smoke-run starting point, not a validated training recipe.
+2026-10-30 13:40:02.426 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:499 - get_config_module: took 0.33ms
+[10-30 13:40:02|CRITICAL|cosmos_policy/_src/predict2/checkpointer/dcp.py:188:<module>] for the back comptiable pytorch! New DefaultLoadPlanner class is created.
+[10-30 13:40:04|INFO|cosmos_policy/_src/imaginaire/visualize/video.py:31:<module>] No module named 'ffmpegcv'
+[10-30 13:40:04|CRITICAL|cosmos_policy/_src/imaginaire/utils/config_helper.py:192:import_all_modules_from_package] Reloading all modules from package cosmos_policy._src.predict2.configs.video2world.experiment
+[10-30 13:40:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering video_basic_augmentor_v1...
+[10-30 13:40:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering video_basic_augmentor_v2...
+[10-30 13:40:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering noframedrop_nocameramove_video_augmentor_v1...
+[10-30 13:40:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering nocameramove_video_augmentor_v1...
+[10-30 13:40:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering image_basic_augmentor...
+[10-30 13:40:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering image_basic_augmentor_without_embeddings...
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_only2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_only2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion_only2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_only2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av_only2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai_only2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown_only2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_high_sigma
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_high_sigma
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion_high_sigma
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_high_sigma
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av_high_sigma
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai_high_sigma
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown_high_sigma
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_high_sigma2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_high_sigma2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_high_sigma2
+[10-30 13:40:07|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-2-Size-2B-Res-720-Fps-16-Note-rf_with_edm_ckpt
+[10-30 13:40:07|CRITICAL|cosmos_policy/_src/imaginaire/utils/config_helper.py:192:import_all_modules_from_package] Reloading all modules from package cosmos_policy.config.experiment
+[10-30 13:40:07|INFO|cosmos_policy/_src/imaginaire/utils/checkpoint_db.py:927:get_checkpoint_by_hf] Downloading checkpoint from HuggingFace: nvidia/Cosmos-Predict2-2B-Video2World/model-480p-16fps.pt
+[10-30 13:40:07|INFO|cosmos_policy/_src/imaginaire/utils/checkpoint_db.py:927:get_checkpoint_by_hf] Downloading checkpoint from HuggingFace: nvidia/Cosmos-Policy-ALOHA-Predict2-2B/Cosmos-Policy-ALOHA-Predict2-2B.pt
+[10-30 13:40:08|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_libero
+[10-30 13:40:08|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_libero__inference_only
+[10-30 13:40:08|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_robocasa_50_demos_per_task
+[10-30 13:40:08|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_robocasa_50_demos_per_task__inference
+[10-30 13:40:08|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80
+[10-30 13:40:08|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__inference_only
+[10-30 13:40:08|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__resumeFrom50K_648_rollouts_Vsprime_value_func
+[10-30 13:40:08|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__resumeFrom50K_648_rollouts_Vsprime_value_func__inference_only
+2026-10-30 13:40:08.245 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:504 - importlib.import_module: took 5818.89ms
+2026-10-30 13:40:09.590 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:509 - override: took 1344.93ms
+2026-10-30 13:40:09.590 | DEBUG    | cosmos_policy._src.imaginaire.config:load_config:488 - toal time to load config: 7201.67ms
+{
+  "status": "passed",
+  "source": "actual Cosmos load_config runtime values",
+  "observation_mode": "wrist_only",
+  "state_t": 7,
+  "conditioning_frames": 3,
+  "chunk_duration": 25,
+  "fsdp_shard_size": 4,
+  "third_person_input": false,
+  "max_iter": 1000,
+  "data_dir": "~/UROP/docs/W9/data/hdf5",
+  "t5_path": "~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl",
+  "model_checkpoint": "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt"
+}
+{
+  "status": "ready",
+  "target": "blue",
+  "instruction": "pick up the blue block on the table",
+  "observation_mode": "wrist_only",
+  "timestep_s": 0.05,
+  "training_started": false,
+  "structure": {
+    "files": 10,
+    "episodes": 10,
+    "steps": 4383,
+    "steps_by_suite": {
+      "mirobot_real": 4383
+    },
+    "instructions": [
+      "pick up the blue block on the table"
+    ]
+  },
+  "loader_report": "~/UROP/docs/W9/data/hdf5/loader_validation.json",
+  "t5_embeddings": "~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl",
+  "statistics": "~/UROP/docs/W9/data/hdf5/dataset_statistics.json",
+  "checkpoint": "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt",
+  "train_command_log": "~/UROP/docs/W9/data/hdf5/validation_logs/train_command.log"
+}

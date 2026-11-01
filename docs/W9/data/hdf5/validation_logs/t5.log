@@ -1,0 +1,4 @@
+$ ~/UROP/cosmos-policy/.venv/bin/python -m docs.W9.d405.make_t5 ~/UROP/docs/W9/data/hdf5 --model google-t5/t5-11b
+`torch_dtype` is deprecated! Use `dtype` instead!
+Encoded: pick up the blue block on the table
+Wrote: ~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl

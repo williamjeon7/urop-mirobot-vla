@@ -1,0 +1,13 @@
+$ ~/UROP/cosmos-policy/.venv/bin/python -m docs.W9.d405.check_dataset ~/UROP/docs/W9/data/hdf5 --t5 ~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl
+{
+  "files": 10,
+  "episodes": 10,
+  "steps": 4383,
+  "steps_by_suite": {
+    "mirobot_real": 4383
+  },
+  "instructions": [
+    "pick up the blue block on the table"
+  ]
+}
+Structure OK. Actual Cosmos loader / model training are separate server checks.

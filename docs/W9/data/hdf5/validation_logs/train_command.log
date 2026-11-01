@@ -1,0 +1,79 @@
+$ ~/UROP/cosmos-policy/.venv/bin/python -m docs.W9.d405.train --cosmos-repo ~/UROP/cosmos-policy --data-dir ~/UROP/docs/W9/data/hdf5 --checkpoint ~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt --gpus 4 --dryrun --config-report ~/UROP/docs/W9/data/hdf5/training_config_validation.json
+Working directory: ~/UROP/cosmos-policy
+Train data: {
+  "files": 10,
+  "episodes": 10,
+  "steps": 4383,
+  "steps_by_suite": {
+    "mirobot_real": 4383
+  },
+  "instructions": [
+    "pick up the blue block on the table"
+  ]
+}
+Observation mode: wrist_only
+~/UROP/cosmos-policy/.venv/bin/python -m torch.distributed.run --nproc_per_node=4 --master_port=12341 -m tools.train_cosmos_libero --config=cosmos_policy/config/config.py -- experiment=cosmos_predict2_2b_480p_libero 'checkpoint.load_path="~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt"' checkpoint.load_training_state=False checkpoint.load_ema_to_reg=False dataloader_train.batch_size=1 dataloader_train.num_workers=2 trainer.grad_accum_iter=8 trainer.max_iter=1000 optimizer.lr=1e-5 job.group=w9_mirobot 'job.name="d405_libero_finetune"' 'job.wandb_mode="disabled"' model.config.fsdp_shard_size=4 model.config.state_t=7 model.config.min_num_conditional_frames=3 model.config.max_num_conditional_frames=3 model.config.tokenizer.chunk_duration=25 'dataloader_train.dataset.data_dir="~/UROP/docs/W9/data/hdf5"' 'dataloader_train.dataset.t5_text_embeddings_path="~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl"' 'dataloader_train.dataset.rollout_data_dir=""' dataloader_train.dataset.demonstration_sampling_prob=1.0 dataloader_train.dataset.success_rollout_sampling_prob=0.0 dataloader_train.dataset.use_wrist_images=true dataloader_train.dataset.use_proprio=true dataloader_train.dataset.use_third_person_images=false 'dataloader_train.sampler.dataset.data_dir="~/UROP/docs/W9/data/hdf5"' 'dataloader_train.sampler.dataset.t5_text_embeddings_path="~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl"' 'dataloader_train.sampler.dataset.rollout_data_dir=""' dataloader_train.sampler.dataset.demonstration_sampling_prob=1.0 dataloader_train.sampler.dataset.success_rollout_sampling_prob=0.0 dataloader_train.sampler.dataset.use_wrist_images=true dataloader_train.sampler.dataset.use_proprio=true dataloader_train.sampler.dataset.use_third_person_images=false
+Initial settings are a smoke-run starting point, not a validated training recipe.
+2026-10-30 13:49:02.509 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:499 - get_config_module: took 0.35ms
+[10-30 13:49:02|CRITICAL|cosmos_policy/_src/predict2/checkpointer/dcp.py:188:<module>] for the back comptiable pytorch! New DefaultLoadPlanner class is created.
+[10-30 13:49:04|INFO|cosmos_policy/_src/imaginaire/visualize/video.py:31:<module>] No module named 'ffmpegcv'
+[10-30 13:49:04|CRITICAL|cosmos_policy/_src/imaginaire/utils/config_helper.py:192:import_all_modules_from_package] Reloading all modules from package cosmos_policy._src.predict2.configs.video2world.experiment
+[10-30 13:49:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering video_basic_augmentor_v1...
+[10-30 13:49:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering video_basic_augmentor_v2...
+[10-30 13:49:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering noframedrop_nocameramove_video_augmentor_v1...
+[10-30 13:49:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering nocameramove_video_augmentor_v1...
+[10-30 13:49:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering image_basic_augmentor...
+[10-30 13:49:04|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering image_basic_augmentor_without_embeddings...
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_only2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_only2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion_only2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_only2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av_only2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai_only2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown_only2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_high_sigma
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_high_sigma
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion_high_sigma
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_high_sigma
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av_high_sigma
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai_high_sigma
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown_high_sigma
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_high_sigma2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_high_sigma2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_high_sigma2
+[10-30 13:49:08|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-2-Size-2B-Res-720-Fps-16-Note-rf_with_edm_ckpt
+[10-30 13:49:08|CRITICAL|cosmos_policy/_src/imaginaire/utils/config_helper.py:192:import_all_modules_from_package] Reloading all modules from package cosmos_policy.config.experiment
+[10-30 13:49:08|INFO|cosmos_policy/_src/imaginaire/utils/checkpoint_db.py:927:get_checkpoint_by_hf] Downloading checkpoint from HuggingFace: nvidia/Cosmos-Predict2-2B-Video2World/model-480p-16fps.pt
+[10-30 13:49:08|INFO|cosmos_policy/_src/imaginaire/utils/checkpoint_db.py:927:get_checkpoint_by_hf] Downloading checkpoint from HuggingFace: nvidia/Cosmos-Policy-ALOHA-Predict2-2B/Cosmos-Policy-ALOHA-Predict2-2B.pt
+[10-30 13:49:09|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_libero
+[10-30 13:49:09|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_libero__inference_only
+[10-30 13:49:09|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_robocasa_50_demos_per_task
+[10-30 13:49:09|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_robocasa_50_demos_per_task__inference
+[10-30 13:49:09|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80
+[10-30 13:49:09|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__inference_only
+[10-30 13:49:09|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__resumeFrom50K_648_rollouts_Vsprime_value_func
+[10-30 13:49:09|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__resumeFrom50K_648_rollouts_Vsprime_value_func__inference_only
+2026-10-30 13:49:09.176 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:504 - importlib.import_module: took 6666.77ms
+2026-10-30 13:49:10.747 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:509 - override: took 1570.64ms
+2026-10-30 13:49:10.747 | DEBUG    | cosmos_policy._src.imaginaire.config:load_config:488 - toal time to load config: 8283.68ms
+{
+  "status": "passed",
+  "source": "actual Cosmos load_config runtime values",
+  "observation_mode": "wrist_only",
+  "state_t": 7,
+  "conditioning_frames": 3,
+  "chunk_duration": 25,
+  "fsdp_shard_size": 4,
+  "third_person_input": false,
+  "max_iter": 1000,
+  "data_dir": "~/UROP/docs/W9/data/hdf5",
+  "t5_path": "~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl",
+  "model_checkpoint": "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt"
+}

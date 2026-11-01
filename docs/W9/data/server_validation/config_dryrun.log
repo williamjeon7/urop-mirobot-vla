@@ -1,0 +1,180 @@
+2026-10-29 20:20:09.530 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:499 - get_config_module: took 0.17ms
+[10-29 20:20:09|CRITICAL|cosmos_policy/_src/predict2/checkpointer/dcp.py:188:<module>] for the back comptiable pytorch! New DefaultLoadPlanner class is created.
+[10-29 20:20:15|INFO|cosmos_policy/_src/imaginaire/visualize/video.py:31:<module>] No module named 'ffmpegcv'
+[10-29 20:20:17|CRITICAL|cosmos_policy/_src/imaginaire/utils/config_helper.py:192:import_all_modules_from_package] Reloading all modules from package cosmos_policy._src.predict2.configs.video2world.experiment
+[10-29 20:20:18|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering video_basic_augmentor_v1...
+[10-29 20:20:18|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering video_basic_augmentor_v2...
+[10-29 20:20:18|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering noframedrop_nocameramove_video_augmentor_v1...
+[10-29 20:20:18|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering nocameramove_video_augmentor_v1...
+[10-29 20:20:18|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering image_basic_augmentor...
+[10-29 20:20:18|INFO|cosmos_policy/_src/predict2/datasets/augmentor_provider.py:94:augmentor_register] registering image_basic_augmentor_without_embeddings...
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_only2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_only2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion_only2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_only2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av_only2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai_only2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown_only2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_high_sigma
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_high_sigma
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_high_motion_high_sigma
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_high_sigma
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_av_high_sigma
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_physical_ai_high_sigma
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_4k_cooldown_high_sigma
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_face_high_sigma2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_crowded_high_sigma2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-1-Size-2B-Res-720-Fps-16-Note-rf_robotics_high_sigma2
+[10-29 20:20:21|INFO|cosmos_policy/_src/predict2/configs/video2world/experiment/specialized_model/SFT_2B_RF.py:853:<module>] Storing Stage-c_pt_4-Index-2-Size-2B-Res-720-Fps-16-Note-rf_with_edm_ckpt
+[10-29 20:20:21|CRITICAL|cosmos_policy/_src/imaginaire/utils/config_helper.py:192:import_all_modules_from_package] Reloading all modules from package cosmos_policy.config.experiment
+[10-29 20:20:22|INFO|cosmos_policy/_src/imaginaire/utils/checkpoint_db.py:927:get_checkpoint_by_hf] Downloading checkpoint from HuggingFace: nvidia/Cosmos-Predict2-2B-Video2World/model-480p-16fps.pt
+[10-29 20:20:22|INFO|cosmos_policy/_src/imaginaire/utils/checkpoint_db.py:927:get_checkpoint_by_hf] Downloading checkpoint from HuggingFace: nvidia/Cosmos-Policy-ALOHA-Predict2-2B/Cosmos-Policy-ALOHA-Predict2-2B.pt
+[10-29 20:20:23|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_libero
+[10-29 20:20:23|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_libero__inference_only
+[10-29 20:20:23|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_robocasa_50_demos_per_task
+[10-29 20:20:23|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_robocasa_50_demos_per_task__inference
+[10-29 20:20:23|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80
+[10-29 20:20:23|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__inference_only
+[10-29 20:20:23|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__resumeFrom50K_648_rollouts_Vsprime_value_func
+[10-29 20:20:23|INFO|cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py:482:register_configs] Registering experiment: cosmos_predict2_2b_480p_aloha_185_demos_4_tasks_mixture_foldshirt15_candiesinbowl45_candyinbag45_eggplantchickenonplate80__resumeFrom50K_648_rollouts_Vsprime_value_func__inference_only
+2026-10-29 20:20:23.082 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:504 - importlib.import_module: took 13551.58ms
+2026-10-29 20:20:25.200 | DEBUG    | cosmos_policy._src.imaginaire.config:_load_py_config:509 - override: took 2118.81ms
+2026-10-29 20:20:25.201 | DEBUG    | cosmos_policy._src.imaginaire.config:load_config:488 - toal time to load config: 15745.00ms
+2026-10-29 20:20:25.201 | INFO     | __main__:<module>:140 - Config:
+* model: {'config': {'tokenizer': {'chunk_duration': 25, 'load_mean_std': False, 'vae_pth': 'hf://nvidia/Cosmos-Predict2-2B-Video2World/tokenizer/tokenizer.pth', 's3_credential_path': 'credentials/s3_training.secret', 'temporal_window': 16, 'is_parallel': False, 'cp_grid_shape': None, '_target_': <class 'cosmos_policy.tokenizers.wan2pt1.Wan2pt1VAEInterface'>}, 'conditioner': {'fps': {'output_key': 'fps', 'dropout_rate': 0.0, 'dtype': None, 'input_key': 'fps', '_target_': <class 'cosmos_policy._src.predict2.conditioner.ReMapkey'>}, 'padding_mask': {'output_key': 'padding_mask', 'dropout_rate': 0.0, 'dtype': None, 'input_key': 'padding_mask', '_target_': <class 'cosmos_policy._src.predict2.conditioner.ReMapkey'>}, 'text': {'dropout_rate': 0.0, 'use_empty_string': False, 'empty_string_embeddings_path': 's3://bucket/predict2_assets/reason1_empty_string_embeddings.pt', 'credential_path': 'credentials/s3_training.secret', 'input_key': ['t5_text_embeddings'], '_target_': <class 'cosmos_policy._src.predict2.conditioner.TextAttr'>}, 'use_video_condition': {'output_key': 'use_video_condition', 'dropout_rate': 0.0, 'input_key': 'fps', '_target_': <class 'cosmos_policy._src.predict2.conditioner.BooleanFlag'>}, '_target_': <class 'cosmos_policy.config.conditioner.video2world_conditioner.Video2WorldConditioner'>}, 'net': {'timestep_scale': 1.0, 'max_img_h': 240, 'max_img_w': 240, 'max_frames': 128, 'in_channels': 16, 'out_channels': 16, 'patch_spatial': 2, 'patch_temporal': 1, 'model_channels': 2048, 'num_blocks': 28, 'num_heads': 16, 'concat_padding_mask': True, 'pos_emb_cls': 'rope3d', 'pos_emb_learnable': True, 'pos_emb_interpolation': 'crop', 'use_adaln_lora': True, 'adaln_lora_dim': 256, 'atten_backend': 'minimal_a2a', 'extra_per_block_abs_pos_emb': False, 'rope_h_extrapolation_ratio': 3.0, 'rope_w_extrapolation_ratio': 3.0, 'rope_t_extrapolation_ratio': 1.0, 'sac_config': {'mode': 'predict2_2b_720', 'every_n_blocks': 1}, '_target_': <class 'cosmos_policy._src.predict2.networks.minimal_v1_lvg_dit.MinimalV1LVGDiT'>, 'rope_enable_fps_modulation': False}, 'ema': {'enabled': False, 'rate': 0.1, 'iteration_shift': 0}, 'fsdp_shard_size': 4, 'sigma_data': 1.0, 'precision': 'bfloat16', 'input_data_key': 'video', 'input_image_key': 'images', 'input_caption_key': 'ai_caption', 'loss_reduce': 'mean', 'loss_scale': 10.0, 'use_torch_compile': False, 'adjust_video_noise': True, 'state_ch': 16, 'state_t': 7, 'resolution': '224', 'scaling': 'rectified_flow', 'rectified_flow_t_scaling_factor': 1.0, 'rectified_flow_loss_weight_uniform': True, 'resize_online': True, 'text_encoder_class': 'T5', 'text_encoder_config': None, 'use_lora': False, 'lora_rank': 32, 'lora_alpha': 32, 'lora_target_modules': 'q_proj,k_proj,v_proj,output_proj,mlp.layer1,mlp.layer2', 'init_lora_weights': True, 'use_wan_fp32_strategy': False, 'use_flowunipc_scheduler': False, 'sde': {'p_mean': 1.3862943611198906, 'p_std': 1.2, 'sigma_max': 200, 'sigma_min': 0.01, 'hybrid_sigma_distribution': True, 'uniform_lower': 1.0, 'uniform_upper': 85.0, '_target_': <class 'cosmos_policy.modules.hybrid_edm_sde.HybridEDMSDE'>}, 'mask_loss_for_action_future_state_prediction': False, 'mask_value_prediction_loss_for_policy_prediction': False, 'mask_current_state_action_for_value_prediction': False, 'mask_future_state_for_qvalue_prediction': False, 'action_loss_multiplier': 1, 'min_num_conditional_frames': 3, 'max_num_conditional_frames': 3, 'sigma_conditional': 0.0, 'conditioning_strategy': 'frame_replace', 'denoise_replace_gt_frames': True, 'high_sigma_strategy': 'none', 'high_sigma_ratio': 0.05, 'low_sigma_ratio': 0.05, 'conditional_frames_probs': None}, '_recursive_': False, '_target_': <class 'cosmos_policy.models.policy_video2world_model.CosmosPolicyVideo2WorldModel'>}
+* optimizer: {'optim_type': 'fusedadam', 'model': None, 'lr': 1e-05, 'weight_decay': 0.1, 'betas': [0.9, 0.99], 'eps': 1e-08, 'master_weights': True, 'capturable': True, '_target_': <function get_base_optimizer at 0x72031a179360>}
+* scheduler: {'verbosity_interval': 0, 'warm_up_steps': [1000, 0], 'cycle_lengths': [30000, 100000000000000], 'f_start': [1e-06, 0.06], 'f_max': [1.0, 0.06], 'f_min': [0.3, 0.06], '_target_': <class 'cosmos_policy._src.imaginaire.functional.lr_scheduler.LambdaLinearScheduler'>}
+* dataloader_train: {'dataloaders': {'image_data': {'dataloader': {'use_cache': False, 'cache_size': 8, 'concat_size': 1, 'cache_augment_fn': functools.partial(<function duplicate_batches at 0x7202abf11750>, n=1), 'cache_replay_name': 'image_dataloader', 'webdataset': False, 'dataset': {'resolution': '224', 'len_t5': 512, 't5_dim': 1024, '_target_': <function get_image_dataset at 0x7202a3989240>, 'dataset_resolution_type': 'gt720p', 'caption_type': 'qwen2p5_7b_v4', 'embedding_type': 't5_xxl'}, 'batch_size': 12, 'shuffle': False, 'num_workers': 6, 'pin_memory': True, '_target_': <function get_cached_replay_dataloader at 0x7202abf12440>}, 'ratio': 1}, 'video_data': {'dataloader': {'use_cache': False, 'cache_size': 16, 'concat_size': 1, 'cache_augment_fn': functools.partial(<function duplicate_batches_random at 0x7202abf11e10>, n=1.8), 'cache_replay_name': 'video_dataloader', 'webdataset': False, 'dataset': {'resolution': '224', 'len_t5': 512, 't5_dim': 1024, 'num_video_frames': 93, '_target_': <function get_video_dataset at 0x7202a39895a0>, 'video_decoder_name': 'video_naive_bytes', 'augmentor_name': 'video_basic_augmentor_v2', 'caption_type': 't2w_qwen2p5_7b', 'embedding_type': 't5_xxl', 'max_fps_thres': 60, 'min_fps_thres': 10, 'dataset_resolution_type': 'all'}, 'batch_size': 1, 'shuffle': False, 'num_workers': 8, 'pin_memory': True, '_target_': <function get_cached_replay_dataloader at 0x7202abf12440>}, 'ratio': 1}}, '_target_': <class 'torch.utils.data.dataloader.DataLoader'>, 'batch_size': 1, 'shuffle': None, 'sampler': {'num_replicas': {'with_context_parallel': False, 'partial_data_parallel': False, '_target_': <function get_data_parallel_world_size at 0x72042ea01ab0>}, 'rank': {'with_context_parallel': False, 'partial_data_parallel': False, '_target_': <function get_data_parallel_rank at 0x72042ea01bd0>}, 'shuffle': True, 'seed': 0, 'drop_last': False, 'dataset': {'chunk_size': 16, 'final_image_size': 224, 't5_text_embeddings_path': '~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl', 'normalize_images': False, 'normalize_actions': True, 'normalize_proprio': True, 'use_image_aug': True, 'use_stronger_image_aug': True, 'use_wrist_images': True, 'use_third_person_images': False, 'use_proprio': True, 'num_duplicates_per_image': 4, 'rollout_data_dir': '', 'demonstration_sampling_prob': 1.0, 'success_rollout_sampling_prob': 0.0, 'treat_success_rollouts_as_demos': False, 'return_value_function_returns': True, 'gamma': 0.99, 'data_dir': '~/UROP/docs/W9/data/hdf5', '_target_': <class 'cosmos_policy.datasets.libero_dataset.LIBERODataset'>}, '_target_': <class 'torch.utils.data.distributed.DistributedSampler'>}, 'batch_sampler': None, 'num_workers': 2, 'collate_fn': None, 'pin_memory': True, 'drop_last': True, 'timeout': 0, 'worker_init_fn': None, 'multiprocessing_context': None, 'generator': None, 'prefetch_factor': None, 'persistent_workers': True, 'pin_memory_device': '', 'in_order': True, 'dataset': {'chunk_size': 16, 'final_image_size': 224, 't5_text_embeddings_path': '~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl', 'normalize_images': False, 'normalize_actions': True, 'normalize_proprio': True, 'use_image_aug': True, 'use_stronger_image_aug': True, 'use_wrist_images': True, 'use_third_person_images': False, 'use_proprio': True, 'num_duplicates_per_image': 4, 'rollout_data_dir': '', 'demonstration_sampling_prob': 1.0, 'success_rollout_sampling_prob': 0.0, 'treat_success_rollouts_as_demos': False, 'return_value_function_returns': True, 'gamma': 0.99, 'data_dir': '~/UROP/docs/W9/data/hdf5', '_target_': <class 'cosmos_policy.datasets.libero_dataset.LIBERODataset'>}}
+* dataloader_val: {'dataloaders': {'image_data': {'dataloader': {'use_cache': False, 'cache_size': 32, 'concat_size': 1, 'cache_augment_fn': None, 'cache_replay_name': 'image_dataloader', 'webdataset': False, 'dataset': {'resolution': '512', 'len_t5': 512, 't5_dim': 1024, '_target_': <function get_image_dataset at 0x7202a3989240>}, 'batch_size': 2, 'shuffle': False, 'num_workers': 8, 'pin_memory': True, '_target_': <function get_cached_replay_dataloader at 0x7202abf12440>}, 'ratio': 1}, 'video_data': {'dataloader': {'use_cache': False, 'cache_size': 32, 'concat_size': 1, 'cache_augment_fn': None, 'cache_replay_name': 'video_dataloader', 'webdataset': False, 'dataset': {'resolution': '512', 'len_t5': 512, 't5_dim': 1024, 'num_video_frames': 136, '_target_': <function get_video_dataset at 0x7202a39895a0>}, 'batch_size': 1, 'shuffle': False, 'num_workers': 8, 'pin_memory': True, '_target_': <function get_cached_replay_dataloader at 0x7202abf12440>}, 'ratio': 1}}, '_target_': <class 'cosmos_policy._src.predict2.datasets.joint_dataloader.IterativeJointDataLoader'>}
+* job:
+   * project: cosmos_policy
+   * group: w9_mirobot
+   * name: d405_libero_finetune
+   * wandb_mode: online
+   * cluster: None
+* trainer:
+   * type: <class 'cosmos_policy.trainer.CosmosPolicyTrainer'>
+   * callbacks: {'grad_clip': {'clip_norm': 1.0, 'force_finite': True, '_target_': <class 'cosmos_policy._src.predict2.callbacks.grad_clip.GradClip'>}, 'low_prec': {'config': None, 'trainer': None, 'update_iter': 1, '_target_': <class 'cosmos_policy._src.imaginaire.utils.callback.LowPrecisionCallback'>}, 'iter_speed': {'hit_thres': 5, 'save_s3': False, 'save_s3_every_log_n': 10, 'every_n': 5, '_target_': <class 'cosmos_policy._src.predict2.callbacks.iter_speed.IterSpeed'>}, 'heart_beat': {'step_size': 1, 'update_interval_in_minute': 20, 'save_s3': False, 'every_n': 10, '_target_': <class 'cosmos_policy._src.predict2.callbacks.heart_beat.HeartBeat'>}, 'device_monitor': {'every_n': 5, 'step_size': 1, 'save_s3': False, 'upload_every_n_mul': 10, 'log_memory_detail': True, '_target_': <class 'cosmos_policy._src.predict2.callbacks.device_monitor.DeviceMonitor'>}, 'manual_gc': {'warm_up': 5, 'every_n': 5, '_target_': <class 'cosmos_policy._src.imaginaire.callbacks.manual_gc.ManualGarbageCollection'>}, 'compile_tokenizer': {'enabled': True, 'compile_after_iterations': 4, 'dynamic': False, '_target_': <class 'cosmos_policy._src.predict2.callbacks.compile_tokenizer.CompileTokenizer'>}, 'dataloader_speed': {'step_size': 1, 'save_s3': False, 'every_n': 5, '_target_': <class 'cosmos_policy._src.predict2.callbacks.dataloading_monitor.DetailedDataLoadingSpeedMonitor'>}, 'wandb': {'logging_iter_multipler': 1, 'save_logging_iter_multipler': 10, 'save_s3': False, '_target_': <class 'cosmos_policy.config.callbacks.WandbCallback'>}, 'wandb_10x': {'logging_iter_multipler': 10, 'save_logging_iter_multipler': 1, 'save_s3': False, '_target_': <class 'cosmos_policy.config.callbacks.WandbCallback'>}, 'every_n_sample_reg': {'every_n': 100000, 'do_x0_prediction': False, 'guidance': [0], 'fps': 16, 'save_s3': False, 'use_negative_prompt': False, 'num_sampling_step': 9}, 'every_n_sample_ema': {'every_n': 5000, 'do_x0_prediction': False, 'guidance': [0, 3, 7], 'fps': 16}, 'reg_model_image2video_sora_val_sampling': {'every_n': 5000, 'use_negative_prompt': True, 'latent_video_length': 7}, 'ema_model_image2video_sora_val_sampling': {'every_n': 5000, 'use_negative_prompt': True, 'latent_video_length': 7}, 'reg_model_image2video_vbench_val_sampling': {'every_n': 5000, 'use_negative_prompt': True, 'latent_video_length': 7}, 'ema_model_image2video_vbench_val_sampling': {'every_n': 5000, 'use_negative_prompt': True, 'latent_video_length': 7}}
+   * distributed_parallelism: fsdp
+   * ddp:
+      * find_unused_parameters: False
+      * static_graph: True
+      * broadcast_buffers: True
+   * cudnn:
+      * deterministic: False
+      * benchmark: True
+   * seed: 0
+   * grad_scaler_args: {'enabled': False}
+   * max_iter: 1
+   * max_val_iter: None
+   * logging_iter: 5
+   * run_validation: False
+   * validation_iter: 100
+   * run_validation_on_start: False
+   * timeout_period: 999999999
+   * memory_format: torch.preserve_format
+   * grad_accum_iter: 1
+   * straggler_detection:
+      * enabled: False
+      * report_freq: 100
+      * profile_freq: 1
+      * max_diff: 1.5
+      * raise_error: True
+      * analyze_forward: True
+      * analyze_backward: True
+      * analyze_optimizer: True
+      * analyze_dataloading: True
+   * profiling:
+      * enable_profiling: False
+      * enable_memory_snapshot: False
+      * save_s3: False
+      * profile_freq: 1
+      * target_ranks: [0, 1, 2, 3, 4, 5, 6, 7]
+      * record_shape: False
+      * profile_memory: False
+      * with_stack: True
+      * with_modules: True
+* model_parallel: ModelParallelConfig(tensor_model_parallel_size=1, pipeline_model_parallel_comm_backend=None, pipeline_model_parallel_size=1, virtual_pipeline_model_parallel_size=None, sequence_parallel=False, context_parallel_size=1, hierarchical_context_parallel_sizes=None, expert_model_parallel_size=1, expert_tensor_parallel_size=1, moe_extended_tp=False, perform_initialization=True, use_cpu_initialization=False, fp16=False, bf16=False, params_dtype=torch.float32, timers=None, finalize_model_grads_func=None, grad_scale_func=None, no_sync_func=None, grad_sync_func=None, param_sync_func=None, deterministic_mode=False, enable_autocast=False, autocast_dtype=torch.float32, num_microbatches_with_partial_activation_checkpoints=None, gradient_accumulation_fusion=False, async_tensor_model_parallel_allreduce=False, use_te_rng_tracker=False, tp_comm_overlap=False, tp_comm_bulk_wgrad=True, tp_comm_bulk_dgrad=True, tp_comm_overlap_ag=True, tp_comm_overlap_rs=True, tp_comm_overlap_rs_dgrad=False, tp_comm_split_ag=True, tp_comm_atomic_ag=False, tp_comm_split_rs=True, tp_comm_atomic_rs=False, cross_entropy_loss_fusion=False, cross_entropy_fusion_impl='native', tp_comm_overlap_disable_qkv=False, tp_comm_overlap_disable_fc1=False, tp_comm_bootstrap_backend='nccl', overlap_moe_expert_parallel_comm=False, delay_wgrad_compute=False, pipeline_dtype=None, variable_seq_lengths=False, overlap_p2p_comm=False, batch_p2p_comm=True, batch_p2p_sync=True, use_ring_exchange_p2p=False, deallocate_pipeline_outputs=False, defer_embedding_wgrad_compute=False, wgrad_deferral_limit=0, overlap_p2p_comm_warmup_flush=False, microbatch_group_size_per_vp_stage=1, cpu_offloading=False, cpu_offloading_num_layers=0, _cpu_offloading_context=None, cpu_offloading_activations=True, cpu_offloading_weights=True, cpu_offloading_double_buffering=False, barrier_with_L1_time=True)
+* checkpoint: {'type': {'callbacks': None, 'disable_async': False, '_target_': <class 'cosmos_policy._src.predict2.checkpointer.dcp.DistributedCheckpointer'>}, 'dcp_async_mode_enabled': False, 'save_to_object_store': {'enabled': False, 'credentials': 'credentials/s3_checkpoint.secret', 'bucket': 'bucket'}, 'save_iter': 1000, 'load_from_object_store': {'enabled': False, 'credentials': 'credentials/s3_checkpoint.secret', 'bucket': 'bucket'}, 'load_path': '~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt', 'load_training_state': False, 'only_load_scheduler_state': False, 'strict_resume': False, 'jit': {'enabled': False, 'input_shape': None, 'device': 'cuda', 'dtype': 'bfloat16', 'strict': True}, 'verbose': True, 'keys_not_to_resume': [], 'broadcast_via_filesystem': False, 'load_ema_to_reg': False, 'dcp_allow_mismatched_size': False, 'enable_gcs_patch_in_boto3': False}
+* upload_reproducible_setup: False
+* defaults: ['_self_', {'data_train': 'mock'}, {'data_val': 'mock'}, {'optimizer': 'fusedadamw'}, {'scheduler': 'lambdalinear'}, {'model': 'policy_fsdp'}, {'callbacks': 'basic'}, {'net': None}, {'conditioner': 'video_prediction_conditioner'}, {'ema': 'power'}, {'tokenizer': 'policy_wan2pt1_tokenizer'}, {'checkpoint': 's3'}, {'ckpt_type': 'dummy'}, {'experiment': None}]
+* overrides: 
+   * experiment: cosmos_predict2_2b_480p_libero
+   * checkpoint.load_path: "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt"
+   * checkpoint.load_training_state: False
+   * checkpoint.load_ema_to_reg: False
+   * dataloader_train.batch_size: 1
+   * dataloader_train.num_workers: 2
+   * trainer.grad_accum_iter: 1
+   * trainer.max_iter: 1
+   * optimizer.lr: 1e-5
+   * job.group: w9_mirobot
+   * job.name: d405_libero_finetune
+   * model.config.fsdp_shard_size: 4
+   * model.config.state_t: 7
+   * model.config.min_num_conditional_frames: 3
+   * model.config.max_num_conditional_frames: 3
+   * model.config.tokenizer.chunk_duration: 25
+   * dataloader_train.dataset.data_dir: "~/UROP/docs/W9/data/hdf5"
+   * dataloader_train.dataset.t5_text_embeddings_path: "~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl"
+   * dataloader_train.dataset.rollout_data_dir: ""
+   * dataloader_train.dataset.demonstration_sampling_prob: 1.0
+   * dataloader_train.dataset.success_rollout_sampling_prob: 0.0
+   * dataloader_train.dataset.use_wrist_images: true
+   * dataloader_train.dataset.use_proprio: true
+   * dataloader_train.dataset.use_third_person_images: false
+   * dataloader_train.sampler.dataset.data_dir: "~/UROP/docs/W9/data/hdf5"
+   * dataloader_train.sampler.dataset.t5_text_embeddings_path: "~/UROP/docs/W9/data/hdf5/t5_embeddings.pkl"
+   * dataloader_train.sampler.dataset.rollout_data_dir: ""
+   * dataloader_train.sampler.dataset.demonstration_sampling_prob: 1.0
+   * dataloader_train.sampler.dataset.success_rollout_sampling_prob: 0.0
+   * dataloader_train.sampler.dataset.use_wrist_images: true
+   * dataloader_train.sampler.dataset.use_proprio: true
+   * dataloader_train.sampler.dataset.use_third_person_images: false
+2026-10-29 20:20:25.207 | ERROR    | __main__:<module>:147 - to_yaml failed, falling back to LazyConfig.save_yaml:
+2026-10-29 20:20:25.207 | ERROR    | __main__:<module>:148 - Traceback: Traceback (most recent call last):
+  File "~/UROP/cosmos-policy/cosmos_policy/scripts/train.py", line 145, in <module>
+    to_yaml(config, f"{config.job.path_local}/config.yaml")
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 52, in to_yaml
+    config_dict = to_dict(config)
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 224, in to_dict
+    result[f.name] = _to_dict_value(
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 122, in _to_dict_value
+    result = _to_dict_value(x, dict, metadata, field_name)
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 150, in _to_dict_value
+    return {
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 156, in <dictcomp>
+    ): _to_dict_value(
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 122, in _to_dict_value
+    result = _to_dict_value(x, dict, metadata, field_name)
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 150, in _to_dict_value
+    return {
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 156, in <dictcomp>
+    ): _to_dict_value(
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 122, in _to_dict_value
+    result = _to_dict_value(x, dict, metadata, field_name)
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 150, in _to_dict_value
+    return {
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 156, in <dictcomp>
+    ): _to_dict_value(
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 122, in _to_dict_value
+    result = _to_dict_value(x, dict, metadata, field_name)
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 150, in _to_dict_value
+    return {
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 156, in <dictcomp>
+    ): _to_dict_value(
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 137, in _to_dict_value
+    return to_qualitified_name(x)
+  File "~/UROP/cosmos-policy/cosmos_policy/_src/imaginaire/serialization.py", line 93, in to_qualitified_name
+    result += x.__qualname__
+AttributeError: 'functools.partial' object has no attribute '__qualname__'
+
+Config is saved using omegaconf at /tmp/imaginaire4-output/cosmos_policy/w9_mirobot/d405_libero_finetune/config.yaml.
+/tmp/imaginaire4-output/cosmos_policy/w9_mirobot/d405_libero_finetune/config.yaml
