@@ -57,6 +57,8 @@ from pickup import run_pickup  # noqa: E402
 from preview import create_env  # noqa: E402
 
 CAMERAS = ("agentview", "robot0_eye_in_hand")
+REAL_BLOCK_MM = 20.0   # 실물 블록 한 변 (10/11 W6, 11/01 사용자 확인)
+MIROBOT_SCALE = 0.663  # Mirobot mm = 0.663 × Panda mm (W5 10/5 Zt 실측). 시뮬 크기 = 실물 ÷ 배율 (W5 CHECKLIST 4-3 C)
 INSTRUCTION = "pick up the {} block on the table"  # LIBERO 지시문처럼 소문자·마침표 없음
 NOOP_THRESHOLD = 1e-4  # regenerate_libero_dataset.py:89 is_noop
 OBS_KEYS = ("agentview_rgb", "eye_in_hand_rgb", "joint_states", "gripper_states", "ee_states")
@@ -116,9 +118,9 @@ def target_picked(result) -> bool:
             and result["goal_true_throughout_verify"])
 
 
-def record_episode(color: str, seed: int, size: int):
+def record_episode(color: str, seed: int, size: int, block_mm: float):
     """pick up 한 번. 성공하면 (칸 목록, 정보), 아니면 (None, 이유)."""
-    env = create_env(resolution=size, cameras=CAMERAS, ignore_done=True, task=color, seed=seed)
+    env = create_env(size_mm=block_mm, resolution=size, cameras=CAMERAS, ignore_done=True, task=color, seed=seed)
     try:
         obs = env.reset()
         frames, record = [snapshot(obs)], []
@@ -179,12 +181,15 @@ def main() -> int:
                         help="출력 폴더 — 로더의 data_dir 바로 아래 폴더가 묶음(suite) 이름이 된다")
     parser.add_argument("--prefix", default="PANDA_SIM", help="파일 이름 앞부분. 로더는 SCENE 앞을 버린다")
     parser.add_argument("--size", type=int, default=256, help="카메라 해상도 (LIBERO 재생성과 같은 256)")
+    parser.add_argument("--block-mm", type=float, default=round(REAL_BLOCK_MM / MIROBOT_SCALE, 2),
+                        help=f"시뮬 블록 한 변 mm — 기본 실물 {REAL_BLOCK_MM:g} ÷ {MIROBOT_SCALE} (W6 기본 {BLOCK_SIZE_MM:g} 은 실물 크기를 정하기 전 값)")
     args = parser.parse_args()
 
     seeds = range(args.count * 2) if args.count else parse_seeds(args.seeds)  # --count 는 실패가 절반을 넘으면 멈춘다
     args.out.mkdir(parents=True, exist_ok=True)
     meta = {"source": "docs/W6/rgb_blocks/pickup.py run_pickup", "commit": git_commit(),
-            "created": time.strftime("%Y-%m-%d %H:%M:%S"), "block_size_mm": BLOCK_SIZE_MM,
+            "created": time.strftime("%Y-%m-%d %H:%M:%S"), "block_size_mm": args.block_mm,
+            "real_block_mm": REAL_BLOCK_MM, "mirobot_scale": MIROBOT_SCALE,
             "cameras": ",".join(CAMERAS), "image_size": args.size, "image_orientation": "upright (np.flipud of render)",
             "robot_states": "gripper_qpos(2) eef_pos(3, m, LIBERO world) eef_quat(4, xyzw)",
             "pairing": "obs before action (regenerate_libero_dataset.py)"}
@@ -198,7 +203,7 @@ def main() -> int:
             if args.count and len(episodes) >= args.count:
                 break
             t0 = time.time()
-            ep, reason = record_episode(color, seed, args.size)
+            ep, reason = record_episode(color, seed, args.size, args.block_mm)
             if ep is None:
                 failed.append((color, seed, reason))
                 print("  {} seed {}: 건너뜀 — {}".format(color, seed, reason), flush=True)

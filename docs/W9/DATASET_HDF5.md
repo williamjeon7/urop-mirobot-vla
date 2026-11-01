@@ -13,8 +13,11 @@ Calibrite Classic Mini 색상표 보정과 기존 키보드 조작으로 수집:
 ## 0. 한눈에
 
 - **목표** — Panda 시뮬 90 + Mirobot 실물 10 에피소드를 로더가 읽는 HDF5 로 (10/28 action plan 4·5번)
-- **된 것** — Panda 시뮬 쪽 도구가 있고, **90개(색마다 30)를 만들었다** (10/29, 6-2절). 1번 환경 수정 뒤 같은 명령으로 다시 만든다
+- **된 것** — Panda 시뮬 쪽 도구가 있고, **90개(색마다 30)를 블록 30.2 mm(실물 20 mm ÷ 0.663)로 다시 만들었다** (11/01, 6-4절). 테이블·블록 색·손목 카메라를 실물에 맞춘 뒤 같은 명령으로 다시 만든다
 - **남은 것** — no-op 거르기(Mirobot 데이터를 보고), 정규화 통계(7절, 5번과), Mirobot 쪽([FOLLOW.md](FOLLOW.md))
+- **학습은 손목만 (11/01 사용자 결정)** — Mirobot 10개(동료, [MIROBOT_DATA_COLLECTION.md](MIROBOT_DATA_COLLECTION.md))가 손목만이라 Panda 90개도 학습 설정 `use_third_person_images=False` 로 외부 영상을 끈다.
+  카메라 구성에 따라 입력 순서가 달라 한 학습에서 섞을 수 없다 — 두 시점은 video 33프레임(손목 2 · 외부 3 · action 4 · value 8칸), 손목만은 25프레임(손목 2 · action 3 · value 6칸).
+  Panda 90개는 HDF5 를 다시 만들지 않아도 손목 전용으로 읽힌다(11/01 확인, 공식 LIBERO 통계). `agentview_rgb` 는 HDF5 에 남지만 학습에 쓰지 않는다
 
 ## 1. 목표 형식 — Cosmos LIBERO 로더가 읽는 것
 
@@ -92,6 +95,7 @@ Calibrite Classic Mini 색상표 보정과 기존 키보드 조작으로 수집:
   | 영상 저장 | 원본 uint8 (JPEG 아님) | action plan 4번 | 로더는 둘 다 읽는다. 원본은 에피소드 하나에 약 57 MB |
   | no-op | 지금은 거르지 않고 세기만. **Mirobot 데이터를 만든 뒤 비율을 보고 정한다** | 10/29 사용자 결정 | Panda 90개는 0개라 결과가 같다. Mirobot 은 기다리는 구간에서 생길 수 있다. LIBERO 재생성은 걸렀다 (`regenerate_libero_dataset.py:89, 209`) |
   | 성공한 것만 | **대상 블록을 집어 들었는가만** 본다 (`target_picked`) | 성공만 남기는 것은 LIBERO 재생성과 같음. 판정 범위는 **10/29 사용자 결정** | 아래 "성공 판정" |
+  | 블록 크기 | **30.17 mm** = 실물 20 mm ÷ 배율 0.663 (`--block-mm` 기본값) | 11/01 사용자 결정 | 규칙은 W5 CHECKLIST 4-3 C "크기 = 실물 ÷ s". W6 기본 40 mm(실물 26.5 mm 에 해당)는 실물 크기를 정하기 전 값이라, W6 값은 그대로 두고 W9 도구 기본값으로 바꿨다 |
   | 색마다 개수·seed | 30개, seed 0–29 를 세 색이 같이 쓴다 | 10/29 사용자 결정 (처음엔 임의 판단) | 같은 seed = 같은 블록 배치 — 한 배치를 지시문만 바꿔 세 번 쓴다 (6-2절). 언어 준수율을 직접 가르치는 짝이다 (LIBERO-Goal 과 같은 생각). 다양성이 모자라면 일부 seed 를 색마다 따로 쓴다 |
   | 실행 환경 | **`.venv`** — 따라가기·로더·학습과 같은 환경. 처음엔 conda `libero`(W6 pick up 환경)로 만들었다 | 10/29 사용자 결정 | 두 환경의 렌더링이 미세하게 다르다 ([FOLLOW.md](FOLLOW.md) 5-3). 지금 90개는 conda `libero` 로 만든 것 — 1번 환경 수정 뒤 `.venv` 로 다시 만든다. 도구는 Python 3.8 에서도 돌게 `common/` 을 쓰지 않는다 |
 
@@ -155,6 +159,17 @@ python -m tools.hdf5_to_mp4 data/hdf5/panda_sim/*.hdf5 --random 2 --out docs/W9/
 색마다 무작위 2개 → 서버 `docs/W9/hdf5_check/` 에 6개 (각 1.3–1.4 MB, 7.15–7.5초, **git 제외** — 위 명령으로 다시 만든다): red seed 14·17, green seed 7·20, blue seed 11·14.
 **red 14 와 blue 14 는 같은 배치에서 지시문만 다른 짝**이다 — 같은 76번째 칸에서 각각 빨강·파랑 블록을 잡고 있다(손가락 0.0194).
 
+### 6-4. 블록 30.2 mm 로 다시 만든 90개 (11/01)
+
+`cosmos-policy/.venv/bin/python -m tools.pickup_to_hdf5 --count 30` (`.venv`, 3분 7초). 6-1·6-2·6-3 의 숫자는 그 전 40 mm · conda `libero` 데이터 기준이다.
+
+- **90/90 성공**, 실패한 seed 없음 (세 색 모두 seed 0–29). 칸 143–154, 합 13,141. 다른 블록 최대 이동 10.9 mm (기록만)
+- **"잡음" 손가락 값이 바뀐다** — lift·verify 구간 중앙 **0.0140** (0.0136–0.0146). 40 mm 블록 때는 0.0191 이었다 → B' 잡음 값을 0.0140 으로 고치고, 동료 Mirobot 10개는 손가락만 다시 계산한 사본을 `data/hdf5_mix/mirobot_real/` 에 만들었다 ([FOLLOW.md](FOLLOW.md) 3-4절)
+- **블록 배치 범위** — 중심 x −0.2882 ~ −0.1108, y −0.1558 ~ 0.1528 m. W6 가 의도한 범위(x −0.2819 ~ −0.1160, y ±0.1508)보다 최대 6 mm(시뮬, Mirobot 기준 약 4 mm) 넓다 —
+  BDDL 영역을 40 mm 블록 반지름에 맞춰 넓혀 두었는데 블록이 작아졌기 때문. 가장 가까운 두 블록 중심 간격 최소 42.7 mm (면 사이 약 12.5 mm)
+- **로더** — 손목만(`use_third_person_images=False`), 공식 LIBERO 통계: 에피소드 90, step 13,141, video (3, 25, 224, 224)
+- 40 mm 데이터는 `data/hdf5_archive/2026_10_29-panda_sim_40mm_conda/` 로 옮겼다 (git 제외). `data/hdf5/dataset_statistics*.json` 은 그 40 mm 시험판에서 계산한 옛 통계다 — 학습에는 공식 LIBERO 통계를 쓴다
+
 ## 7. 정규화 통계 문제
 
 로더는 데이터에서 min·max 를 계산해 `2(x − min)/(max − min) − 1` 로 [−1, 1] 에 편다 (`dataset_utils.py:201-209`).
@@ -174,4 +189,5 @@ python -m tools.hdf5_to_mp4 data/hdf5/panda_sim/*.hdf5 --random 2 --out docs/W9/
 | A. 우리 데이터로 계산 | 그대로 둔다 (로더 기본) | 우리 값이 [−1, 1] 을 넓게 쓴다 | 체크포인트가 배운 "숫자의 뜻"이 바뀐다. 거의 안 변하는 칸은 흔들림이 부풀려진다 |
 | B. LIBERO 통계 그대로 | `libero_dataset_statistics.json` 을 `data_dir` 에 `dataset_statistics.json` 으로 둔다 — 로더가 계산하지 않고 읽는다 | 체크포인트와 같은 뜻으로 이어서 배운다 | 우리 값은 [−1, 1] 의 좁은 부분만 쓴다 |
 
-**아직 정하지 않았다** — 학습 설정이라 5번과 정한다 (CHECKLIST 5절 미팅 질문).
+~~아직 정하지 않았다~~ → **B (공식 LIBERO 통계)** — 동료 파이프라인이 이렇게 했다(`docs/W9/data/hdf5/dataset_statistics.json`, 11/01 확인).
+상수에 가까운 칸을 자체 min·max 로 펴면 0 나누기·흔들림 증폭이 생긴다는 같은 이유다. 손목 전용으로 Panda 90개를 읽을 때도 이 통계를 쓴다 (6-4절).

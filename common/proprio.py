@@ -11,7 +11,8 @@
   (체크포인트 통계 0.29 ~ 1.0, W9 시험판 1.0 근처). 변환한 값도 기준과 같은 쪽으로 맞춘다 (`align_sign`)
 * **손가락** — B' (10/28): Mirobot `M4` 명령을 기준으로 하되 값은 Panda 뜻에 맞춘다. 열림 → Panda 열림 값,
   닫힘 → Panda 가 블록을 잡았을 때 값. 0 근처(빈손으로 끝까지 닫음)로 두면 Panda 데이터와 뜻이 반대가 된다.
-  두 값은 40 mm 블록 시뮬 기록(W6 pick up red s0, 10/7)에서 읽었다 — 블록 크기가 바뀌면 다시 잰다.
+  "잡음" 값은 시뮬 블록 크기에 따라 다르다 — 11/01 블록을 실물 20 mm ÷ 0.663 = 30.2 mm 로 바꿔 0.0140 으로 다시 쟀다
+  (40 mm 블록 때는 0.0191). 블록 크기가 바뀌면 다시 잰다.
   닫히는 시간은 아직 모른다 — 여기서는 닫힌 정도(0 ~ 1)를 받는다
 
 표준 라이브러리만 쓴다 (`common/` 규약).
@@ -33,7 +34,7 @@ from common.workspace import (
 )
 
 FINGER_OPEN_M = 0.0398  # Panda 열림 — W6 pick up red s0 approach·lower 0.0396 ~ 0.0399
-FINGER_HOLD_M = 0.0191  # Panda 가 40 mm 블록을 잡았을 때 — 같은 기록 grasp 끝·lift
+FINGER_HOLD_M = 0.0140  # Panda 가 30.2 mm 블록을 잡았을 때 — W9 Panda 90개 lift·verify 중앙 (11/01, 40 mm 때 0.0191)
 
 # 머리말 설명 줄 "; F = x축 180°, …, orientation absolute" (poses_to_gcode · libero_to_mirobot_gcode 둘 다 기본 absolute)
 _ORIENTATION_RE = re.compile(r"^;.*\borientation\s+(absolute|relative)\b", re.MULTILINE)
@@ -69,7 +70,7 @@ def mirobot_to_libero_pose(xyz_mm, abc_deg, ref_flange_m, ref_q_wxyz: Quat, sett
 def fingers(closed: float, open_m: float = FINGER_OPEN_M, hold_m: float = FINGER_HOLD_M) -> tuple[float, float]:
     """B' — 닫힌 정도(0 열림 ~ 1 블록을 잡음) → Panda 손가락 두 칸 (왼쪽 +, 오른쪽 −)."""
     c = min(max(closed, 0.0), 1.0)
-    q = open_m + (hold_m - open_m) * c
+    q = open_m * (1.0 - c) + hold_m * c  # 끝점(0, 1)에서 열림·잡음 값이 정확히 나오게
     return q, -q
 
 
