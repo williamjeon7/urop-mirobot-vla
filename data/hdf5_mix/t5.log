@@ -1,0 +1,6 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Encoded: pick up the blue block on the table
+Encoded: pick up the green block on the table
+Encoded: pick up the red block on the table
+Wrote: data/hdf5_mix/t5_embeddings.pkl
+exit 0 elapsed 567 s

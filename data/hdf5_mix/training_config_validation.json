@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "source": "actual Cosmos load_config runtime values",
+  "observation_mode": "wrist_only",
+  "state_t": 7,
+  "conditioning_frames": 3,
+  "chunk_duration": 25,
+  "fsdp_shard_size": 4,
+  "third_person_input": false,
+  "max_iter": 1000,
+  "data_dir": "~/UROP/data/hdf5_mix",
+  "t5_path": "~/UROP/data/hdf5_mix/t5_embeddings.pkl",
+  "model_checkpoint": "~/.cache/huggingface/hub/models--nvidia--Cosmos-Policy-LIBERO-Predict2-2B/snapshots/cb689ec0e3347c13667d70a78a3447388f5c3bb8/Cosmos-Policy-LIBERO-Predict2-2B.pt",
+  "output_dir": "~/UROP/outputs/cosmos_policy/w9_mirobot/w9_mix_panda90_mirobot10"
+}
