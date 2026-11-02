@@ -1,8 +1,8 @@
 # Cosmos LIBERO 형식 HDF5 — 형식, 만드는 법, 확인
 
-> **설계** · 확인 2026-10-29 · 기준 `cosmos-policy@18a2acc`, W6 `docs/W6/rgb_blocks/pickup.py`
+> **설계** · 확인 2026-10-29 · 갱신 2026-11-02 · 기준 `cosmos-policy@18a2acc`, W6 `docs/W6/rgb_blocks/pickup.py`
 > 5번 파인튜닝에 넣을 에피소드를 Cosmos LIBERO 로더가 그대로 읽는 HDF5 로 만드는 방법. 목표 형식, 짝 맞추기, 파일 이름 규칙,
-> 두 도구(`tools/pickup_to_hdf5.py`, `tools/check_cosmos_dataset.py`)의 배경과 동작, 시험판 결과, 정규화 통계 문제.
+> 두 도구(`tools/pickup_to_hdf5.py`, `tools/check_cosmos_dataset.py`)의 배경과 동작, 시험판 결과, 정규화 통계 문제. 실물 녹화와 비교해 걸리는 점은 [ISSUES.md](ISSUES.md).
 
 할 일과 상태는 [CHECKLIST.md](CHECKLIST.md) 4절, 시간 순서 기록은 [WORKLOG.md](WORKLOG.md).
 Mirobot 에피소드의 외부 영상·action·proprio 를 만드는 방법은 [FOLLOW.md](FOLLOW.md).
@@ -15,6 +15,7 @@ Calibrite Classic Mini 색상표 보정과 기존 키보드 조작으로 수집:
 - **목표** — Panda 시뮬 90 + Mirobot 실물 10 에피소드를 로더가 읽는 HDF5 로 (10/28 action plan 4·5번)
 - **된 것** — Panda 시뮬 쪽 도구가 있고, **90개(색마다 30)를 블록 30.2 mm(실물 20 mm ÷ 0.663)로 다시 만들었다** (11/01, 6-4절). 테이블·블록 색·손목 카메라를 실물에 맞춘 뒤 같은 명령으로 다시 만든다
 - **남은 것** — no-op 거르기(Mirobot 데이터를 보고), 정규화 통계(7절, 5번과), Mirobot 쪽([FOLLOW.md](FOLLOW.md))
+- **pick up 정교화 (11/02 사용자 결정)** — 실물은 비뚤어지거나 붙은 블록도 집는다. 지금 90개를 먼저 쓰고, 블록 회전·붙은 배치는 1차 파인튜닝 결과가 너무 나쁘면 그때 장면 맞추기와 함께 넣는다 ([ISSUES.md](ISSUES.md) 2절)
 - **학습은 손목만 (11/01 사용자 결정)** — Mirobot 10개(동료, [MIROBOT_DATA_COLLECTION.md](MIROBOT_DATA_COLLECTION.md))가 손목만이라 Panda 90개도 학습 설정 `use_third_person_images=False` 로 외부 영상을 끈다.
   카메라 구성에 따라 입력 순서가 달라 한 학습에서 섞을 수 없다 — 두 시점은 video 33프레임(손목 2 · 외부 3 · action 4 · value 8칸), 손목만은 25프레임(손목 2 · action 3 · value 6칸).
   Panda 90개는 HDF5 를 다시 만들지 않아도 손목 전용으로 읽힌다(11/01 확인, 공식 LIBERO 통계). `agentview_rgb` 는 HDF5 에 남지만 학습에 쓰지 않는다
@@ -191,3 +192,8 @@ python -m tools.hdf5_to_mp4 data/hdf5/panda_sim/*.hdf5 --random 2 --out docs/W9/
 
 ~~아직 정하지 않았다~~ → **B (공식 LIBERO 통계)** — 동료 파이프라인이 이렇게 했다(`docs/W9/data/hdf5/dataset_statistics.json`, 11/01 확인).
 상수에 가까운 칸을 자체 min·max 로 펴면 0 나누기·흔들림 증폭이 생긴다는 같은 이유다. 손목 전용으로 Panda 90개를 읽을 때도 이 통계를 쓴다 (6-4절).
+
+## 8. 실물 녹화와 비교 → [ISSUES.md](ISSUES.md) 로 옮김 (11/02)
+
+11/02 에 여기 적었던 내용은 걸리는 점 문서로 옮겼다 — 실물 녹화에 남은 것(옛 8-1) → [ISSUES.md](ISSUES.md) 4절,
+장면 비교(옛 8-2)·pick up 정교화 결정 → 2절, 블록 좌표 결정·검사 → 3절. 손목 카메라 화면이 돌고 기우는 문제는 1절.

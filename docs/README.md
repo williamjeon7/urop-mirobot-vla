@@ -47,6 +47,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W9 | [W9/DATASET_HDF5.md](W9/DATASET_HDF5.md) | **Cosmos LIBERO 형식 HDF5** — 로더가 읽는 형식, 짝 맞추기, 파일 이름 = 지시문, 만드는·확인하는 도구, 시험판 결과, 정규화 통계 문제 |
 | W9 | [W9/FOLLOW.md](W9/FOLLOW.md) | **시뮬 Panda 따라가기** — Mirobot 에피소드의 외부 영상·action·proprio. (나) 방식의 이유, 한 칸 앞 목표, proprio 변환(B'), 따라가기 오차와 남은 결정 |
 | W9 | [W9/WHY_VLA.md](W9/WHY_VLA.md) | **왜 VLA 인가** — 3색 블록은 직접 짠 코드로도 풀리는데 VLA 를 쓰는 이유, 직접 짠 코드의 역할. 미결: 직접 짠 버전을 기준선으로 잴지 |
+| W9 | [W9/ISSUES.md](W9/ISSUES.md) | **걸리는 점** — Mirobot 손목 카메라 화면이 돌고 기움(Panda 와 다름), pick up 정교화, 변환 코드 정확도(블록 좌표), 실물 기록의 빈칸 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 
