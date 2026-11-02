@@ -15,6 +15,7 @@ Calibrite Classic Mini 색상표 보정과 기존 키보드 조작으로 수집:
 - **목표** — Panda 시뮬 90 + Mirobot 실물 10 에피소드를 로더가 읽는 HDF5 로 (10/28 action plan 4·5번)
 - **된 것** — Panda 시뮬 쪽 도구가 있고, **90개(색마다 30)를 블록 30.2 mm(실물 20 mm ÷ 0.663)로 다시 만들었다** (11/01, 6-4절). 테이블·블록 색·손목 카메라를 실물에 맞춘 뒤 같은 명령으로 다시 만든다
 - **남은 것** — no-op 거르기(Mirobot 데이터를 보고), 정규화 통계(7절, 5번과), Mirobot 쪽([FOLLOW.md](FOLLOW.md))
+- **합친 데이터 (11/02)** — Panda 90 + Mirobot 10 을 `data/hdf5_mix/` 로 합쳐 1차 파인튜닝에 쓴다 → [FINETUNE.md](FINETUNE.md) 2절
 - **pick up 정교화 (11/02 사용자 결정)** — 실물은 비뚤어지거나 붙은 블록도 집는다. 지금 90개를 먼저 쓰고, 블록 회전·붙은 배치는 1차 파인튜닝 결과가 너무 나쁘면 그때 장면 맞추기와 함께 넣는다 ([ISSUES.md](ISSUES.md) 2절)
 - **학습은 손목만 (11/01 사용자 결정)** — Mirobot 10개(동료, [MIROBOT_DATA_COLLECTION.md](MIROBOT_DATA_COLLECTION.md))가 손목만이라 Panda 90개도 학습 설정 `use_third_person_images=False` 로 외부 영상을 끈다.
   카메라 구성에 따라 입력 순서가 달라 한 학습에서 섞을 수 없다 — 두 시점은 video 33프레임(손목 2 · 외부 3 · action 4 · value 8칸), 손목만은 25프레임(손목 2 · action 3 · value 6칸).
