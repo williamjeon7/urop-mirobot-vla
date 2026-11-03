@@ -1,0 +1,62 @@
+{
+  "format": "w9-d405/1",
+  "clock": "perf_counter_ns, shared process",
+  "clock_ns": 29629182330900,
+  "serial": "262422272124",
+  "color": "red",
+  "seed": 2,
+  "gripper_seconds": 1.0,
+  "initial_s": 40.0,
+  "open_s": 40.0,
+  "closed_s": 60.0,
+  "real_success": true,
+  "complete": true,
+  "robot": true,
+  "teleop": true,
+  "width": 640,
+  "height": 480,
+  "fps": 30,
+  "timestamp_basis": "host receipt; NOT exposure time",
+  "robot_port": "COM3",
+  "packages": {
+    "pyrealsense2": "2.59.1.11053",
+    "numpy": "1.26.4",
+    "opencv-python": "4.10.0.84",
+    "pyserial": "3.5",
+    "h5py": "3.12.1"
+  },
+  "intrinsics": {
+    "width": 640,
+    "height": 480,
+    "fx": 392.20758056640625,
+    "fy": 391.232177734375,
+    "ppx": 318.4473571777344,
+    "ppy": 236.28887939453125,
+    "coeffs": [
+      -0.05034790188074112,
+      0.05186551436781883,
+      -0.0007115208427421749,
+      0.0003607202379498631,
+      -0.01715206354856491
+    ],
+    "model": "distortion.inverse_brown_conrady"
+  },
+  "locked_camera_options": {
+    "Exposure": 33000.0,
+    "White Balance": 5200.0,
+    "Gain": 16.0,
+    "Gamma": 340.0,
+    "Saturation": 56.0,
+    "Brightness": 0.0,
+    "Contrast": 45.0,
+    "Hue": 0.0,
+    "Sharpness": 50.0
+  },
+  "profile_settle_frames": 15,
+  "teleop_recording_mode": "buttons_or_f8_f9_after_initial_idle",
+  "real_success_review": {
+    "source": "user explicitly confirmed successful gripper pickup for all ten recordings",
+    "date": "2026-10-29",
+    "layout_reference_match": "not independently confirmed"
+  }
+}
