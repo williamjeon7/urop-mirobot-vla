@@ -50,6 +50,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W9 | [W9/ISSUES.md](W9/ISSUES.md) | **걸리는 점** — Mirobot 손목 카메라 화면이 돌고 기움(Panda 와 다름), pick up 정교화, 변환 코드 정확도(블록 좌표), 실물 기록의 빈칸 |
 | W9 | [W9/MIROBOT_COORDINATES.md](W9/MIROBOT_COORDINATES.md) | **좌표 규약·실측** — Mirobot·종이·Depth 좌표와 실제 기준점 측정·카메라 등록 |
 | W9 | [W9/FINETUNE.md](W9/FINETUNE.md) | **1차 파인튜닝** — Panda 90 + Mirobot 10 합친 데이터, tmux 실행 명령, GPU 2개 vs 4개 시간 측정, 2000 step 결정, 본학습 상태, 평가 경로(있는 것·빠진 것) |
+| W10 | [W10/POLICY_RUN.md](W10/POLICY_RUN.md) | **정책 실행 도구** — 학습한 정책을 실물 Mirobot 에서 돌리기. 관측·명령 계산을 녹화로 검사(영상 픽셀 차 0, 역변환 0 mm), action 을 Mirobot 목표로 바꾸는 법(결정 대기), 오프라인 평가 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 
