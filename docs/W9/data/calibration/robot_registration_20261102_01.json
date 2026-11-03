@@ -1,0 +1,78 @@
+{
+  "port": "COM3",
+  "baud": 115200,
+  "commands_sent": [
+    "?",
+    "?",
+    "?",
+    "?",
+    "?"
+  ],
+  "rows": [
+    {
+      "raw": "<Idle,Angle(ABCDXYZ):0.000,0.000,0.000,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,0.000,Pump PWM:0,Valve PWM:0,Motion_MODE:0>",
+      "cart": [
+        198.67,
+        0.0,
+        230.72,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "host_receipt_ns": 367783474802500,
+      "rtt_s": 0.026191500015556812
+    },
+    {
+      "raw": "<Idle,Angle(ABCDXYZ):0.000,0.000,0.000,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,0.000,Pump PWM:0,Valve PWM:0,Motion_MODE:0>",
+      "cart": [
+        198.67,
+        0.0,
+        230.72,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "host_receipt_ns": 367783532162600,
+      "rtt_s": 0.0017997000250034034
+    },
+    {
+      "raw": "<Idle,Angle(ABCDXYZ):0.000,0.000,0.000,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,0.000,Pump PWM:0,Valve PWM:0,Motion_MODE:0>",
+      "cart": [
+        198.67,
+        0.0,
+        230.72,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "host_receipt_ns": 367783598405200,
+      "rtt_s": 0.001936200016643852
+    },
+    {
+      "raw": "<Idle,Angle(ABCDXYZ):0.000,0.000,0.000,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,0.000,Pump PWM:0,Valve PWM:0,Motion_MODE:0>",
+      "cart": [
+        198.67,
+        0.0,
+        230.72,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "host_receipt_ns": 367783657818800,
+      "rtt_s": 0.009464700007811189
+    },
+    {
+      "raw": "<Idle,Angle(ABCDXYZ):0.000,0.000,0.000,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,0.000,Pump PWM:0,Valve PWM:0,Motion_MODE:0>",
+      "cart": [
+        198.67,
+        0.0,
+        230.72,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "host_receipt_ns": 367783715679100,
+      "rtt_s": 0.0019671000191010535
+    }
+  ]
+}

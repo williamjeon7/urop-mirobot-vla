@@ -1,0 +1,27 @@
+{
+  "format": "w9-user-measurements/1",
+  "date": "2026-11-02",
+  "source": "user measured ruler while observed controller reported initial pose",
+  "gripper_state": "open",
+  "height_reference": "midpoint between bottom tips of open fingers",
+  "tip_height_above_paper_mm": 168.0,
+  "mirobot_x_matches_paper_positive_x": true,
+  "initial_flange_cart": [
+    198.67,
+    0,
+    230.72,
+    0,
+    0,
+    0
+  ],
+  "tool_mm_from_existing_calibration": [
+    15,
+    0,
+    -55
+  ],
+  "derived_paper_z_M_mm": 7.72,
+  "paper_j1_xy_cm": null,
+  "registration_status": "awaiting J1 XY photo; Z depends on existing tool calibration and parallel-plane assumption",
+  "camera_table_transform": "table_to_camera.json",
+  "robot_status_evidence": "../robot_registration_20261102_01.json"
+}

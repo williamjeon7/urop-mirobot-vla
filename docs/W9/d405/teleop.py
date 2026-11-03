@@ -97,12 +97,13 @@ class TeleopSession:
                 if chunk:
                     partial += chunk
                     if partial.endswith(b'\n'):
-                        line = partial.decode('utf-8', errors='replace').strip()
+                        raw_line = partial.decode('utf-8', errors='replace').rstrip('\r\n')
+                        line = raw_line.strip()
                         partial = b''
                         if is_status(line):
                             cart = find_field(fields(line), 'Cartesian')
                             if cart and len(cart) >= 6:
-                                self.emit('state', cart=cart[:6], state=state_of(line),
+                                self.emit('state', cart=cart[:6], state=state_of(line), raw=raw_line,
                                           query_start_s=query_t,
                                           rtt_s=None if query_t is None else
                                           (time.perf_counter_ns()-self.clock_ns)/1e9-query_t)

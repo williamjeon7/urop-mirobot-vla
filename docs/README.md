@@ -48,6 +48,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W9 | [W9/FOLLOW.md](W9/FOLLOW.md) | **시뮬 Panda 따라가기** — Mirobot 에피소드의 외부 영상·action·proprio. (나) 방식의 이유, 한 칸 앞 목표, proprio 변환(B'), 따라가기 오차와 남은 결정 |
 | W9 | [W9/WHY_VLA.md](W9/WHY_VLA.md) | **왜 VLA 인가** — 3색 블록은 직접 짠 코드로도 풀리는데 VLA 를 쓰는 이유, 직접 짠 코드의 역할. 미결: 직접 짠 버전을 기준선으로 잴지 |
 | W9 | [W9/ISSUES.md](W9/ISSUES.md) | **걸리는 점** — Mirobot 손목 카메라 화면이 돌고 기움(Panda 와 다름), pick up 정교화, 변환 코드 정확도(블록 좌표), 실물 기록의 빈칸 |
+| W9 | [W9/MIROBOT_COORDINATES.md](W9/MIROBOT_COORDINATES.md) | **좌표 규약·실측** — Mirobot·종이·Depth 좌표와 실제 기준점 측정·카메라 등록 |
 | W9 | [W9/FINETUNE.md](W9/FINETUNE.md) | **1차 파인튜닝** — Panda 90 + Mirobot 10 합친 데이터, tmux 실행 명령, GPU 2개 vs 4개 시간 측정, 2000 step 결정, 본학습 상태, 평가 경로(있는 것·빠진 것) |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지

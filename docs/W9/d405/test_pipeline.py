@@ -69,6 +69,17 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(reserve_episode(self.root).name, '영상5')
         self.assertEqual(reserve_episode(self.root/'new').name, '영상1')
 
+    def test_renamed_blue_recordings_keep_numbering_and_hdf5_identity(self):
+        from .capture_storage import resolve_blue_episode
+        from .export_real_hdf5 import episode_id
+        self.assertEqual(resolve_blue_episode(self.root, 1), self.root/'영상1')
+        for number in range(1, 11):
+            (self.root/f'layoutblue{number}').mkdir()
+            self.assertEqual(episode_id(self.root/f'layoutblue{number}'), f'video{number}')
+            self.assertEqual(resolve_blue_episode(self.root, number), self.root/f'layoutblue{number}')
+        self.assertEqual(reserve_episode(self.root).name, '영상11')
+        self.assertEqual(episode_id('layoutblue11'), 'layoutblue11')
+
     def test_clipped_chart_keeps_diagnostics_without_a_profile(self):
         prefix = self.root/'classic_mini.json'
         image = np.full((401, 601, 3), 100, dtype=np.uint8)
@@ -262,6 +273,20 @@ class PipelineTests(unittest.TestCase):
                 validate_gcode(path)
         path.write_text('G90\nM20\nG0 X198 Y0 Z230 A0 B0 C0\nM4 S60\n', encoding='utf-8')
         self.assertEqual(len(validate_gcode(path)), 4)
+
+    def test_layout_target_mismatch_is_rejected_before_device_access(self):
+        from .capture import main
+        layout = self.root/'wrong_target.json'
+        layout.write_text(json.dumps(dict(target='green', unit='cm',
+            blocks=dict(red=[-2, 3], green=[-4, 1], blue=[-6, 0]))), encoding='utf-8')
+        argv = ['capture', '--color', 'red', '--layout', str(layout)]
+        with patch('sys.argv', argv), patch('pyrealsense2.context') as context, \
+                patch('serial.Serial') as serial, redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as caught:
+                main()
+        self.assertEqual(caught.exception.code, 2)
+        context.assert_not_called()
+        serial.assert_not_called()
 
     def test_rgb_crop_rotation_and_hdf5_loader_contract(self):
         ep = self.fixture()
@@ -540,11 +565,21 @@ class PipelineTests(unittest.TestCase):
                     argv += ['--teleop', '--seed', '2', '--execute', '--port', 'FAKE',
                              '--reference', str(REPO/'docs/W6/poses/pickup-red-s2.jsonl'),
                              '--mapping-gcode', str(REPO/'trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode')]
+                    layout = self.root/'layout_input.json'
+                    layout.write_text(json.dumps(dict(target='red', unit='cm',
+                        blocks=dict(red=[-2, 3], green=[-4, 1], blue=[-6, 0]))), encoding='utf-8')
+                    photo = self.root/'initial_photo.png'
+                    write_image(photo, np.full((48, 64, 3), 100, np.uint8))
+                    argv += ['--layout', str(layout), '--layout-photo', str(photo)]
                 def fake_teleop(*args, controls, on_start, on_end, **kwargs):
                     time.sleep(.02)
                     self.assertEqual(list((out/'rgb').glob('*.png')), [])
                     self.assertEqual((out/'frames.jsonl').read_text(), '')
                     self.assertEqual(controls.state, 'homing')
+                    saved_layout = json.loads((out/'layout.json').read_text(encoding='utf-8'))
+                    self.assertEqual(saved_layout['target'], 'red')
+                    self.assertEqual(saved_layout['blocks']['green'], [-4, 1])
+                    self.assertEqual((out/'layout.png').read_bytes(), photo.read_bytes())
                     controls.set_state('ready')
                     on_start()
                     time.sleep(.02)

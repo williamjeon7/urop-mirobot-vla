@@ -1,0 +1,72 @@
+{
+  "format": "w9-depth-paper-registration/1",
+  "snapshot": "docs\\W9\\data\\calibration\\depth_registration_20261102_01",
+  "unit": "m",
+  "direction": "p_C_depth = R_C_depth_from_T * p_T + t_C_depth_from_T",
+  "T_C_depth_from_T": [
+    [
+      -0.0016447100907303206,
+      -0.9994498120569045,
+      0.03312654687912268,
+      0.006879876444501172
+    ],
+    [
+      -0.9999773691030394,
+      0.0014276704219183614,
+      -0.006574423087151073,
+      -0.0481199025374239
+    ],
+    [
+      0.0065235121276760915,
+      -0.03313661021564576,
+      -0.9994295417151409,
+      0.2524855745367043
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "T_T_from_C_depth": [
+    [
+      -0.0016447100907297993,
+      -0.9999773691030407,
+      0.006523512127676106,
+      -0.04975459084621011
+    ],
+    [
+      -0.9994498120569054,
+      0.0014276704219188864,
+      -0.0331366102156458,
+      0.015311306649485882
+    ],
+    [
+      0.03312654687912268,
+      -0.006574423087151084,
+      -0.9994295417151408,
+      0.25179727490114756
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "paper_origin_definition": "top boundary / printed-0 centreline",
+  "paper_axes": "X initial image up, Y left, Z paper-normal up",
+  "fitted_grid_points": 43,
+  "heldout_grid_points": 21,
+  "depth_plane_points": 13781,
+  "depth_plane_inlier_fraction": 0.8836806668804104,
+  "depth_plane_rms_mm": 1.0587148919640865,
+  "heldout_grid_rms_mm": 0.5574393236135591,
+  "heldout_grid_max_mm": 1.421337222234808,
+  "apparent_metric_scale": 0.9966564373267998,
+  "rgb_grid_validation_rms_mm": 0.7408020580519574,
+  "coordinate_source": "measured native depth plane + detected printed grid, 1cm nominal spacing",
+  "limitation": "Grid checks do not independently validate actual printed spacing or robot coordinates.",
+  "robot_registration": null
+}

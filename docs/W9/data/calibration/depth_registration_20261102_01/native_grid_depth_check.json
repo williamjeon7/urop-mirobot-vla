@@ -1,0 +1,140 @@
+{
+  "format": "w9-depth-points/1",
+  "source_snapshot": "docs\\W9\\data\\calibration\\depth_registration_20261102_01",
+  "pixel_frame": "native_depth",
+  "point_frame": "depth_camera_optical",
+  "unit": "m",
+  "camera_optical_axes": {
+    "x": "right",
+    "y": "down",
+    "z": "forward"
+  },
+  "intrinsics": {
+    "width": 640,
+    "height": 480,
+    "fx": 383.7892761230469,
+    "fy": 383.7892761230469,
+    "ppx": 321.2173156738281,
+    "ppy": 236.82916259765625,
+    "model": "distortion.brown_conrady",
+    "coeffs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "neighbourhood_deprojection": "each valid pixel in each frame; median XYZ",
+  "spread_limit_mm": 5.0,
+  "spread_limit_status": "sampling diagnostic, not a calibrated accuracy tolerance",
+  "camera_to_robot": null,
+  "camera_to_table": null,
+  "alignment_warning": "Coordinates were not obtained from native colour pixels. Colour.png is not pixel-aligned to native depth.",
+  "points": {
+    "origin": {
+      "native_depth_pixel": [
+        332,
+        164
+      ],
+      "radius_px": 1,
+      "sample_count": 270,
+      "valid_count": 267,
+      "valid_fraction": 0.9888888888888889,
+      "xyz_camera_m": [
+        0.007060355506837368,
+        -0.04768754541873932,
+        0.25130000710487366
+      ],
+      "accepted": true,
+      "status": "ok",
+      "scatter_note": "Combines temporal noise and spatial neighbourhood variation; not independent measurement accuracy.",
+      "median_depth_m": 0.25129999365162803,
+      "depth_iqr_m": 0.0007999999797903001,
+      "xyz_mad_m": [
+        0.0006394931115210056,
+        0.0005585998296737671,
+        0.000500023365020752
+      ],
+      "xyz_p95_radius_m": 0.001376473909587839
+    },
+    "x_ref": {
+      "native_depth_pixel": [
+        332,
+        240
+      ],
+      "radius_px": 1,
+      "sample_count": 270,
+      "valid_count": 241,
+      "valid_fraction": 0.8925925925925926,
+      "xyz_camera_m": [
+        0.0070856413803994656,
+        0.0020786996465176344,
+        0.2515999972820282
+      ],
+      "accepted": true,
+      "status": "ok",
+      "scatter_note": "Combines temporal noise and spatial neighbourhood variation; not independent measurement accuracy.",
+      "median_depth_m": 0.2515999936440494,
+      "depth_iqr_m": 0.0011999999696854502,
+      "xyz_mad_m": [
+        0.0006202897056937218,
+        0.0006504772463813424,
+        0.0006000101566314697
+      ],
+      "xyz_p95_radius_m": 0.0018188334958128172
+    },
+    "y_ref": {
+      "native_depth_pixel": [
+        255,
+        163
+      ],
+      "radius_px": 1,
+      "sample_count": 270,
+      "valid_count": 190,
+      "valid_fraction": 0.7037037037037037,
+      "xyz_camera_m": [
+        -0.04301312565803528,
+        -0.04818843677639961,
+        0.24929998815059662
+      ],
+      "accepted": true,
+      "status": "ok",
+      "scatter_note": "Combines temporal noise and spatial neighbourhood variation; not independent measurement accuracy.",
+      "median_depth_m": 0.24929999370215228,
+      "depth_iqr_m": 0.0007999999797903001,
+      "xyz_mad_m": [
+        0.0006065703928470612,
+        0.0003533829003572464,
+        0.00030000507831573486
+      ],
+      "xyz_p95_radius_m": 0.001586189696583256
+    },
+    "check": {
+      "native_depth_pixel": [
+        255,
+        240
+      ],
+      "radius_px": 1,
+      "sample_count": 270,
+      "valid_count": 230,
+      "valid_fraction": 0.8518518518518519,
+      "xyz_camera_m": [
+        -0.042926859110593796,
+        0.002055566292256117,
+        0.24879999458789825
+      ],
+      "accepted": true,
+      "status": "ok",
+      "scatter_note": "Combines temporal noise and spatial neighbourhood variation; not independent measurement accuracy.",
+      "median_depth_m": 0.24879999371478334,
+      "depth_iqr_m": 0.0012749999677907908,
+      "xyz_mad_m": [
+        0.0005965102463960648,
+        0.0006417520344257355,
+        0.0005999952554702759
+      ],
+      "xyz_p95_radius_m": 0.002053457151154522
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "format": "w9-coordinate-conventions/1",
+  "definition_date": "2026-11-02",
+  "definition_status": "fixed",
+  "mirobot_base": {
+    "id": "M",
+    "origin": "controller Cartesian zero; not the home flange, paper zero, or table surface",
+    "handedness": "right",
+    "axes": {"x": "forward", "y": "robot-left", "z": "up"},
+    "position_unit": "mm",
+    "orientation_unit": "degree",
+    "reported_point": "flange",
+    "cartesian_fields": ["X", "Y", "Z", "A", "B", "C"],
+    "abc": "extrinsic fixed-axis XYZ; R_MF = Rz(C) Ry(B) Rx(A)"
+  },
+  "quaternion": {"common_internal": "wxyz", "libero_hdf5": "xyzw", "sign": "align to reference or previous orientation"},
+  "initial_pose": {
+    "commanded_flange_xyz_mm": [198.67, 0.0, 230.72],
+    "commanded_abc_deg": [0.0, 0.0, 0.0],
+    "measurement": "actual initial_ready Cartesian state must be recorded each session"
+  },
+  "tool": {
+    "point": "grasp reference point",
+    "nominal_flange_local_vector_mm": [15.0, 0.0, -55.0],
+    "rule": "p_M_grip = p_M_flange + R_MF * tool_mm",
+    "file_specific_source": "source.gcode ; tool marker; absent marker uses existing legacy rule",
+    "legacy_vector_mm": [0.0, 0.0, -55.0],
+    "nominal_is_new_independent_measurement": false
+  },
+  "paper": {
+    "id": "T",
+    "origin": "intersection of paper top boundary and printed-0 centreline",
+    "handedness": "right",
+    "axes": {"x": "top of fixed initial reference photo", "y": "left of fixed initial reference photo", "z": "paper normal upward"},
+    "unit": "cm",
+    "grid_spacing_cm": 1.0,
+    "block_point": "bottom-face centre",
+    "T_M_from_T": null,
+    "registration_status": "requires paired physical reference points; not measured"
+  },
+  "depth_camera": {
+    "id": "C_depth",
+    "origin": "native depth optical centre",
+    "axes": {"x": "image-right", "y": "image-down", "z": "forward optical axis"},
+    "unit": "m",
+    "depth": "native uint16 multiplied by device-reported depth_scale; zero depth is invalid",
+    "pixel_alignment": "native depth pixels are not assumed to be RGB pixels; use SDK intrinsics/extrinsics",
+    "mount": "forearm bracket, not flange/gripper",
+    "T_M_from_C_depth": null,
+    "registration_status": "unmeasured and depends on arm configuration"
+  },
+  "raw_telemetry": {
+    "cart": "parsed flange Cartesian state",
+    "raw": "full decoded status response, CR/LF removed",
+    "angle_field_order": "retain firmware Angle(ABCDXYZ) order; joint mapping unconfirmed",
+    "pump_pwm": "reported signal, not independently measured finger width"
+  },
+  "transform_convention": "p_destination = R_destination_from_source * p_source + t_destination_from_source; convert units first",
+  "independent_validation": "fit at least three non-collinear shared points; check a separately measured fourth point"
+}

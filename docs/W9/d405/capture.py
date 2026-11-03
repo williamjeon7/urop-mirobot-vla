@@ -32,6 +32,8 @@ def main():
     p.add_argument('--teleop', action='store_true', help='Use existing robot/inverse_kinematics.py; F8/F9 mark episode')
     p.add_argument('--mapping-gcode', type=Path, help='Coordinate mapping header only; not executed in teleop mode')
     p.add_argument('--color-profile', type=Path, help='Fixed Classic Mini correction; raw PNG remains unmodified')
+    p.add_argument('--layout', type=Path, help='Manually measured initial paper coordinates JSON (cm)')
+    p.add_argument('--layout-photo', type=Path, help='Initial-layout PNG/JPEG, overriding the template photo path')
     p.add_argument('--port', help='Robot serial device, e.g. /dev/serial/by-id/... (not the D405)')
     p.add_argument('--execute', action='store_true', help='Execute G-code; omission means validate only')
     p.add_argument('--gripper-seconds', type=float, default=1.0, help='Measured servo transition/hold seconds')
@@ -41,6 +43,15 @@ def main():
     a = p.parse_args()
     if a.seconds <= 0 or a.gripper_seconds <= 0 or a.open_s == a.closed_s:
         p.error('Positive durations and distinct open/closed S values required.')
+    layout_inputs = None
+    if a.layout_photo and not a.layout:
+        p.error('--layout-photo requires --layout with all three measured block centres.')
+    if a.layout:
+        from .layout_record import load_capture_layout
+        try:
+            layout_inputs = load_capture_layout(a.layout, a.color, a.layout_photo)
+        except (OSError, ValueError, KeyError) as error:
+            p.error(f'Invalid layout: {error}')
     entries = None
     if a.teleop:
         if a.gcode or not a.reference or not a.mapping_gcode:
@@ -135,6 +146,10 @@ def main():
     def save_meta():
         meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding='utf-8')
     save_meta()
+    if layout_inputs is not None:
+        from .layout_record import create_layout
+        coordinates, photo = layout_inputs
+        create_layout(a.out, coordinates, photo, target=a.color)
     pipe, config = rs.pipeline(), rs.config()
     config.enable_device(serial_number)
     config.enable_stream(rs.stream.color, a.width, a.height, rs.format.rgb8, a.fps)

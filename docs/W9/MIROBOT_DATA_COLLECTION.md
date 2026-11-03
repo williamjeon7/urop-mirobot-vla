@@ -2,6 +2,8 @@
 
 2026-10-29 촬영한 영상1~10을 OASYS에서 변환했다. 목표는 RGB 블록 중 **파란 블록 집어 들기**다.
 
+**11/02 이름 변경:** 원본 폴더·MP4는 `layoutblue1`–`layoutblue10`으로 바꿨다. 아래 연구 기록의 영상N은 같은 `layoutblueN`을 뜻한다. 기존 HDF5의 `videoN` 파일명과 내부 기록은 유지하며, 새 이름으로 다시 실행해도 기존 산출물을 같은 시연으로 재사용한다. 이름 변경 매핑과 주요 파일 해시는 `data/raw/episode_renames_20261102.json`에 있다.
+
 **지시문: `pick up the blue block on the table`**
 뜻: 테이블 위의 파란 블록을 집어 들어라. 소문자·마침표 없음. HDF5 파일명·내부 속성·T5 임베딩 키에 같은 문장을 사용한다.
 
@@ -60,6 +62,53 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color blue -
 초기 이동이 끝나고 `READY`가 표시되면 집게를 열고 F8을 누른다. 파란 블록을 집어 들고 약 1초 유지한 뒤 F9, q 순서로 종료한다. 블록 배치는 바꿔도 된다. `reference`와 `mapping-gcode`는 로봇 좌표 변환의 기준으로 사용한다.
 
 `--out`을 생략하면 `docs/W9/data/raw/영상N/`에 다음 번호로 저장된다. 폴더 전체를 보관한다: 원본 `rgb/`, MP4, `metadata.json`, `frames.jsonl`, `robot.jsonl`, `reference.jsonl`, `source.gcode`, `color_profile.json`.
+
+### 새 녹화(세 색)와 좌표 기록 — 11/02 반영
+
+기존 파랑 10개는 `layoutblue1`–`layoutblue10`으로 보관하고 새 데이터에는 넣지 않는다. 새 수집은 **세 색 30개씩(90개), 처음부터**다 ([11/02 미팅](../meetings/2026-11-2.md)). 매번 세 블록을 모두 놓고 배치를 바꾸며 실제 집을 색을 `--color`로 지정한다. 카메라 장착·조명·보정은 유지한다. 기존 폴더 번호도 예약된 것으로 계산하므로 자동 촬영은 `영상11`부터 이어진다. 새 촬영을 이 문서 수정으로 이미 수행한 것은 아니다.
+
+좌표 규약·정확히 실측할 항목·D405 Depth 사용 범위는 **[MIROBOT_COORDINATES.md](MIROBOT_COORDINATES.md)**에 고정했다. 새 종이 좌표는 인쇄된 0 교점 기준 cm이며, 로봇 베이스 mm와 직접 섞지 않는다.
+
+촬영 **전에** 세 블록 바닥 중심을 재고 초기 배치 사진을 찍는다. 예를 들어 `docs/W9/data/layout_inputs/scene01_red.json`을 아래 형식으로 준비한다. `null`은 **반드시 실제 잰 숫자**로 바꾼다. 아래 파일은 형식 설명이며 좌표를 측정해 둔 결과가 아니다.
+
+```json
+{
+  "target": "red",
+  "unit": "cm",
+  "blocks": {"red": [null, null], "green": [null, null], "blue": [null, null]},
+  "photo": "scene01.jpg"
+}
+```
+
+`photo`는 JSON과 같은 폴더 기준 경로다. 세 블록과 원점·축이 보이는 집기 전 사진을 쓴다. 위에서 수직 촬영한 사진과 팔뚝 카메라의 기울어진 사진을 구분한다. 코드가 사진의 수직 방향이나 실측 정확도까지 확인한 것으로 표시하지 않는다. 같은 배치에서 다른 색을 찍더라도 템플릿 `target`은 새 실제 목표와 맞춘다.
+
+빨강 촬영:
+
+```powershell
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color red --seed 2 --reference docs/W6/poses/pickup-red-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --layout docs/W9/data/layout_inputs/scene01_red.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --serial 262422272124 --execute --preview
+```
+
+초록 촬영은 목표·reference·mapping과 템플릿을 함께 바꾼다:
+
+```powershell
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color green --seed 2 --reference docs/W6/poses/pickup-green-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-green-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --layout docs/W9/data/layout_inputs/scene01_green.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --serial 262422272124 --execute --preview
+```
+
+PowerShell에서 `--layout-photo "사진/경로.jpg"`를 추가하면 템플릿의 사진 경로를 대체할 수 있다. 좌표 누락·NaN·목표 불일치·손상 사진은 카메라/로봇 실행 전에 거부한다. 유효한 경우 녹화 폴더에 `layout.json`과 사진을 복사한다. 원본 사진 형식에 따라 `layout.png` 또는 `layout.jpg`이며 기존 파일은 덮어쓰지 않는다. 이 파일은 보조 좌표 기록이며 HDF5 action·proprio 변환을 바꾸지 않는다.
+
+촬영 전에 적어 둔 좌표를 녹화 후 별도 입력하려면 다음 도구도 사용할 수 있다. X·Y에는 실제 잰 수치를 넣는다:
+
+```text
+python -m docs.W9.d405.layout_record layout <녹화폴더> --red X Y --green X Y --blue X Y --photo <집기전사진>
+```
+
+영상을 검토한 뒤, 실제 출력 폴더명으로 성공/실패를 기록한다. `--success yes`는 목표 블록을 집어 든 것을 확인한 경우에만 지정한다. 실패는 `--success no`다.
+
+```powershell
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.layout_record outcome "docs/W9/data/raw/영상11" --success yes --target red
+```
+
+성공 판정은 새 `review.json`에 남기고 촬영 `metadata.json`은 바꾸지 않는다. 새 teleop의 `robot.jsonl`은 상태 줄마다 `raw`에 `?` 응답 원문도 저장한다. `Angle(ABCDXYZ)`·`Pump PWM`·`Valve PWM` 등은 그대로 남기며, 관절 순서나 PWM→집게 폭을 임의로 확정하지 않는다. 기존 `cart`·시각·HDF5 변환은 유지한다.
 
 ## 4. 0.05초 타임스텝 정렬
 
@@ -148,7 +197,7 @@ HDF5만 생성:
 
 ```bash
 cosmos-policy/.venv/bin/python -m docs.W9.d405.export_real_hdf5 \
-  docs/W9/data/raw/영상{1..10} --out docs/W9/data/hdf5/mirobot_real \
+  docs/W9/data/raw/layoutblue{1..10} --out docs/W9/data/hdf5/mirobot_real \
   --target blue --real-success --skip-existing
 ```
 
