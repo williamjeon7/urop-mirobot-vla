@@ -132,6 +132,8 @@ def main():
         raise ValueError('Follow error exceeds limits; inspect export_report.json. No HDF5 written.')
     a.out.mkdir(parents=True, exist_ok=True)
     ep_id = a.episode.name
+    if ep_id in {f'layoutblue{i}' for i in range(1, 11)}:
+        ep_id = 'video'+ep_id[len('layoutblue'):]
     if ep_id.startswith('영상') and ep_id[2:].isascii() and ep_id[2:].isdigit():
         ep_id = 'video' + ep_id[2:]
     if not ep_id.isascii() or not all(c.isalnum() or c in '_-' for c in ep_id):

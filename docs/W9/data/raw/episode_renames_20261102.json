@@ -1,0 +1,707 @@
+[
+    {
+        "old_name":  "영상1",
+        "new_name":  "layoutblue1",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상1",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue1",
+        "logical_episode_id":  "video1",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "9EEBC3692D00250534187AA2A4E9D6B9C0C7B50CDDCB03678EDFD4E269A34CAC",
+                                   "bytes":  12613
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "313B723209DE8E284E5539E799CB9D8C202FA62618E7E28C2B07778ADAC10916",
+                                   "bytes":  1455
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "export_report.json",
+                                   "sha256":  "BB124F9E675BA1F2CCAE75097F064B49F4CFB7FED8A765609C6575FBFD8CC6E7",
+                                   "bytes":  1623
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "45F53F2903C4627CE72A5390E70ABFA0A339D4C68E5698FE9D437E89C97CC5E8",
+                                   "bytes":  23016
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "85B320A616740F8D44C4E6F54368976CA50BC7FB5AAD1D29DF932BA7842378AD",
+                                   "bytes":  123651
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "D1263E81A5B7A75540A977C866D5E86986135CB37EDAB3E31CFAA1F2F5904DB1",
+                                   "bytes":  61065
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "8FF2A36ED76F1C3F99EC1A31FA518EA9DAC7B77B8EFFF3432F513A08EFAB9C82",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "A8ADB87363D30F0595B47DD6044A94ECB02F82DB1A75708B959E04457334701A",
+                                   "bytes":  1634
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "9844CDE821AC673B9EF177087D43167A0908BE4B27E4FE59A26C2B892EE40821",
+                                   "bytes":  209388
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상1.mp4",
+                                   "sha256":  "6B45A2D77B92EE3C669E2EAA6DB9B8C056573054530C2C4EDE9547EF54CFA805",
+                                   "bytes":  3634664
+                               }
+                           ],
+        "png_count":  166
+    },
+    {
+        "old_name":  "영상2",
+        "new_name":  "layoutblue2",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상2",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue2",
+        "logical_episode_id":  "video2",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "15E0967FC86BA453A7CBA25B6E229E1A7A69D4B669A64E47F93FCD7364E95EFD",
+                                   "bytes":  15189
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "95BAA9F07E230F529740A482E22FF5C7543647BC23BCB28596BA6AA34EAEB61D",
+                                   "bytes":  1457
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "F554C74A269C9978F2673847E9F2B0C2E91EB2A0002E8CCD89011991E99736D6",
+                                   "bytes":  31057
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "A632552335A8275ED221F1E4DBF08D05BB163693DE026ED6EEB7DBC5C1D0F4B3",
+                                   "bytes":  123855
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "2E803FFB57800457FD467751853776E814037FEEE90816FDF0FBFD4963EA2E04",
+                                   "bytes":  60380
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "E28A1E9FC054B0C4E8ACB74E52853E7E46045F0407D480AE1600FE1582B095E1",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "8F153576D59172D9B179CC89FE629F45C62DC01DCCB8A5559850F24CE96E8CE2",
+                                   "bytes":  1636
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "79200F3A666474FF4B33FCA635F6FDE2F61E37E2B36897931F0CB91713F7B27F",
+                                   "bytes":  244336
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상2.mp4",
+                                   "sha256":  "08EAF53F0D6A8051436A087684179B74596F91060B1550EB74232EDA4CCB0297",
+                                   "bytes":  4897929
+                               }
+                           ],
+        "png_count":  223
+    },
+    {
+        "old_name":  "영상3",
+        "new_name":  "layoutblue3",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상3",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue3",
+        "logical_episode_id":  "video3",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "09D7016E76BCE083123454A7E357C4B72199A8CF5C883B10527C9852F769B1DC",
+                                   "bytes":  14164
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "388D73BADF2744441FA50C824CE9F9BEDB561EEC0DDFE95E2D3E75F3122A8733",
+                                   "bytes":  1455
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "8A3A9E98ACD0CB2B157B423041C809AFD4729F791D5B77A5F342A983EA55CE4E",
+                                   "bytes":  28679
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "E374ED54EF379CF6CDDABFABD49913B33DCCA36996710158127EF35810D36B7B",
+                                   "bytes":  123219
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "F2859463C8D9EA57CD123CDB54FD3EE1AEA51F83C01CDA4CE85477A9A8228091",
+                                   "bytes":  63206
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "0CCA10CE860BD6349C3581F9A80805D076C1A3C4E681C04EA314B786B4C949A3",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "06291B70FA54048D10887E54B061FE8A381C46F91A1D86EE14C8E44E7940352C",
+                                   "bytes":  1634
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "1C806AB062583D1D01AAA2C0F532CFBB1F931D55803171CBE8069732F50C0537",
+                                   "bytes":  161815
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상3.mp4",
+                                   "sha256":  "8126550D5381B9C61A90B1A62B6EA0A771482D7C0B9F21FF0C1DF44A22E64FC7",
+                                   "bytes":  4501137
+                               }
+                           ],
+        "png_count":  207
+    },
+    {
+        "old_name":  "영상4",
+        "new_name":  "layoutblue4",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상4",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue4",
+        "logical_episode_id":  "video4",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "7C8E699757F27B0B6AACE2623FD282F0CEA4F901F9A56FDADE4E3588E3E63A2D",
+                                   "bytes":  12121
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "868E00C8006881E48740FA427DE511089861DB56C212E2224B91EC5CD9CEFA9D",
+                                   "bytes":  1456
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "ADD99BB7F9F2371562BD48821C2A7CC088A0061FC1B266FAE5CB336067BDB7D5",
+                                   "bytes":  26949
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "02699174E0DA7D8F7CD10DCA5D60DEA3CDF1DD54087D82F521644CADE2DEF9A9",
+                                   "bytes":  123043
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "450B3EC670852FF8D5EFA1D23A93CE0A8C1006E75D8BB1DB9740819DF9BFBBA9",
+                                   "bytes":  61014
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "6B4F78A1A81FF0CF4ED5E85265D1B25FBEF505032E505C7357D5611B7A1B6D46",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "3A3594537715DA3E17A9B0C70AC71BA2E7082B8465CB1D1B83B3131771542310",
+                                   "bytes":  1635
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "44428CA689D00B164804D8787570F21DB3BD56DA758AD7EF3AA4D895590A4F3A",
+                                   "bytes":  272902
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상4.mp4",
+                                   "sha256":  "826CFDABA09E42C3E04CDCBFCFBDA00B085FABAE857D2E746021DFBD1B73760B",
+                                   "bytes":  4498757
+                               }
+                           ],
+        "png_count":  193
+    },
+    {
+        "old_name":  "영상5",
+        "new_name":  "layoutblue5",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상5",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue5",
+        "logical_episode_id":  "video5",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "D149A832FB010B03640DA5457210DAADCC77C1752287A01F0E6E0EF6F04268E0",
+                                   "bytes":  14854
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "10FE5500E6BC7EBF48AE6F7D1460C5CF67638130B0EFE104CCF0ACA2B9A98A14",
+                                   "bytes":  1454
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "AE7450CCE18B4369AADDD0B59E728AF61E9069228202838D61C777632A66F8F4",
+                                   "bytes":  29803
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "1C85B3DA408D486D83F5FBA05916381B29AF84D3D5D0BC1DA03E74FCE063FFF8",
+                                   "bytes":  123486
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "533FB78CACD97D6DDE7154903F0AF1B5D20CCF17ACE93D761C997976E334C05F",
+                                   "bytes":  62479
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "0A895BF8D1265D54EC6EF6EC771EF1728C69870E75F79852DDD5DA1764786741",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "3E103E8CBF6CBA9F9FB7EC170C4E792834843DA32C379F20FAE94AA5A19C236F",
+                                   "bytes":  1633
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "D4AB5BBA18A5EEC77ED62010797BA7738D17A198721C119B4205194D55A54685",
+                                   "bytes":  151566
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상5.mp4",
+                                   "sha256":  "5BBC193C55DADF83EEBAA1DCB4CAB9EFC02B0F1663E299A50FC11775896407FA",
+                                   "bytes":  4554150
+                               }
+                           ],
+        "png_count":  215
+    },
+    {
+        "old_name":  "영상6",
+        "new_name":  "layoutblue6",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상6",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue6",
+        "logical_episode_id":  "video6",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "AA563367B57A429B27C23EEF9BC0396F22511365FB99945C9F5456EF0AE127FE",
+                                   "bytes":  15821
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "5DD74E838D5C644EC7AD54CEADB08F07B548E1770C3D070FF36A402B72106D39",
+                                   "bytes":  1454
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "2CE76DEC6316679690C6EA668A20AF2DA3FCDDE6696B53BF1F862BB056CF6152",
+                                   "bytes":  38918
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "495F626BC4F1D0D5A68DC96926F26F6482BD75192A131C0C5C8E19B460F9209E",
+                                   "bytes":  124314
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "90F91BCD7725AE83A70E9BB9C65698FFCBEB91B31D547E9F529B24DA33E76AEC",
+                                   "bytes":  62141
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "B03F65A370B876994BCE701F42F78A406956C0F836A5597B32D4FA216C817853",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "D6BC76C30BF0AB5987749630E9D3FACF7F98012D4D1D33FF06C42F2A8FF94CF0",
+                                   "bytes":  1633
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "788D8B23493E10AE37DDF980F118CB1E732752DEA4C9FA10BE8AC8EDE55C1D99",
+                                   "bytes":  169790
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상6.mp4",
+                                   "sha256":  "D12FCD8A8D23016B9C2745C9E26E84D73B884C15F461FDA21F7902862B911095",
+                                   "bytes":  4312673
+                               }
+                           ],
+        "png_count":  281
+    },
+    {
+        "old_name":  "영상7",
+        "new_name":  "layoutblue7",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상7",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue7",
+        "logical_episode_id":  "video7",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "70EA1905DC6C5D7BF13848B4B08FC574C96EBF8163CF3094B9A51E5FEF54925F",
+                                   "bytes":  21160
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "689CD939BDBBE29F4D9DC63E917BE70E53C40D22327C396D203EDC545B770B55",
+                                   "bytes":  1455
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "36E8ECBB203C0F5C5024BEF8C884125EBCBC1C334D7C103E5418CC941E60634B",
+                                   "bytes":  45449
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "9E5EB24663BDAD83C96240BC795DA389E6E1F48643600CF26D613AE460C1EA93",
+                                   "bytes":  124775
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "6E8A8AFEAF57981BD03A597FFCF5399E9BF058537B464565100A5F538B7FA816",
+                                   "bytes":  61977
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "98C9EA358A66C72F58C1D59205D163BF1B1207C518F8F3C1405D40102EC711F3",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "E91D4FE9F68882ACA0977779C27B9196C3583A1155E5B48D6D98C55AAE4285A4",
+                                   "bytes":  1634
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "D5A95BCD4FAC7707330F07C9BD01A205EBE5D8F2C2AEDDD5FB9852B3D9AF721B",
+                                   "bytes":  248741
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상7.mp4",
+                                   "sha256":  "92DE8C5DD97277E2AD10510158527CE19C6C0DC0A08EDE3FB41B75031B8E4B0F",
+                                   "bytes":  6667767
+                               }
+                           ],
+        "png_count":  327
+    },
+    {
+        "old_name":  "영상8",
+        "new_name":  "layoutblue8",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상8",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue8",
+        "logical_episode_id":  "video8",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "85B0392823DDD9A5317779543BDD66DC46B8FE63F163340E81C6579721E36354",
+                                   "bytes":  17894
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "1EF4B6C1059AD4B0BC71AFCAEEEFBD0DB4ECEC216767A51483158F0F108C7CA8",
+                                   "bytes":  1456
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "197D7274C24EB13D70A303268EF59A844BC37FF4B2FEAB10BE8E5C60D5429670",
+                                   "bytes":  35895
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "F0F21A9A8E79F28ED19AAE3967591E478164C8FB8F87BC3855566768282F1C98",
+                                   "bytes":  123892
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "252DF3FD5ECEF07A315A2677A86297D3D62CABA14BFE181ECA1DDEC7FF8E8E8F",
+                                   "bytes":  61043
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "8346AAC621D718A7252FD84C6666DCA7C39324D4E50BA1A48E3D0D03A5E57C4F",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "B2841DF8D3840673352943796DCC202EC9DD41F452A5FB179E6BCC7CBBE4FFB3",
+                                   "bytes":  1635
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "370476A314BB2E067DD025268FDFE8CF5519BC4E9DB638E304873288AB621ABC",
+                                   "bytes":  213647
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상8.mp4",
+                                   "sha256":  "A2D1D430907BD55A64E379C1B1ABDD5AC4678907DA846749BB8A09BE54F5CFAF",
+                                   "bytes":  5830903
+                               }
+                           ],
+        "png_count":  259
+    },
+    {
+        "old_name":  "영상9",
+        "new_name":  "layoutblue9",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상9",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue9",
+        "logical_episode_id":  "video9",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "CCB643964D5231F07A2CBC5FE82757D25FE214AB99E23C03639DBC4363DA50EE",
+                                   "bytes":  17586
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "56DD7971C1ECCEA1DF052A2B274AB10682A3BC0F7C5452D454327E5F2E43311A",
+                                   "bytes":  1457
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "0DB584A2F2C9D0FEE95FDA989D367C068DEC1FD1D82D3DF1C56B452B52E2B9DA",
+                                   "bytes":  36309
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "688A4C269C28E90300BBDEC48892165704CA17996D456D4144337AC515495DD1",
+                                   "bytes":  124790
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "C35C65F2E195A4B248111E5B59B98DC3E3C4CE6ABC86FCF003A72309160BB870",
+                                   "bytes":  60522
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "76A13816EA4ECC3B9126176B8AACB33F2A2115979710A6C627475E653AD8EA5E",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "76A0FC35E9C0F5BF68BE3952B16025D46C5BD7B771515CD3B629D25D9B462707",
+                                   "bytes":  1636
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "7714BBE44ECF22258C546220F56E11BE0992AB69BC14561DB1A5BD17EBDBDD75",
+                                   "bytes":  171756
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상9.mp4",
+                                   "sha256":  "6544CB07055CB6D1B2E55D08DC1C19FDCDE904983E3F2752F7CDD5050A3255A0",
+                                   "bytes":  5350510
+                               }
+                           ],
+        "png_count":  262
+    },
+    {
+        "old_name":  "영상10",
+        "new_name":  "layoutblue10",
+        "old_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\영상10",
+        "new_path":  "C:\\mirobot-vla\\docs\\W9\\data\\raw\\layoutblue10",
+        "logical_episode_id":  "video10",
+        "original_files":  [
+                               {
+                                   "name":  "aligned.npz",
+                                   "sha256":  "59698568441AB6D7BFF4A6AED6615323BE29CB050D99EB15494576324703C3EE",
+                                   "bytes":  18607
+                               },
+                               {
+                                   "name":  "alignment_report.json",
+                                   "sha256":  "665F8EAE3CD92443D761809F51383D2367217D11A28004C3E2F7660AD2AF89A8",
+                                   "bytes":  1457
+                               },
+                               {
+                                   "name":  "color_profile.json",
+                                   "sha256":  "111F00057628D717094F5061FD8A23564904E3393EB51186864A1718C70EDA44",
+                                   "bytes":  7346
+                               },
+                               {
+                                   "name":  "frames.jsonl",
+                                   "sha256":  "CA7EDDA4F9DB3A184DA6C0D890638D3FFE49218AF52D1E4410FF918426164B79",
+                                   "bytes":  40071
+                               },
+                               {
+                                   "name":  "layout.jpg",
+                                   "sha256":  "265EBF541E032D16CFB5B3C6F9DFAB354B7F3CFC9AF0A25658555AA0A3CF3BA4",
+                                   "bytes":  125769
+                               },
+                               {
+                                   "name":  "layout.json",
+                                   "sha256":  "1E745247D4BB77006F9B78E3DD5C2B83C0F14BAED2ED04C061749819B76414EE",
+                                   "bytes":  63184
+                               },
+                               {
+                                   "name":  "metadata.json",
+                                   "sha256":  "D4CDBD6554E6BD138B96AA50BD450CBA8879E3E7C15E3EC3C357509E0E19838D",
+                                   "bytes":  1602
+                               },
+                               {
+                                   "name":  "postprocess_report.json",
+                                   "sha256":  "F7A025333A45700AF6F1F48D29374A684990D6111608E8038764D35E724305B0",
+                                   "bytes":  1637
+                               },
+                               {
+                                   "name":  "reference.jsonl",
+                                   "sha256":  "E0B9E74A3877CED4D62587E00F8F808FBD4ABC383005DD5F29552A3BCFF081F8",
+                                   "bytes":  93934
+                               },
+                               {
+                                   "name":  "robot.jsonl",
+                                   "sha256":  "4D5840E3773E197BFD0D84282D68669B3AEC7C53631473CD469C95C0A9439584",
+                                   "bytes":  175769
+                               },
+                               {
+                                   "name":  "source.gcode",
+                                   "sha256":  "949D088F68E8D8CBE06525F7E0633BD2FF4EDC00FA94661C10C5E7C89D4DAB1B",
+                                   "bytes":  2417
+                               },
+                               {
+                                   "name":  "영상10.mp4",
+                                   "sha256":  "CD7486E4E9DA412D8E34301CE227B6A86FFA3C0E4A7FB3215BECB42BD27440B7",
+                                   "bytes":  5819805
+                               }
+                           ],
+        "png_count":  289
+    }
+]

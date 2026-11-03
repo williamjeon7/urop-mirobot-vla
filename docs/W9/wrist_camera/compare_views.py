@@ -16,6 +16,7 @@ from __future__ import annotations
 import bisect
 import json
 from pathlib import Path
+import sys
 
 import h5py
 import numpy as np
@@ -23,16 +24,18 @@ from PIL import Image, ImageDraw
 from scipy.spatial.transform import Rotation
 
 REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO))
+from docs.W9.d405.capture_storage import resolve_blue_episode
 OUT = Path(__file__).with_name("compare_views.jpg")
 MIROBOT = REPO / "docs/W9/data/hdf5/mirobot_real/MIROBOT_video{n}_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5"
-RAW = REPO / "docs/W9/data/raw/영상{n}/robot.jsonl"
+RAW_ROOT = REPO / "docs/W9/data/raw"
 PANDA = REPO / "data/hdf5/panda_sim/PANDA_SIM_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5"
 VIDEOS = (7, 4)  # 7: 옆으로 크게 이동 (닫을 때 Y +60 mm), 4: 거의 가운데 (Y −5 mm)
 TILE, BAR = 256, 30
 
 
 def mirobot_row(n: int):
-    rows = [json.loads(line) for line in Path(str(RAW).format(n=n)).open(encoding="utf-8")]
+    rows = [json.loads(line) for line in (resolve_blue_episode(RAW_ROOT, n)/'robot.jsonl').open(encoding="utf-8")]
     states = [r for r in rows if r["kind"] == "state"]
     times = [s["t_s"] for s in states]
     with h5py.File(str(MIROBOT).format(n=n)) as f:
@@ -66,7 +69,7 @@ def panda_row():
 def mirobot_reported_abc() -> None:
     """녹화 구간(capture_start ~ capture_end) 안의 보고 자세 A·B·C 범위 (도)."""
     for n in range(1, 11):
-        rows = [json.loads(line) for line in Path(str(RAW).format(n=n)).open(encoding="utf-8")]
+        rows = [json.loads(line) for line in (resolve_blue_episode(RAW_ROOT, n)/'robot.jsonl').open(encoding="utf-8")]
         t0 = next(r["t_s"] for r in rows if r["kind"] == "capture_start")
         t1 = next(r["t_s"] for r in rows if r["kind"] == "capture_end")
         abc = np.array([r["cart"][3:6] for r in rows if r["kind"] == "state" and t0 <= r["t_s"] <= t1])

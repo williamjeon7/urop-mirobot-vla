@@ -25,7 +25,7 @@ def create_review(episode, raw=False):
     from .color_calibration import apply_rgb, load_profile
     profile_path = episode/'color_profile.json'
     profile = load_profile(profile_path) if profile_path.is_file() and not raw else None
-    stem = episode.name if re.fullmatch(r'영상[0-9]+', episode.name) else 'review'
+    stem = episode.name if re.fullmatch(r'(?:영상|layoutblue)[0-9]+', episode.name) else 'review'
     out = episode / f'{stem}{"_raw" if raw else ""}.mp4'
     if out.exists():
         raise FileExistsError(out)

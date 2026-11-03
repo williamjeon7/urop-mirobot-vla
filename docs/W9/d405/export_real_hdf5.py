@@ -25,6 +25,10 @@ SCHEMA = 'mirobot-cosmos-wrist/1'
 
 def episode_id(episode):
     name = Path(episode).name
+    # These ten captures were renamed on 2026-11-02. Retain their existing
+    # HDF5 identity so --skip-existing validates/reuses rather than duplicates.
+    if name in {f'layoutblue{i}' for i in range(1, 11)}:
+        return 'video'+name[len('layoutblue'):]
     if name.startswith('영상') and name[2:].isascii() and name[2:].isdigit():
         return 'video'+name[2:]
     if not name.isascii() or not all(c.isalnum() or c in '_-' for c in name):

@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 
 import cv2
 import h5py
@@ -22,6 +23,8 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from docs.W9.d405.capture_storage import resolve_blue_episode
 W9 = ROOT/'docs/W9'
 OUT = W9/'images/data_collection_report'
 FONT = '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
@@ -46,7 +49,7 @@ def source_table():
     exports = read_json(W9/'data/hdf5/real_export_summary.json')
     table = []
     for number, exported in enumerate(exports, 1):
-        report = read_json(W9/f'data/raw/영상{number}/alignment_report.json')
+        report = read_json(resolve_blue_episode(W9/'data/raw', number)/'alignment_report.json')
         table.append(dict(video=number, timesteps=exported['steps'],
                           control_duration_s=exported['steps']*.05,
                           camera_hz_median=report['camera_hz_median'],
@@ -63,7 +66,7 @@ def source_table():
 
 
 def alignment_figure():
-    episode = W9/'data/raw/영상1'
+    episode = resolve_blue_episode(W9/'data/raw', 1)
     frames = rows(episode/'frames.jsonl')
     states = [r for r in rows(episode/'robot.jsonl') if r['kind'] == 'state']
     with np.load(episode/'aligned.npz') as aligned:
@@ -202,7 +205,7 @@ def wrist_figure():
 
 def timestamp_preview():
     """Preview original PNGs at their receipt-clock times, never model slots."""
-    episode = W9/'data/raw/영상1'
+    episode = resolve_blue_episode(W9/'data/raw', 1)
     frames = rows(episode/'frames.jsonl')
     times = np.asarray([r['t_s'] for r in frames], dtype=float)
     relative = times-times[0]
@@ -246,7 +249,7 @@ def timestamp_preview():
     durations[-1] = int(round((len(display_times)/fps-(len(quantized)-1)/5)*1000/10))*10
     quantized[0].save(OUT/'video1_preview.gif', save_all=True, append_images=quantized[1:],
                       duration=durations, loop=0, optimize=True, disposal=2)
-    return dict(source='raw/영상1/frames.jsonl and original PNGs',
+    return dict(source=str(episode.relative_to(W9))+'/frames.jsonl and original PNGs',
                 source_frames=len(frames), source_first_to_last_s=duration,
                 preview_duration_s=len(display_times)/fps,
                 mp4_display_fps=fps, gif_display_fps=5,
@@ -273,7 +276,7 @@ def main():
                            sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
     manifest = dict(generator='tools/w9_report_figures.py', source_reports=[
         'docs/W9/data/hdf5/real_export_summary.json', 'docs/W9/data/hdf5/training_smoke.json',
-        'docs/W9/data/raw/영상N/alignment_report.json'],
+        'docs/W9/data/raw/layoutblueN/alignment_report.json'],
         total_timesteps=sum(r['timesteps'] for r in table), preview=preview, assets=assets)
     (OUT/'manifest.json').write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding='utf-8')
     print(json.dumps(manifest, indent=2, ensure_ascii=False))

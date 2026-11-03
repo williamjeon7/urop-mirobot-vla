@@ -11,6 +11,7 @@ import sys
 
 from .check_dataset import check, check_embeddings
 from .train import checkpoint_file
+from .capture_storage import resolve_blue_episode
 
 ROOT = Path(__file__).resolve().parents[3]
 POLICY = 'nvidia/Cosmos-Policy-LIBERO-Predict2-2B'
@@ -41,7 +42,7 @@ def run(command, log, env):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--episodes', nargs='+', type=Path,
-                        default=[ROOT/'docs/W9/data/raw'/f'영상{n}' for n in range(1, 11)])
+                        default=[resolve_blue_episode(ROOT/'docs/W9/data/raw', n) for n in range(1, 11)])
     parser.add_argument('--data-dir', type=Path, default=ROOT/'docs/W9/data/hdf5')
     parser.add_argument('--target', choices=['red', 'green', 'blue'], required=True)
     parser.add_argument('--real-success', action='store_true', help='Confirm these real recordings achieved the reviewed target')

@@ -17,6 +17,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from docs.W9.d405.capture_storage import resolve_blue_episode
 from tools.w9_layout_geometry import (fit_table_pose, paper_to_pixel, pixel_rays,
                                       pixel_to_paper)
 
@@ -290,7 +291,7 @@ def annotate(image, number, intrinsics, R, t, calibration, blocks):
 
 
 def reconstruct(number):
-    episode = W9 / f'data/raw/영상{number}'
+    episode = resolve_blue_episode(W9/'data/raw', number)
     meta_path = episode / 'metadata.json'
     meta_hash = sha256(meta_path)
     meta = read_json(meta_path)

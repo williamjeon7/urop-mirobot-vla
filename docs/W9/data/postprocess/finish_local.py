@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-from docs.W9.d405.capture_storage import read_image, write_image
+from docs.W9.d405.capture_storage import read_image, resolve_blue_episode, write_image
 from docs.W9.d405.prepare import input_hashes, prepare, read_jsonl
 from docs.W9.d405.color_calibration import apply_rgb, load_profile
 
@@ -26,7 +26,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     reports = []
     for number in range(1, 11):
-        episode = root / ('\uC601\uC0C1' + str(number))
+        episode = resolve_blue_episode(root, number)
         report = {'episode': episode.name, 'status': 'failed'}
         try:
             meta_path = episode / 'metadata.json'
