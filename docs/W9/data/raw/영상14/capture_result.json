@@ -1,0 +1,8 @@
+{
+  "termination_status": "normal",
+  "termination_reason": "Three-second recording tail after upward Z command.",
+  "grasp_success": null,
+  "pickup_success": null,
+  "outcome_source": "unreviewed",
+  "lift_motion_complete": true
+}

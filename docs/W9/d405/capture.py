@@ -30,6 +30,9 @@ def main():
     p.add_argument('--reference', type=Path, help='Original W6 Panda pose JSONL used to create G-code')
     p.add_argument('--gcode', type=Path)
     p.add_argument('--teleop', action='store_true', help='Use existing robot/inverse_kinematics.py; F8/F9 mark episode')
+    p.add_argument('--no-homing', action='store_true',
+                   help='Teleop: skip $H at start and q exit; go to the original initial pose instead. '
+                        'Home normally after power-on or any collision.')
     p.add_argument('--mapping-gcode', type=Path, help='Coordinate mapping header only; not executed in teleop mode')
     p.add_argument('--color-profile', type=Path, help='Fixed Classic Mini correction; raw PNG remains unmodified')
     p.add_argument('--layout', type=Path, help='Manually measured initial paper coordinates JSON (cm)')
@@ -37,12 +40,18 @@ def main():
     p.add_argument('--port', help='Robot serial device, e.g. /dev/serial/by-id/... (not the D405)')
     p.add_argument('--execute', action='store_true', help='Execute G-code; omission means validate only')
     p.add_argument('--gripper-seconds', type=float, default=1.0, help='Measured servo transition/hold seconds')
+    p.add_argument('--auto-stop-seconds', type=float, default=3.0, help='Recording tail after post-Close upward Z command')
+    p.add_argument('--pickup-timeout', type=float, default=15.0)
+    p.add_argument('--episode-timeout', type=float, default=120.0)
     p.add_argument('--initial-s', type=float, default=40, help='Actual gripper command before capture')
     p.add_argument('--open-s', type=float, default=40)
     p.add_argument('--closed-s', type=float, default=60)
     a = p.parse_args()
     if a.seconds <= 0 or a.gripper_seconds <= 0 or a.open_s == a.closed_s:
         p.error('Positive durations and distinct open/closed S values required.')
+    if not all(__import__('math').isfinite(v) and v > 0 for v in
+               (a.auto_stop_seconds, a.pickup_timeout, a.episode_timeout)):
+        p.error('Auto-stop and timeout durations must be finite positive seconds.')
     layout_inputs = None
     if a.layout_photo and not a.layout:
         p.error('--layout-photo requires --layout with all three measured block centres.')
@@ -53,11 +62,14 @@ def main():
         except (OSError, ValueError, KeyError) as error:
             p.error(f'Invalid layout: {error}')
     entries = None
+    if a.no_homing and not a.teleop:
+        p.error('--no-homing only applies to --teleop.')
     if a.teleop:
         if a.gcode or not a.reference or not a.mapping_gcode:
             p.error('--teleop requires --reference and --mapping-gcode; do not pass --gcode.')
         if not a.execute:
-            print('Teleop launch requires --execute. Original inverse_kinematics.py homes on start and q exit.')
+            print('Teleop launch requires --execute. Original inverse_kinematics.py homes on start and q exit '
+                  '(skip with --no-homing).')
             return
         if os.name == 'posix' and not sys.stdin.isatty():
             p.error('Teleop needs an interactive terminal; use SSH with -t or VS Code terminal.')
@@ -142,6 +154,9 @@ def main():
                 robot_port=a.port,
                 packages={n: importlib.metadata.version(n) for n in
                           ['pyrealsense2', 'numpy', 'opencv-python', 'pyserial', 'h5py']})
+    if a.teleop:
+        meta['homing'] = 'skipped; initial-pose move only' if a.no_homing else '$H at start and q exit'
+        meta['discarded_takes'] = 0  # RESET count; robot.jsonl has a capture_reset mark for each
     meta_path = a.out / 'metadata.json'
     def save_meta():
         meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding='utf-8')
@@ -246,13 +261,21 @@ def main():
         if a.teleop:
             from .teleop import run
             def start_recording():
+                first_recorded_frame.clear()  # every take (also after RESET) waits for its own frame
                 recording.set()
                 if not first_recorded_frame.wait(5) or stop.is_set():
                     raise RuntimeError('Camera did not save a frame after recording started.')
+            def discard_take():
+                recording.clear()  # RESET: stop saving frames of the discarded take
+                meta['discarded_takes'] += 1
             meta['teleop_recording_mode'] = 'buttons_or_f8_f9_after_initial_idle'
-            print('Live preview during homing. After initial Idle: START/F8, STOP/F9, q saves and exits.')
+            print('Live preview during homing. After initial Idle: START/F8, STOP/F9, '
+                  'RESET discards the take, q saves and exits.')
             run(a.out, clock_ns, stop, a.initial_s, port=a.port, controls=controls,
-                on_start=start_recording, on_end=recording.clear)
+                on_start=start_recording, on_end=recording.clear,
+                on_reset=discard_take, skip_homing=a.no_homing,
+                auto_stop_seconds=a.auto_stop_seconds, pickup_timeout=a.pickup_timeout,
+                episode_timeout=a.episode_timeout, closed_s=a.closed_s)
         elif entries:
             from .robot_capture import run_robot
             run_robot(a.port, entries, a.out, clock_ns, stop, a.gripper_seconds, a.initial_s)
@@ -273,6 +296,12 @@ def main():
         if not errors.empty():
             meta['complete'] = False
             meta['error'] = str(errors.get())
+        result_path = a.out / 'capture_result.json'
+        if result_path.exists():
+            meta.update(json.loads(result_path.read_text(encoding='utf-8')))
+        if a.teleop and meta.get('termination_status') in ('task_failed', 'abnormal', 'timeout'):
+            meta['complete'] = False
+            meta.setdefault('error', meta.get('termination_reason'))
         save_meta()
     if not meta['complete']:
         raise RuntimeError(meta.get('error', 'Incomplete capture'))

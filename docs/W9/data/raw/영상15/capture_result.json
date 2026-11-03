@@ -1,0 +1,8 @@
+{
+  "termination_status": "manual",
+  "termination_reason": null,
+  "grasp_success": null,
+  "pickup_success": null,
+  "outcome_source": "unreviewed",
+  "lift_motion_complete": false
+}

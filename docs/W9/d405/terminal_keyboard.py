@@ -69,7 +69,7 @@ class TerminalKeyboard:
                 continue
             char = chr(self.pending[0]).lower()
             self.pending = self.pending[1:]
-            if char in 'wasd123456789q':
+            if char in 'wasd123456789qfvg':
                 self.keys.add(char)
             elif char in '[]':
                 self.keys.add('f8' if char == '[' else 'f9')

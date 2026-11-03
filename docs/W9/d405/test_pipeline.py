@@ -26,7 +26,8 @@ from .export_hdf5 import main as export_main, wrist_image, write_demo
 from .prepare import gripper_track, input_hashes, input_hashes_match, nearest_indices, prepare, slerp
 from .robot_capture import validate_gcode
 from .train import training_command
-from .teleop import TeleopSession
+from .teleop import SCRIPT_POSE, TeleopSession
+from tools.run_gcode import pose_of
 from .capture_storage import read_image, reserve_episode, write_image
 from .preview import create_review
 from .color_calibration import (D65, RGB_XYZ, adapt_xyz, apply_rgb, decode_srgb, encode_srgb,
@@ -337,6 +338,101 @@ class PipelineTests(unittest.TestCase):
         self.assertAlmostEqual(aligned['times'][0], .25)
         self.assertAlmostEqual(aligned['times'][-1], 1.75)
         self.assertEqual(len(aligned['gripper_actions']), 30)
+
+    def test_reset_keeps_only_the_last_take_for_alignment(self):
+        ep = self.fixture()
+        meta_path = ep/'metadata.json'
+        meta = json.loads(meta_path.read_text())
+        meta['teleop'] = True
+        meta_path.write_text(json.dumps(meta), encoding='utf-8')
+        path = ep/'robot.jsonl'
+        rows = [json.loads(r) for r in path.read_text().splitlines()]
+        rows.extend([dict(kind='capture_start', t_s=.1), dict(kind='capture_reset', t_s=.5, discarded_take=True),
+                     dict(kind='capture_start', t_s=.9), dict(kind='capture_end', t_s=1.875)])
+        rows.sort(key=lambda r: r['t_s'])
+        path.write_text(''.join(json.dumps(r)+'\n' for r in rows), encoding='utf-8')
+        aligned, report = prepare(ep)
+        self.assertAlmostEqual(aligned['times'][0], .9)
+        self.assertEqual(len(aligned['gripper_actions']), 19)
+        self.assertEqual(report['skipped_camera_frame_numbers'], 0)
+
+    def test_reset_button_discards_take_and_resyncs_controller_position(self):
+        controls = RecordingControls()
+        events, sent = [], []
+        keyboard = SimpleNamespace(poll=lambda: None, is_pressed=lambda key: False)
+        session = TeleopSession(self.root, time.perf_counter_ns(), threading.Event(), 40,
+                               controls=controls, keyboard=keyboard,
+                               on_start=lambda: events.append('start'), on_end=lambda: events.append('end'),
+                               on_reset=lambda: events.append('reset'))
+        self.addCleanup(session.log.close)
+        def fake_send(command):
+            sent.append(command)
+            session.last_motion = pose_of(command) or session.last_motion
+            return True
+        session.send_gcode = fake_send
+        session.wait_idle_at = lambda goal, timeout=120, what='': goal
+        session.initial_command = 'G0 X198.67 Y0 Z230.72 A0 B0 C0'
+        session.last_motion = [213.67, -20, 75, 0, 0, 5]
+        session.script_globals = dict(zip(SCRIPT_POSE, session.last_motion))
+        session.initial_ready = True
+        controls.set_state('ready')
+        controls.draw(np.zeros((480, 640, 3), np.uint8))
+        controls.mouse(cv2.EVENT_LBUTTONUP, 30, 510, 0, None)   # START
+        session.tick()
+        self.assertEqual(controls.state, 'recording')
+        controls.mouse(cv2.EVENT_LBUTTONUP, 320, 560, 0, None)  # RESET row
+        session.tick()
+        # Straight up first, then the original initial pose.
+        self.assertEqual(sent, ['G0 X213.670 Y-20.000 Z230.720 A0.000 B0.000 C5.000',
+                                'G0 X198.67 Y0 Z230.72 A0 B0 C0'])
+        self.assertEqual(controls.state, 'ready')
+        self.assertFalse(session.started)
+        self.assertEqual([session.script_globals[n] for n in SCRIPT_POSE], [198.67, 0, 230.72, 0, 0, 0])
+        controls.request('start')
+        session.tick()
+        controls.request('end')
+        session.tick()
+        self.assertEqual(events, ['start', 'reset', 'start', 'end'])
+        rows = [json.loads(r) for r in (self.root/'robot.jsonl').read_text().splitlines()]
+        self.assertEqual([r['kind'] for r in rows],
+                         ['capture_start', 'capture_reset', 'capture_start', 'capture_end'])
+        self.assertTrue(rows[1]['discarded_take'])
+        controls.set_state('homing')
+        controls.request('reset')
+        self.assertEqual(controls.pending(), [])
+
+    def test_no_homing_skips_start_home_and_returns_to_initial_pose_on_exit(self):
+        class FakeSerial:
+            def __init__(self, *args, **kwargs):
+                self.lines, self.is_open, self.writes = queue.Queue(), True, []
+            def write(self, value):
+                self.writes.append(value)
+                self.lines.put(b'<Idle,Cartesian:198.67,0,230.72,0,0,0>\n' if value == b'?\n' else b'ok\n')
+            def readline(self):
+                try:
+                    return self.lines.get(timeout=.005)
+                except queue.Empty:
+                    return b''
+            def close(self):
+                self.is_open = False
+        session = TeleopSession(self.root, time.perf_counter_ns(), threading.Event(), 40, skip_homing=True)
+        self.addCleanup(session.log.close)
+        self.addCleanup(session.close)
+        with patch('serial.Serial', FakeSerial):
+            session.open_serial(port='FAKE')
+            self.assertTrue(session.send_gcode('$H'))  # original script start
+            self.assertTrue(session.send_gcode('G0 X198.67 Y0 Z230.72 A0 B0 C0'))
+            self.assertTrue(session.send_gcode('G0 X213.67 Y-20 Z75 A0 B0 C0'))
+            session.start_capture()                     # F8 (no preview controls in this test)
+            self.assertTrue(session.send_gcode('$H'))  # original script q exit, F9 not pressed
+            writes = [w for w in session.ser.writes if w != b'?\n']
+        self.assertNotIn(b'$H\n', writes)
+        self.assertEqual(writes[-2:], [b'G0 X213.670 Y-20.000 Z230.720 A0.000 B0.000 C0.000\n',
+                                       b'G0 X198.67 Y0 Z230.72 A0 B0 C0\n'])
+        rows = [json.loads(r) for r in (self.root/'robot.jsonl').read_text().splitlines()]
+        kinds = [r['kind'] for r in rows if r['kind'] not in ('state', 'query_timeout')]
+        self.assertEqual(kinds, ['gripper_initial', 'homing_skipped', 'command', 'command',
+                                 'capture_start', 'capture_end', 'homing_skipped', 'command', 'command'])
 
     def test_srgb_roundtrip_and_d50_d65_adaptation(self):
         pixels = np.array([[0, 12, 255], [32, 128, 200]], np.uint8)

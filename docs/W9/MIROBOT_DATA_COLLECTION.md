@@ -56,10 +56,17 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color blue -
 | `←/→` | 집게 열기 S40 / 닫기 S60 |
 | `1/2`, `4/5`, `7/8` | A, B, C 회전 |
 | `START REC (F8)` | 초기 위치에서 녹화 시작 |
-| `STOP REC (F9)` | 집어 든 뒤 녹화 종료 |
+| `STOP REC (F9)` | 자동 종료 전에 녹화를 수동으로 종료 |
+| `RESET` 버튼 (미리보기 창 아래 줄) | 지금 시도를 버리고 곧장 위로 올린 뒤 초기 자세로 복귀. 다시 `READY`가 되어 같은 실행에서 F8로 다시 찍는다 |
 | `q` | 조작기 종료·호밍·파일 저장 |
 
-초기 이동이 끝나고 `READY`가 표시되면 집게를 열고 F8을 누른다. 파란 블록을 집어 들고 약 1초 유지한 뒤 F9, q 순서로 종료한다. 블록 배치는 바꿔도 된다. `reference`와 `mapping-gcode`는 로봇 좌표 변환의 기준으로 사용한다.
+초기 이동이 끝나고 `READY`가 표시되면 집게를 열고 F8을 누른다. 블록을 집도록 그리퍼를 닫은 뒤 `↑`로 Z축 상승 명령을 보낸다. **Close 이후 첫 Z축 상승 명령을 전송한 시점부터 3초 후 녹화가 자동 종료된다.** Close 명령 자체나 상승 동작이 끝난 시점부터 3초를 세는 것은 아니다. 자동 종료를 확인한 뒤 `q`로 조작기를 종료하고 저장한다. F9로 먼저 수동 종료할 수도 있다. 블록 배치는 바꿔도 된다. `reference`와 `mapping-gcode`는 로봇 좌표 변환의 기준으로 사용한다.
+
+**자동 종료 (11/03 추가).** 기본 대기 시간은 `--auto-stop-seconds 3.0`이다. 첫 상승 명령 뒤 추가 상승이나 반복 Close를 보내도 타이머는 다시 시작하지 않는다. 녹화 종료 상태와 실제 블록 파지·들기 성공 여부는 별도로 기록한다. 자세한 설정과 결과 입력 방법은 [자동 녹화 종료 조건](#자동-녹화-종료-조건)을 참고한다.
+
+**RESET (11/03 추가).** 녹화 중(F8 뒤)이나 자동 종료·F9 뒤 q 전에 누를 수 있다. 버린 시도의 PNG와 기록은 지우지 않고 `robot.jsonl`에 `capture_reset` 표시를 남기며, `metadata.json`의 `discarded_takes`에 횟수를 적는다. 정렬(`prepare`)은 마지막 RESET 뒤 F8부터 녹화 종료까지의 구간만 쓴다. 확인용 MP4에는 버린 시도도 함께 보인다. 블록을 문 채로 RESET하면 초기 자세까지 들고 오므로, 블록을 제자리에 놓은 뒤 집게를 열고 F8을 누른다.
+
+**`--no-homing` (11/03 추가).** 명령 끝에 붙이면 시작과 q 종료 때 `$H` 호밍 대신 초기 자세로만 이동한다. q 때는 녹화 구간을 먼저 닫고 곧장 위로 올린 뒤 초기 자세로 돌아간다. 학습 구간(F8–F9)에는 영향이 없다. Mirobot은 스텝모터라 부딪혀 밀린 위치는 다음 호밍 전까지 남으므로, **전원을 켠 뒤 첫 녹화와 어딘가 부딪힌 뒤에는 옵션 없이 실행해 호밍**한다. `metadata.json`의 `homing`에 어느 쪽인지 기록된다.
 
 `--out`을 생략하면 `docs/W9/data/raw/영상N/`에 다음 번호로 저장된다. 폴더 전체를 보관한다: 원본 `rgb/`, MP4, `metadata.json`, `frames.jsonl`, `robot.jsonl`, `reference.jsonl`, `source.gcode`, `color_profile.json`.
 
@@ -119,7 +126,7 @@ Start-Process "docs/W9/data/raw/영상11/영상11.mp4"
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.prepare "docs/W9/data/raw/영상11"
 ```
 
-PNG·로봇 상태·집게 명령을 F8~F9 구간의 **20Hz 격자**에 맞추고 `aligned.npz`, `alignment_report.json`을 만든다. 관측은 시각 t, action 목표는 t+0.05초 자세다. MP4를 여러 짧은 영상으로 자르는 작업은 아니다.
+PNG·로봇 상태·집게 명령을 F8부터 자동 종료 또는 F9까지의 구간에서 **20Hz 격자**에 맞추고 `aligned.npz`, `alignment_report.json`을 만든다. 관측은 시각 t, action 목표는 t+0.05초 자세다. MP4를 여러 짧은 영상으로 자르는 작업은 아니다.
 
 이번 영상1~10은 이미 정렬했다. 실제 저장 속도는 약 10~11fps이며 기본 40ms 검사는 실패했다. 이번 배치는 **프레임 허용 차이 70ms**, 로봇 상태 공백 한계 150ms로 정렬했다. 실제 최대 프레임 차이는 54.6~67.1ms다. 새 프레임을 만들어 채우지 않았으며, 같은 PNG가 여러 타임스텝에 사용된다.
 
@@ -489,3 +496,12 @@ cosmos-policy/.venv/bin/python tools/w9_report_figures.py
 ```
 
 주요 확인 자료: [일괄 결과](data/hdf5/ready.json), [정렬·변환 집계](data/hdf5/real_export_summary.json), [실제 로더 검사](data/hdf5/loader_validation.json), [native 설정 검사](data/hdf5/training_config_validation.json), [GPU 학습 증거](data/hdf5/training_smoke.json), [독립 검증](data/hdf5/independent_validation.json). 구현은 [시간 정렬](d405/prepare.py), [행동 라벨](d405/action_labels.py), [HDF5 생성](d405/export_real_hdf5.py), [실제 T5 생성](d405/make_t5.py), [학습 진입점](../../tools/train_cosmos_libero.py)에 나눠 두었다.
+
+## 자동 녹화 종료 조건
+
+- START/F8 이후 그리퍼 Close(`M4 S60`, `--closed-s` 설정값)를 전송하고, 그 뒤 현재 명령 위치보다 높은 Z 이동 명령을 처음 전송한 시점부터 **3초 후** 녹화를 자동 종료합니다. 추가 상승이나 반복 Close는 타이머를 다시 시작하지 않습니다.
+- 녹화 종료 후에도 조작 프로그램은 유지됩니다. `q`로 저장·종료하고 RESET으로 테이크를 버립니다. RESET은 타이머와 성공 여부도 초기화합니다.
+- `--auto-stop-seconds` 기본 3초. 상승 명령이 없으면 Close 후 `--pickup-timeout` 기본 15초, 전체 작업은 START 후 `--episode-timeout` 기본 120초에 종료합니다.
+- 종료 상태: `normal` 자동 종료, `manual` STOP/F9, `task_failed` 작업 실패, `abnormal` 로봇·통신·캡처 오류, `timeout` 시간 초과. 실패·오류·시간 초과는 정상 완료로 처리하지 않습니다. 녹화 종료는 로봇 비상 정지를 대신하지 않습니다.
+- `capture_result.json`과 최종 `metadata.json`에 종료 상태·사유와 `grasp_success`, `pickup_success`, `lift_motion_complete`, `outcome_source`를 기록합니다. 로봇 상승과 실제 블록 들기 성공을 구분하며, 미확인 성공 값은 `null`입니다.
+- 관찰 결과 입력: `v` 파지·들기 성공, `g` 파지 성공·들기 실패, `f` 파지·들기 실패. 자동 종료 후에도 `q` 전에 입력할 수 있습니다. 녹화 중 실패 입력 또는 Close 후 재개방은 `task_failed`로 종료합니다. 기존 `review.json` 사후 검토도 유지됩니다.

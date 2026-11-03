@@ -124,9 +124,11 @@ def prepare(episode, max_frame_ms=40, max_state_gap_ms=150, camera_latency_ms=0,
     ft = ordered_times(frames, 'frames') - camera_latency_ms/1000
     rt = ordered_times(states, 'robot')
     lo, hi = max(ft[0], rt[0]), min(ft[-1], rt[-1])
+    # RESET discards a take; only the F8/F9 interval after the last reset counts.
+    after = max((r['t_s'] for r in events if r['kind'] == 'capture_reset'), default=-math.inf)
     if meta.get('teleop'):
-        starts = [r['t_s'] for r in events if r['kind'] == 'capture_start']
-        ends = [r['t_s'] for r in events if r['kind'] == 'capture_end']
+        starts = [r['t_s'] for r in events if r['kind'] == 'capture_start' and r['t_s'] > after]
+        ends = [r['t_s'] for r in events if r['kind'] == 'capture_end' and r['t_s'] > after]
         if len(starts) != 1 or len(ends) != 1 or ends[0] <= starts[0]:
             raise ValueError('Need exactly one valid F8/F9 capture interval.')
         lo, hi = max(lo, starts[0]), min(hi, ends[0])
@@ -143,6 +145,7 @@ def prepare(episode, max_frame_ms=40, max_state_gap_ms=150, camera_latency_ms=0,
     if gap > max_state_gap_ms/1000:
         raise ValueError(f'Robot state gap {gap*1000:.1f} ms exceeds limit; do not invent missing motion.')
     indices, errors = nearest_indices(ft, times[:-1], max_frame_ms/1000)
+    kept = [f for f in frames if f['t_s'] > after]  # frames of discarded takes are not counted
     settings = settings_from_gcode((episode/'source.gcode').read_text(encoding='utf-8'))
     ref_q = quat_xyzw_to_wxyz(reference['start_eef_quat_xyzw'])
     ref_flange = grip_to_flange(reference['start_eef_pos'], ref_q)
@@ -168,7 +171,7 @@ def prepare(episode, max_frame_ms=40, max_state_gap_ms=150, camera_latency_ms=0,
                   repeated_frames=int(len(indices)-len(np.unique(indices))),
                   camera_latency_ms=camera_latency_ms,
                   skipped_camera_frame_numbers=int(sum(max(0, b['number']-a['number']-1)
-                                                       for a, b in zip(frames, frames[1:]))),
+                                                       for a, b in zip(kept, kept[1:]))),
                   timing_note='Host receipt alignment; camera exposure and serial latency remain uncertain.',
                   interpolation='linear position; quaternion SLERP; commanded gripper linear travel')
     report['input_sha256'] = input_hashes(episode)
