@@ -20,6 +20,7 @@ Mirobot_data/
 - **배치 번호 `L01`–`L30`** — 블록 세 개를 놓은 장면 하나. 주차가 바뀌어도 번호는 이어서 매기고 다시 쓰지 않는다.
 - **색** — 그 녹화에서 실제로 집은 블록(`--color`).
 - 평가에 쓸 배치는 여기 녹화에 쓰지 않은 것으로 따로 정한다.
+- **`trash/`** — 쓰지 않기로 한 녹화를 지우지 않고 옮겨 두는 곳 (노트북에만, git 제외). 11/04 오전 시험 녹화(L01, L02 일부)가 여기 있다.
 
 ## 수집 방법
 
@@ -53,11 +54,27 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.home_robot --port COM3
 
 ### 4. 녹화 (빨강 → 초록 → 파랑)
 
-`<c>` 네 곳을 같은 색(`red` / `green` / `blue`)으로, `L01`을 그 배치 번호로 바꾼다.
+색마다 아래 명령을 그대로 쓴다. **배치가 바뀔 때는 맨 끝 `--out Mirobot_data/W10/L01_<색>`에서 `L01`만 그 배치 번호로 바꾼다** (예: `W10/L02_red`). 주차가 바뀌면 `W10`도 바꾼다. 앞부분은 고치지 않는다.
+
+red:
 
 ```powershell
-docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color <c> --seed 2 --reference docs/W6/poses/pickup-<c>-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-<c>-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --serial 262422272124 --execute --preview --out Mirobot_data/W10/L01_<c>
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color red --seed 2 --reference docs/W6/poses/pickup-red-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --serial 262422272124 --execute --preview --out Mirobot_data/W10/L01_red
 ```
+
+green:
+
+```powershell
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color green --seed 2 --reference docs/W6/poses/pickup-green-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-green-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --serial 262422272124 --execute --preview --out Mirobot_data/W10/L01_green
+```
+
+blue:
+
+```powershell
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color blue --seed 2 --reference docs/W6/poses/pickup-blue-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-blue-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --serial 262422272124 --execute --preview --out Mirobot_data/W10/L01_blue
+```
+
+색 이름은 명령 안 네 곳(`--color`, `pickup-<색>-s2.jsonl`, `pickup-<색>-s2-e5.gcode`, 폴더 이름)이 같아야 하므로, 다른 색 명령을 고쳐 쓰지 말고 그 색의 명령을 복사한다.
 
 조작 순서:
 
@@ -76,7 +93,7 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color <c> --
 | `←` / `→` | 집게 열기 S40 / 닫기 S60 |
 | `1/2`, `4/5`, `7/8` | A, B, C 회전 5° |
 | `F8` / `F9` | 녹화 시작 / 수동 종료 (미리보기 창 버튼도 같음) |
-| RESET 버튼 | 지금 시도를 버리고 위로 올린 뒤 초기 자세로 복귀. 같은 폴더에서 F8로 다시 찍는다 |
+| `F10` / RESET 버튼 | 지금 시도를 지우고 위로 올린 뒤 초기 자세로 복귀. 같은 폴더에서 F8로 처음부터 다시 찍는다 |
 | `v` / `g` / `f` | (선택) 결과 기록: 성공 / 잡았지만 못 듦 / 실패 |
 | `q` | 종료·초기 자세 복귀·저장 |
 
@@ -85,7 +102,7 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color <c> --
 - **키 입력은 어느 창이 앞에 있든 로봇으로 간다.** 녹화 중에는 다른 창(채팅 등)에 타이핑하지 않는다.
 - 터미널에 출력되는 키 설명은 a·d / w·s가 바뀌어 있다. 위 표가 실제 동작이다.
 - 미리보기의 `Esc`나 `Ctrl+C`는 녹화만 멈추고 이미 보낸 이동은 멈추지 않는다. 비상시에는 로봇 전원을 끈다.
-- 조작 실수는 RESET으로 같은 폴더에서 다시 찍는다. 실행을 처음부터 다시 해야 하면 `L01_red_2`처럼 새 이름을 쓴다 (같은 이름이면 시작 전에 멈추고 덮어쓰지 않는다).
+- 조작 실수는 `F10`(RESET)으로 같은 폴더에서 다시 찍는다. 그때까지 찍힌 프레임은 지워지고, 다시 찍은 녹화가 0번 프레임부터 저장된다. 실행을 처음부터 다시 해야 하면 `L01_red_2`처럼 새 이름을 쓴다 (같은 이름이면 시작 전에 멈추고 덮어쓰지 않는다).
 - 실패한 녹화는 지우지 않고 `layout.json`의 `real_success: false`로 남긴다.
 - 녹화가 끝난 뒤에는 팔을 더 움직이지 말고 바로 `q`를 누른다. 끝난 뒤의 오류도 녹화 전체를 실패로 만든다.
 
@@ -143,7 +160,7 @@ git push
 | `metadata.json` | 카메라 설정, 색, `recorded_at`, 호밍 여부, 버린 시도 수 |
 | `capture_result.json` | 녹화 종료 이유 (자동 종료·F9·실패·시간 초과) |
 | `reference.jsonl`, `source.gcode`, `color_profile.json` | 좌표 변환 기준과 색 보정 |
-| `<폴더명>.mp4` | 확인용 영상 (학습에 쓰지 않음) |
+| `review.mp4` | 확인용 영상 (학습에 쓰지 않음). `q` 뒤 `...review.mp4: N frames` 줄과 프롬프트가 나올 때까지 기다려야 만들어진다 |
 | `layout.json`, `layout.jpg` | 블록 좌표·사진 (녹화 뒤 추가) |
 | `aligned.npz`, `alignment_report.json` | 0.05초 정렬 결과 (정렬 뒤 추가) |
 

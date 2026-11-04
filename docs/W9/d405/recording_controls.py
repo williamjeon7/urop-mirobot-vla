@@ -56,7 +56,7 @@ class RecordingControls:
         for label, x0, x1, y0, y1, enabled, color in [
             ('START REC (F8)', 12, self.width//2-6, 12, 52, state == 'ready', (40, 140, 40)),
             ('STOP REC (F9)', self.width//2+6, self.width-12, 12, 52, state == 'recording', (50, 50, 190)),
-            ('RESET - discard this take, back to initial pose', 12, self.width-12, 62, 102,
+            ('RESET (F10) - discard this take, back to initial pose', 12, self.width-12, 62, 102,
              state in RESETTABLE, (30, 110, 200)),
         ]:
             cv2.rectangle(view, (x0, y+y0), (x1, y+y1), color if enabled else (65, 65, 65), -1)

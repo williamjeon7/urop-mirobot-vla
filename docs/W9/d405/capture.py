@@ -129,7 +129,7 @@ def main():
         p.error(f'Expected one D405, found {len(candidates)}. Check USB / --serial / --list.')
     dev = candidates[0]
     serial_number = dev.get_info(rs.camera_info.serial_number)
-    from .capture_storage import reserve_episode, write_image
+    from .capture_storage import clear_take, reserve_episode, write_image
     if a.out is None:
         a.out = reserve_episode(a.out_root or Path(__file__).resolve().parents[1] / 'data' / 'raw')
     else:
@@ -183,42 +183,57 @@ def main():
     profile = None
     worker = None
     preview_title = 'D405 live - recording controls' if a.teleop else 'D405 - Esc stops capture'
+    set_aside = queue.Queue()  # RESET requests; only the camera thread touches frame files
     def camera_loop():
+        log = None
         try:
             if a.preview:
                 cv2.namedWindow(preview_title)
                 if controls:
                     cv2.setMouseCallback(preview_title, controls.mouse)
-            with (a.out / 'frames.jsonl').open('x', encoding='utf-8') as log:
-                index = 0
-                while not stop.is_set():
-                    frames = pipe.wait_for_frames(2000)
-                    receipt_ns = time.perf_counter_ns()
-                    frame = frames.get_color_frame()
-                    if not frame:
-                        continue
-                    image = np.asanyarray(frame.get_data())
-                    if recording.is_set():
-                        name = f'rgb/{index:08d}.png'
-                        write_image(a.out / name, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-                        log.write(json.dumps(dict(file=name, t_s=(receipt_ns-clock_ns)/1e9,
-                                                 device_ms=frame.get_timestamp(),
-                                                 domain=str(frame.get_frame_timestamp_domain()),
-                                                 number=frame.get_frame_number())) + '\n')
-                        log.flush()
-                        first_recorded_frame.set()
-                        index += 1
-                    ready.set()
-                    if a.preview:
-                        from .color_calibration import apply_rgb
-                        view = cv2.cvtColor(apply_rgb(image, color_profile), cv2.COLOR_RGB2BGR)
-                        cv2.imshow(preview_title, controls.draw(view) if controls else view)
-                        if cv2.waitKey(1) & 0xff == 27:
-                            stop.set()
+            log = (a.out / 'frames.jsonl').open('x', encoding='utf-8')
+            index = 0
+            while not stop.is_set():
+                try:
+                    request = set_aside.get_nowait()
+                except queue.Empty:
+                    request = None
+                if request is not None:
+                    # RESET: delete the discarded take and restart numbering at 0.
+                    log.close()
+                    clear_take(a.out)
+                    log = (a.out / 'frames.jsonl').open('x', encoding='utf-8')
+                    index = 0
+                    request['done'].set()
+                frames = pipe.wait_for_frames(2000)
+                receipt_ns = time.perf_counter_ns()
+                frame = frames.get_color_frame()
+                if not frame:
+                    continue
+                image = np.asanyarray(frame.get_data())
+                if recording.is_set():
+                    name = f'rgb/{index:08d}.png'
+                    write_image(a.out / name, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+                    log.write(json.dumps(dict(file=name, t_s=(receipt_ns-clock_ns)/1e9,
+                                             device_ms=frame.get_timestamp(),
+                                             domain=str(frame.get_frame_timestamp_domain()),
+                                             number=frame.get_frame_number())) + '\n')
+                    log.flush()
+                    first_recorded_frame.set()
+                    index += 1
+                ready.set()
+                if a.preview:
+                    from .color_calibration import apply_rgb
+                    view = cv2.cvtColor(apply_rgb(image, color_profile), cv2.COLOR_RGB2BGR)
+                    cv2.imshow(preview_title, controls.draw(view) if controls else view)
+                    if cv2.waitKey(1) & 0xff == 27:
+                        stop.set()
         except Exception as e:
             errors.put(e)
             stop.set()
         finally:
+            if log is not None:
+                log.close()
             if a.preview:
                 cv2.destroyAllWindows()
     try:
@@ -273,6 +288,10 @@ def main():
             def discard_take():
                 recording.clear()  # RESET: stop saving frames of the discarded take
                 meta['discarded_takes'] += 1
+                request = dict(number=meta['discarded_takes'], done=threading.Event())
+                set_aside.put(request)  # the camera thread deletes the discarded frames
+                if not request['done'].wait(10) or stop.is_set():
+                    raise RuntimeError('Camera did not clear the discarded take.')
             meta['teleop_recording_mode'] = 'buttons_or_f8_f9_after_initial_idle'
             print('Live preview during homing. After initial Idle: START/F8, STOP/F9, '
                   'RESET discards the take, q saves and exits.')

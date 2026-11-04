@@ -12,6 +12,17 @@ def resolve_blue_episode(root, number):
     return renamed if renamed.is_dir() else root/f'영상{number}'
 
 
+def clear_take(episode):
+    """RESET: delete the discarded take's PNGs and frames.jsonl so recording restarts at frame 0.
+
+    robot.jsonl keeps its capture_reset marks; prepare uses only the take after the last one.
+    """
+    episode = Path(episode)
+    for png in (episode/'rgb').glob('*.png'):
+        png.unlink()
+    (episode/'frames.jsonl').unlink(missing_ok=True)
+
+
 def reserve_episode(root):
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)

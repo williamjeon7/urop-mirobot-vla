@@ -42,6 +42,7 @@ class TeleopSession:
         self.initial_ready = False
         self.last_motion = None
         self.initial_command = None  # the original script's first G0 = initial pose
+        self.reset_key_down = False  # F10 held across ticks must not reset twice
         self.script_globals = None   # set by run(); RESET re-syncs the script's position
         self.status_condition = threading.Condition()
         self.status_revision = 0
@@ -365,6 +366,10 @@ class TeleopSession:
             self.record_pickup_result(True, True)
         if keyboard.is_pressed('g'):
             self.record_pickup_result(True, False)
+        reset_pressed = keyboard.is_pressed('f10')
+        if reset_pressed and not self.reset_key_down and self.controls:
+            self.controls.request('reset')  # same state rules as the RESET button; once per press
+        self.reset_key_down = reset_pressed
         actions = self.controls.pending() if self.controls else []
         if keyboard.is_pressed('f8'):
             actions.append('start')

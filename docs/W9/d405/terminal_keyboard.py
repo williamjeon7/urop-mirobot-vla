@@ -13,7 +13,7 @@ class TerminalKeyboard:
         b'\x1b[C': 'right', b'\x1b[D': 'left',
         b'\x1bOA': 'up', b'\x1bOB': 'down',
         b'\x1bOC': 'right', b'\x1bOD': 'left',
-        b'\x1b[19~': 'f8', b'\x1b[20~': 'f9',
+        b'\x1b[19~': 'f8', b'\x1b[20~': 'f9', b'\x1b[21~': 'f10',
     }
 
     def __init__(self, stream=None):

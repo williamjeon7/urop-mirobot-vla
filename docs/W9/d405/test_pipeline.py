@@ -401,6 +401,31 @@ class PipelineTests(unittest.TestCase):
         controls.request('reset')
         self.assertEqual(controls.pending(), [])
 
+    def test_f10_resets_once_per_press_and_only_when_allowed(self):
+        controls = RecordingControls()
+        pressed = {'f10'}
+        keyboard = SimpleNamespace(poll=lambda: None, is_pressed=lambda key: key in pressed)
+        session = TeleopSession(self.root, time.perf_counter_ns(), threading.Event(), 40,
+                               controls=controls, keyboard=keyboard)
+        self.addCleanup(session.log.close)
+        resets = []
+        session.reset_take = lambda: resets.append(controls.state)
+        session.initial_ready = True
+        controls.set_state('recording')
+        session.tick()
+        session.tick()  # still held: no second reset
+        pressed.clear()
+        session.tick()
+        pressed.add('f10')
+        session.tick()  # a new press
+        self.assertEqual(resets, ['recording', 'recording'])
+        pressed.clear()
+        session.tick()
+        controls.set_state('homing')
+        pressed.add('f10')
+        session.tick()  # not allowed while homing, like the button
+        self.assertEqual(len(resets), 2)
+
     def test_no_homing_skips_start_home_and_returns_to_initial_pose_on_exit(self):
         class FakeSerial:
             def __init__(self, *args, **kwargs):
@@ -623,6 +648,58 @@ class PipelineTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code, 2)
                 self.assertIn(hint, error.getvalue())
                 show.assert_not_called()
+
+    def test_reset_deletes_the_discarded_take_and_restarts_frame_numbers(self):
+        import pyrealsense2 as rs
+        from .capture import main as capture_main
+        intr = SimpleNamespace(width=640, height=480, fx=1., fy=1., ppx=0., ppy=0., coeffs=[0.]*5, model='test')
+        stream = SimpleNamespace(get_intrinsics=lambda: intr)
+        device = SimpleNamespace(get_info=lambda key: 'D405' if key == rs.camera_info.name else 'TEST_SERIAL')
+        sensor = SimpleNamespace(supports=lambda option: True, get_option=lambda option: 10.,
+                                 set_option=lambda option, value: None)
+        profile = SimpleNamespace(get_stream=lambda kind: SimpleNamespace(as_video_stream_profile=lambda: stream),
+                                  get_device=lambda: SimpleNamespace(query_sensors=lambda: [sensor]))
+        frame = SimpleNamespace(get_data=lambda: np.zeros((480, 640, 3), np.uint8),
+                                get_timestamp=lambda: time.perf_counter()*1000,
+                                get_frame_timestamp_domain=lambda: 'test', get_frame_number=lambda: 1)
+        def wait_for_frames(timeout):
+            time.sleep(.001)
+            return SimpleNamespace(get_color_frame=lambda: frame)
+        pipeline = SimpleNamespace(start=lambda config: profile, wait_for_frames=wait_for_frames, stop=lambda: None)
+        config = SimpleNamespace(enable_device=lambda serial: None, enable_stream=lambda *args: None)
+        video_writer = cv2.VideoWriter
+        out = self.root/'L01_red'
+        argv = ['capture', '--out', str(out), '--teleop', '--seed', '2', '--execute', '--port', 'FAKE',
+                '--reference', str(REPO/'docs/W6/poses/pickup-red-s2.jsonl'),
+                '--mapping-gcode', str(REPO/'trajectories/2026_10_11-w6-pickup-red-s2-e5.gcode')]
+        def fake_teleop(*args, controls, on_start, on_end, on_reset, **kwargs):
+            controls.set_state('ready')
+            on_start()
+            time.sleep(.03)
+            self.assertGreater(len(list((out/'rgb').glob('*.png'))), 0)
+            on_reset()  # RESET during recording: the take so far is gone
+            self.assertEqual(list((out/'rgb').glob('*.png')), [])
+            self.assertEqual((out/'frames.jsonl').read_text(), '')
+            self.assertFalse((out/'discarded').exists())
+            on_start()  # the retake starts again from frame 0
+            time.sleep(.03)
+            on_end()
+            time.sleep(.02)
+        with patch('sys.argv', argv), patch('sys.stdin.isatty', return_value=True), \
+                patch.object(cv2, 'VideoWriter', side_effect=lambda path, codec, fps, size:
+                             video_writer(path, codec, 30., size)), \
+                patch.object(rs, 'context', return_value=SimpleNamespace(query_devices=lambda: [device])), \
+                patch.object(rs, 'pipeline', return_value=pipeline), patch.object(rs, 'config', return_value=config), \
+                patch('docs.W9.d405.teleop.run', side_effect=fake_teleop):
+            capture_main()
+        metadata = json.loads((out/'metadata.json').read_text(encoding='utf-8'))
+        self.assertTrue(metadata['complete'])
+        self.assertEqual(metadata['discarded_takes'], 1)
+        rows = [json.loads(r) for r in (out/'frames.jsonl').read_text().splitlines()]
+        self.assertEqual(rows[0]['file'], 'rgb/00000000.png')
+        self.assertEqual(sorted(r['file'] for r in rows),
+                         sorted(f'rgb/{p.name}' for p in (out/'rgb').glob('*.png')))
+        self.assertTrue((out/'review.mp4').is_file())
 
     def test_capture_keeps_colour_correction_separate_from_sdk_stream_profile(self):
         import pyrealsense2 as rs
