@@ -1,6 +1,7 @@
 """Serial-mocked check of the stand-alone homing command."""
 import io
 import queue
+import tempfile
 import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
@@ -40,8 +41,9 @@ class FakeSerial:
 class HomeRobotTests(unittest.TestCase):
     def run_main(self, serial_class):
         FakeSerial.instances.clear()
-        with patch('serial.Serial', serial_class), patch('time.sleep'), redirect_stdout(io.StringIO()):
-            main(['--port', 'FAKE'])
+        with tempfile.TemporaryDirectory() as logs, patch('tempfile.gettempdir', return_value=logs), \
+                patch('serial.Serial', serial_class), patch('time.sleep'), redirect_stdout(io.StringIO()):
+            main(['--port', 'FAKE'])  # logs go to the temporary folder, not the real temp dir
         return FakeSerial.instances[-1]
 
     def test_homes_then_parks_at_initial_pose_and_closes_port(self):

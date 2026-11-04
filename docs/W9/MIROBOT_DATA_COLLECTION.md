@@ -78,6 +78,8 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.home_robot --port COM3
 
 ### 새 녹화(세 색)와 좌표 기록 — 11/02 반영
 
+**11/04부터 새 녹화는 `Mirobot_data/<주차>/<배치>_<색>/`(예: `Mirobot_data/W10/L01_red`)에 저장한다.** 폴더 규칙·명령·`layout.json` 형식은 [Mirobot_data/README.md](../../Mirobot_data/README.md)가 기준이고, 이 절의 `docs/W9/data/raw/영상N` 자동 번호와 `--layout` 템플릿 예시는 이번 수집에 쓰지 않는다.
+
 기존 파랑 10개는 `layoutblue1`–`layoutblue10`으로 보관하고 새 데이터에는 넣지 않는다. 새 수집은 **세 색 30개씩(90개), 처음부터**다 ([11/02 미팅](../meetings/2026-11-2.md)). 매번 세 블록을 모두 놓고 배치를 바꾸며 실제 집을 색을 `--color`로 지정한다. 카메라 장착·조명·보정은 유지한다. 기존 폴더 번호도 예약된 것으로 계산하므로 자동 촬영은 `영상11`부터 이어진다. 새 촬영을 이 문서 수정으로 이미 수행한 것은 아니다.
 
 좌표 규약·정확히 실측할 항목·D405 Depth 사용 범위는 **[MIROBOT_COORDINATES.md](MIROBOT_COORDINATES.md)**에 고정했다. 새 종이 좌표는 인쇄된 0 교점 기준 cm이며, 로봇 베이스 mm와 직접 섞지 않는다.

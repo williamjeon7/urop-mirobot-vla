@@ -149,7 +149,9 @@ def main():
             raise ValueError('Colour profile camera / resolution / fps differs from requested capture.')
         shutil.copyfile(a.color_profile, a.out / 'color_profile.json')
     clock_ns = time.perf_counter_ns()
+    from datetime import datetime
     meta = dict(format='w9-d405/1', clock='perf_counter_ns, shared process', clock_ns=clock_ns,
+                recorded_at=datetime.now().astimezone().isoformat(timespec='seconds'),  # local wall time
                 serial=serial_number, color=a.color, seed=a.seed, gripper_seconds=a.gripper_seconds,
                 initial_s=a.initial_s, open_s=a.open_s, closed_s=a.closed_s,
                 real_success=None, complete=False, robot=bool(entries or a.teleop), teleop=a.teleop,
