@@ -1,0 +1,49 @@
+{
+  "layout_id": "L20",
+  "target": "red",
+  "unit": "cm",
+  "blocks": {
+    "red": [
+      -5.0,
+      -3.0
+    ],
+    "green": [
+      -10.0,
+      -8.0
+    ],
+    "blue": [
+      -9.0,
+      6.0
+    ]
+  },
+  "blocks_mat_cm": {
+    "red": [
+      -3.0,
+      25.0
+    ],
+    "green": [
+      -8.0,
+      20.0
+    ],
+    "blue": [
+      6.0,
+      21.0
+    ]
+  },
+  "yaw_deg": {
+    "red": 0,
+    "green": 0,
+    "blue": 0
+  },
+  "photo": null,
+  "estimated": false,
+  "source": "measured",
+  "coordinate_frame": {
+    "id": "paper_top_border_zero_Xup_Yleft_cm",
+    "robot_base_center_cm": [
+      -30,
+      0
+    ]
+  },
+  "real_success": true
+}

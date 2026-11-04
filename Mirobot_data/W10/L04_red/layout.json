@@ -1,0 +1,49 @@
+{
+  "layout_id": "L04",
+  "target": "red",
+  "unit": "cm",
+  "blocks": {
+    "red": [
+      -11.0,
+      -9.0
+    ],
+    "green": [
+      -4.0,
+      -3.0
+    ],
+    "blue": [
+      -7.0,
+      3.0
+    ]
+  },
+  "blocks_mat_cm": {
+    "red": [
+      -9.0,
+      19.0
+    ],
+    "green": [
+      -3.0,
+      26.0
+    ],
+    "blue": [
+      3.0,
+      23.0
+    ]
+  },
+  "yaw_deg": {
+    "red": 0,
+    "green": 0,
+    "blue": 0
+  },
+  "photo": "layout.jpg",
+  "estimated": false,
+  "source": "measured",
+  "coordinate_frame": {
+    "id": "paper_top_border_zero_Xup_Yleft_cm",
+    "robot_base_center_cm": [
+      -30,
+      0
+    ]
+  },
+  "real_success": true
+}

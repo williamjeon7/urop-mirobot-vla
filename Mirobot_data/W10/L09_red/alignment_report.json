@@ -1,0 +1,20 @@
+{
+  "steps": 350,
+  "dt": 0.05,
+  "robot_hz_median": 16.682946441902843,
+  "max_robot_gap_ms": 106.4360000000022,
+  "max_frame_error_ms": 52.928000000008524,
+  "repeated_frames": 154,
+  "camera_latency_ms": 0,
+  "skipped_camera_frame_numbers": 66,
+  "timing_note": "Host receipt alignment; camera exposure and serial latency remain uncertain.",
+  "interpolation": "linear position; quaternion SLERP; commanded gripper linear travel",
+  "input_sha256": {
+    "metadata.json": "489223c4d863772271afd9308afe1f124e83086039a02faee13a4a4ea7cf5f8b",
+    "source.gcode": "fc71acbe54703b99097f08288742ba9f0f1d440bb14c5c7c20f304cde9198aa7",
+    "reference.jsonl": "c6e1b9f3de746afcf98a25010ab26a9d839786cc1665299dc38d48a90a731bd4",
+    "frames.jsonl": "d9ebe5f7e4cb6344f171884bbf1331492d22adc7d06bd156fc1bfe9f20de6c7d",
+    "robot.jsonl": "7a92af7f6f282f2b279706451ce4b11ac6aa774338fd3d5057f0ca942e1440fd",
+    "color_profile.json": "9b6f0dc9ecff939bd69115576400b8a4c118f7d93db75921cdbec70fc81d962c"
+  }
+}

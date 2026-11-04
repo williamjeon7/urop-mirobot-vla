@@ -1,0 +1,49 @@
+{
+  "layout_id": "L13",
+  "target": "blue",
+  "unit": "cm",
+  "blocks": {
+    "red": [
+      -9.0,
+      -8.0
+    ],
+    "green": [
+      -9.0,
+      0.0
+    ],
+    "blue": [
+      -8.0,
+      8.0
+    ]
+  },
+  "blocks_mat_cm": {
+    "red": [
+      -8.0,
+      21.0
+    ],
+    "green": [
+      0.0,
+      21.0
+    ],
+    "blue": [
+      8.0,
+      22.0
+    ]
+  },
+  "yaw_deg": {
+    "red": 0,
+    "green": 0,
+    "blue": 0
+  },
+  "photo": null,
+  "estimated": false,
+  "source": "measured",
+  "coordinate_frame": {
+    "id": "paper_top_border_zero_Xup_Yleft_cm",
+    "robot_base_center_cm": [
+      -30,
+      0
+    ]
+  },
+  "real_success": true
+}
