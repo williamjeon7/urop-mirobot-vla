@@ -281,7 +281,7 @@ class TeleopSession:
                 self.end_capture('normal', 'Three-second recording tail after upward Z command.')
             elif self.lift_command_time is None and elapsed >= self.pickup_timeout:
                 self.end_capture('timeout', 'Pickup lift did not complete before deadline.')
-        if not self.ended and now-self.take_started >= self.episode_timeout:
+        if not self.ended and self.take_started is not None and now-self.take_started >= self.episode_timeout:
             self.end_capture('timeout', 'Episode deadline exceeded.')
 
     def record_pickup_result(self, grasp_success, pickup_success):

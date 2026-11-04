@@ -30,9 +30,11 @@ def main():
     p.add_argument('--reference', type=Path, help='Original W6 Panda pose JSONL used to create G-code')
     p.add_argument('--gcode', type=Path)
     p.add_argument('--teleop', action='store_true', help='Use existing robot/inverse_kinematics.py; F8/F9 mark episode')
-    p.add_argument('--no-homing', action='store_true',
-                   help='Teleop: skip $H at start and q exit; go to the original initial pose instead. '
-                        'Home normally after power-on or any collision.')
+    p.add_argument('--homing', action='store_true',
+                   help='Teleop: run the original $H at start and q exit. By default homing is skipped and '
+                        'the arm only moves to the initial pose; home separately with '
+                        'python -m docs.W9.d405.home_robot after power-on or a collision.')
+    p.add_argument('--no-homing', action='store_true', help=argparse.SUPPRESS)  # old commands; now the default
     p.add_argument('--mapping-gcode', type=Path, help='Coordinate mapping header only; not executed in teleop mode')
     p.add_argument('--color-profile', type=Path, help='Fixed Classic Mini correction; raw PNG remains unmodified')
     p.add_argument('--layout', type=Path, help='Manually measured initial paper coordinates JSON (cm)')
@@ -62,14 +64,15 @@ def main():
         except (OSError, ValueError, KeyError) as error:
             p.error(f'Invalid layout: {error}')
     entries = None
-    if a.no_homing and not a.teleop:
-        p.error('--no-homing only applies to --teleop.')
+    if (a.homing or a.no_homing) and not a.teleop:
+        p.error('--homing / --no-homing only apply to --teleop.')
+    if a.homing and a.no_homing:
+        p.error('Choose either --homing or the default (no homing), not both.')
     if a.teleop:
         if a.gcode or not a.reference or not a.mapping_gcode:
             p.error('--teleop requires --reference and --mapping-gcode; do not pass --gcode.')
         if not a.execute:
-            print('Teleop launch requires --execute. Original inverse_kinematics.py homes on start and q exit '
-                  '(skip with --no-homing).')
+            print('Teleop launch requires --execute. Homing is skipped unless --homing is given.')
             return
         if os.name == 'posix' and not sys.stdin.isatty():
             p.error('Teleop needs an interactive terminal; use SSH with -t or VS Code terminal.')
@@ -155,7 +158,7 @@ def main():
                 packages={n: importlib.metadata.version(n) for n in
                           ['pyrealsense2', 'numpy', 'opencv-python', 'pyserial', 'h5py']})
     if a.teleop:
-        meta['homing'] = 'skipped; initial-pose move only' if a.no_homing else '$H at start and q exit'
+        meta['homing'] = '$H at start and q exit' if a.homing else 'skipped; initial-pose move only'
         meta['discarded_takes'] = 0  # RESET count; robot.jsonl has a capture_reset mark for each
     meta_path = a.out / 'metadata.json'
     def save_meta():
@@ -273,7 +276,7 @@ def main():
                   'RESET discards the take, q saves and exits.')
             run(a.out, clock_ns, stop, a.initial_s, port=a.port, controls=controls,
                 on_start=start_recording, on_end=recording.clear,
-                on_reset=discard_take, skip_homing=a.no_homing,
+                on_reset=discard_take, skip_homing=not a.homing,
                 auto_stop_seconds=a.auto_stop_seconds, pickup_timeout=a.pickup_timeout,
                 episode_timeout=a.episode_timeout, closed_s=a.closed_s)
         elif entries:

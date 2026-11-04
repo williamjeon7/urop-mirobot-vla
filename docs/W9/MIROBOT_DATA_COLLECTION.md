@@ -48,7 +48,13 @@ powershell -ExecutionPolicy Bypass -File docs/W9/d405/setup.ps1
 docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color blue --seed 2 --reference docs/W6/poses/pickup-blue-s2.jsonl --mapping-gcode trajectories/2026_10_11-w6-pickup-blue-s2-e5.gcode --color-profile docs/W9/data/calibration/classic_mini.json --initial-s 40 --open-s 40 --closed-s 60 --gripper-seconds 1.0 --port COM3 --serial 262422272124 --execute --preview
 ```
 
-시작·종료 시 호밍이 일어나므로 작업 공간을 비워 둔다. 기존 로봇 조작기를 동시에 실행하지 않는다. 이번 데이터의 집게 이동 시간 1.0초 근거는 [측정 기록](GRIPPER_CALIBRATION.md)에 있다.
+이 명령은 호밍하지 않고 초기 자세로만 이동한다(11/04부터 기본). 전원을 켠 뒤, 어딘가 부딪힌 뒤, 초기 화면이 틀어져 보일 때는 녹화 전에 **호밍만 따로** 한다. 호밍 중에는 팔이 크게 움직이므로 작업 공간을 비워 둔다.
+
+```powershell
+docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.home_robot --port COM3
+```
+
+기존 로봇 조작기나 호밍 명령을 녹화와 동시에 실행하지 않는다. 이번 데이터의 집게 이동 시간 1.0초 근거는 [측정 기록](GRIPPER_CALIBRATION.md)에 있다.
 
 | 키·버튼 | 동작 |
 | --- | --- |
@@ -58,7 +64,7 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color blue -
 | `START REC (F8)` | 초기 위치에서 녹화 시작 |
 | `STOP REC (F9)` | 자동 종료 전에 녹화를 수동으로 종료 |
 | `RESET` 버튼 (미리보기 창 아래 줄) | 지금 시도를 버리고 곧장 위로 올린 뒤 초기 자세로 복귀. 다시 `READY`가 되어 같은 실행에서 F8로 다시 찍는다 |
-| `q` | 조작기 종료·호밍·파일 저장 |
+| `q` | 조작기 종료·초기 자세 복귀·파일 저장 |
 
 초기 이동이 끝나고 `READY`가 표시되면 집게를 열고 F8을 누른다. 블록을 집도록 그리퍼를 닫은 뒤 `↑`로 Z축 상승 명령을 보낸다. **Close 이후 첫 Z축 상승 명령을 전송한 시점부터 3초 후 녹화가 자동 종료된다.** Close 명령 자체나 상승 동작이 끝난 시점부터 3초를 세는 것은 아니다. 자동 종료를 확인한 뒤 `q`로 조작기를 종료하고 저장한다. F9로 먼저 수동 종료할 수도 있다. 블록 배치는 바꿔도 된다. `reference`와 `mapping-gcode`는 로봇 좌표 변환의 기준으로 사용한다.
 
@@ -66,7 +72,7 @@ docs/W9/.venv/Scripts/python.exe -m docs.W9.d405.capture --teleop --color blue -
 
 **RESET (11/03 추가).** 녹화 중(F8 뒤)이나 자동 종료·F9 뒤 q 전에 누를 수 있다. 버린 시도의 PNG와 기록은 지우지 않고 `robot.jsonl`에 `capture_reset` 표시를 남기며, `metadata.json`의 `discarded_takes`에 횟수를 적는다. 정렬(`prepare`)은 마지막 RESET 뒤 F8부터 녹화 종료까지의 구간만 쓴다. 확인용 MP4에는 버린 시도도 함께 보인다. 블록을 문 채로 RESET하면 초기 자세까지 들고 오므로, 블록을 제자리에 놓은 뒤 집게를 열고 F8을 누른다.
 
-**`--no-homing` (11/03 추가).** 명령 끝에 붙이면 시작과 q 종료 때 `$H` 호밍 대신 초기 자세로만 이동한다. q 때는 녹화 구간을 먼저 닫고 곧장 위로 올린 뒤 초기 자세로 돌아간다. 학습 구간(F8–F9)에는 영향이 없다. Mirobot은 스텝모터라 부딪혀 밀린 위치는 다음 호밍 전까지 남으므로, **전원을 켠 뒤 첫 녹화와 어딘가 부딪힌 뒤에는 옵션 없이 실행해 호밍**한다. `metadata.json`의 `homing`에 어느 쪽인지 기록된다.
+**호밍 (11/03 추가, 11/04 기본값 변경).** 녹화 명령은 시작과 q 종료 때 `$H` 호밍 대신 초기 자세로만 이동한다. q 때는 녹화 구간을 먼저 닫고 곧장 위로 올린 뒤 초기 자세로 돌아간다. 학습 구간에는 영향이 없다. Mirobot은 스텝모터라 부딪혀 밀린 위치는 다음 호밍 전까지 남으므로, **전원을 켠 뒤와 어딘가 부딪힌 뒤에는 위 `home_robot` 명령으로 호밍**한다. 녹화 명령에서 예전처럼 호밍하려면 `--homing`을 붙인다. 이전 명령의 `--no-homing`은 그대로 받아들인다(기본값과 같음). `metadata.json`의 `homing`에 어느 쪽인지 기록된다.
 
 `--out`을 생략하면 `docs/W9/data/raw/영상N/`에 다음 번호로 저장된다. 폴더 전체를 보관한다: 원본 `rgb/`, MP4, `metadata.json`, `frames.jsonl`, `robot.jsonl`, `reference.jsonl`, `source.gcode`, `color_profile.json`.
 
