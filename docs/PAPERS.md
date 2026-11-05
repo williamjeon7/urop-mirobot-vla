@@ -33,7 +33,7 @@ curl.exe -L -o papers/cosmos.pdf    https://arxiv.org/pdf/2601.16163
 |---|---|---|
 | `libero.pdf` | Liu et al., *LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning*, NeurIPS 2023 Datasets & Benchmarks · [arXiv:2306.03310](https://arxiv.org/abs/2306.03310) | task suite 구조, **task = 초기 상태 분포 + 목표** 라는 정의(2.2절), 물체 배치를 정하는 BDDL(4.1절, 부록 C). **로봇 초기 자세는 다루지 않는다** — 분포는 물체의 종류·배치·상태만 (9/23 확인) |
 | `robosuite.pdf` | Zhu et al., *robosuite: A Modular Simulation Framework and Benchmark for Robot Learning* · [arXiv:2009.12293](https://arxiv.org/abs/2009.12293) | Panda 컨트롤러(OSC_POSE, 스프링-댐퍼), 로봇 모델과 초기화 — [W3/CONTROL.md](W3/CONTROL.md) 의 근거 쪽 |
-| `cosmos.pdf` | Kim et al., *Cosmos Policy: Fine-Tuning Video Models for Visuomotor Control and Planning*, 2026 · [arXiv:2601.16163](https://arxiv.org/abs/2601.16163) | 우리가 쓰는 정책. proprio·액션 형식. `cosmos-policy/README.md` 가 인용하는 원문 |
+| `cosmos.pdf` | Kim et al., *Cosmos Policy: Fine-Tuning Video Models for Visuomotor Control and Planning*, 2026 · [arXiv:2601.16163](https://arxiv.org/abs/2601.16163) | 우리가 쓰는 정책. proprio·액션 형식. `cosmos-policy/docs/upstream/README.md` 가 인용하는 원문 |
 
 **받지 않는 것 (유료)** — Khatib, *A unified approach for motion and force control of robot manipulators:
 The operational space formulation*, IEEE Journal of Robotics and Automation, 1987. 스프링-댐퍼 제어(OSC)의 원전. 서지만 둔다.

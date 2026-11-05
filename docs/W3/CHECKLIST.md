@@ -67,7 +67,7 @@
 
 | | | 근거 |
 |---|---|---|
-| 공식 방식 | Docker 컨테이너 안에서 `uv sync --extra cu128 --group libero --python 3.10` | `cosmos-policy/LIBERO.md:25`, `cosmos-policy/SETUP.md` |
+| 공식 방식 | Docker 컨테이너 안에서 `uv sync --extra cu128 --group libero --python 3.10` | `cosmos-policy/docs/upstream/LIBERO.md:25`, `cosmos-policy/docs/upstream/SETUP.md` |
 | LIBERO·robosuite | 위 명령에 안 들어 있다. `pip install -e LIBERO`, `pip install -e robosuite` 로 따로 | `cosmos-policy/pyproject_simplified.toml:75-77` |
 | 버전 | robosuite 1.4.1, mujoco 3.3.2, bddl | `../VENDORED.md:45` |
 | 화면 없는 렌더링 | Docker 이미지에 `libegl1-mesa-dev` 가 들어 있다 → EGL | `cosmos-policy/docker/Dockerfile:32` |
@@ -103,7 +103,7 @@
   - 환경 생성 `get_libero_env()` (`libero_utils.py:30`), dummy action `[0,0,0,0,0,0,-1]` (`:42`)
   - 영상 저장 `save_rollout_video()` (`:61`) — `./rollouts/<날짜>/` 에 30fps
   - **렌더 이미지는 상하가 뒤집혀 나온다** — `np.flipud` 후 저장
-    (`cosmos-policy/README.md:57`, `regenerate_libero_dataset.py:242`)
+    (`cosmos-policy/docs/upstream/README.md:57`, `regenerate_libero_dataset.py:242`)
 
   → **`rollouts/2026_09_15/11_52_14--dummy--libero_10_0--20steps.mp4`** — 256×256, 21프레임(초기 1 + 20), 0.7초.
   `flipud` 후 똑바로 선다. 스크립트 `tools/libero_dummy_mp4.py` (`libero_utils` 는 torch·wandb 를 끌고 와서 쓰지 않고 같은 절차를 옮겼다)
@@ -456,7 +456,7 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
 
 | | | 근거 |
 |---|---|---|
-| demo 출처 | HF 데이터셋 `nvidia/LIBERO-Cosmos-Policy` (학습용, 크기 미확인) | `cosmos-policy/LIBERO.md:32` |
+| demo 출처 | HF 데이터셋 `nvidia/LIBERO-Cosmos-Policy` (학습용, 크기 미확인) | `cosmos-policy/docs/upstream/LIBERO.md:32` |
 | 에피소드 구조 | `demo_i/obs/ee_pos`(m), `ee_ori`(**axis-angle**), `joint_states`, `agentview_rgb` 또는 `agentview_rgb_jpeg`. `robot_states` = `[gripper 2, pos 3, quat 4]` | `regenerate_libero_dataset.py:307-333` — 실제 파일로 확인 필요 |
 | 이미지 방향 | 데이터셋 이미지는 상하 반전을 **이미 바로잡아** 저장한다 | `:241-246` |
 
@@ -686,4 +686,4 @@ LIBERO demo (ee_pos m, ee_ori axis-angle) ──▶ waypoint 추출 ──▶ �
 - [../W2/W2_진행사항.md](../W2/W2_진행사항.md) — LIBERO 관측/액션 규약
 - [CONTROL.md](CONTROL.md) — 두 로봇이 명령을 받아 움직이는 방식
 - [../plan/UROP_프로젝트_계획.md](../plan/UROP_프로젝트_계획.md) — §5 파지 자세, §6 액션 표현
-- `cosmos-policy/LIBERO.md`, `cosmos-policy/SETUP.md` — 환경 구성
+- `cosmos-policy/docs/upstream/LIBERO.md`, `cosmos-policy/docs/upstream/SETUP.md` — 환경 구성

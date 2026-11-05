@@ -165,10 +165,21 @@ def main() -> None:
         print(f"{r['episode'][:40]:40s} 칸 {r['step_mm']:.2f} mm (0 기준 {r['zero_step_mm']:.2f})  "
               f"묶음 끝 {r['chunk_end_mm']:.1f} mm (0 기준 {r['zero_chunk_end_mm']:.1f})  집게 {r['gripper_agree']:.2f}  "
               f"추론 중앙 {np.median(r['seconds'][1:] or r['seconds']):.2f} s")
+    # 색(지시문)별 요약 — 녹화 수만큼 같은 무게로 평균
+    by_instruction = {}
+    for r in results:
+        by_instruction.setdefault(r["instruction"], []).append(r)
+    summary = {k: {m: float(np.mean([r[m] for r in v])) for m in
+                   ("step_mm", "zero_step_mm", "chunk_end_mm", "zero_chunk_end_mm", "gripper_agree")} | {"episodes": len(v)}
+               for k, v in sorted(by_instruction.items())}
+    for k, s in summary.items():
+        print(f"[{k}] {s['episodes']}개  칸 {s['step_mm']:.2f} mm (0 기준 {s['zero_step_mm']:.2f})  "
+              f"묶음 끝 {s['chunk_end_mm']:.1f} mm (0 기준 {s['zero_chunk_end_mm']:.1f})  집게 {s['gripper_agree']:.2f}")
     report = report_arg or REPO / f"docs/W10/data/eval_offline_{pt.parent.parent.parent.name}_{pt.parent.name}.json"
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(json.dumps(dict(ckpt=str(pt), experiment=EXPERIMENT, opts=WRIST_ONLY_OPTS, every=a.every,
-                                      results=results), indent=1, ensure_ascii=False), encoding="utf-8")
+                                      by_instruction=summary, results=results), indent=1, ensure_ascii=False),
+                      encoding="utf-8")
     print(f"report → {report}")
 
 

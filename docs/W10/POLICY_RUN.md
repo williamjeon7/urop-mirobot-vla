@@ -1,9 +1,11 @@
 # 정책 실행 도구 — 학습한 정책을 실물 Mirobot 에서 돌리기
 
-> **설계** · 확인 2026-11-03 · 기준 `cosmos-policy@18a2acc`, 옛 파랑 녹화 10개 `docs/W9/data/raw/layoutblue1–10`(11/02 `영상1–10` 에서 이름 변경), HDF5 `data/hdf5_mix/mirobot_real/`
+> **설계** · 확인 2026-11-05 · 기준 `cosmos-policy@18a2acc`, 옛 파랑 녹화 10개 `docs/W9/data/raw/layoutblue1–10`(11/02 `영상1–10` 에서 이름 변경), HDF5 `data/hdf5_mix/mirobot_real/`
 > 학습한 정책을 실물 Mirobot 에서 end-to-end 로 돌리는 도구. 무엇을 왜 만들었는지, 녹화로 확인한 것, 남은 결정.
 
 계획: [../meetings/2026-11-2.md](../meetings/2026-11-2.md) action plan 3번. 학습 쪽 배경: [../W9/FINETUNE.md](../W9/FINETUNE.md) 7절(평가 경로 — 있는 것·빠진 것).
+
+현재 90개 시연을 학습하고 실제 로봇에서 평가하는 논문 실험 절 형식의 계획과 실행 명령은 [MIROBOT_EXPERIMENT.md](MIROBOT_EXPERIMENT.md)에 정리했다. 이 문서의 수치 검증은 아래에 적은 11/03의 옛 녹화를 대상으로 한 결과다.
 
 ## 0. 왜, 무엇을
 

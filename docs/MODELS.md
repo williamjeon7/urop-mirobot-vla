@@ -1,10 +1,10 @@
 # 모델 가중치
 
-> **절차** · 확인 2026-09-09 · 기준 서버 OASYS HF 캐시 24GB
+> **절차** · 확인 2026-11-05 · 기준 서버 OASYS, `cosmos-policy/models/` 모델 7개(73.27 GiB)
 > 어느 환경에 어떤 모델이 필요한지, 받는 법과 캐시 위치.
 
-**모델 파일은 이 저장소에 없다.** `.gitignore` 가 `*.pt` / `*.safetensors` / `*.ckpt` 를
-막고 있고, 합쳐서 20GB 가 넘어 git 으로 다룰 크기가 아니다. 아래 절차로 각자 받는다.
+**모델 파일은 Git으로 추적하지 않는다.** 이 서버에서는 `cosmos-policy/models/`에 보관한다.
+`.gitignore`가 `cosmos-policy/`와 가중치 파일을 제외하므로 다른 환경에서는 아래 절차로 각자 받는다.
 
 ## 먼저 — 내 환경에 모델이 필요한가?
 
@@ -33,7 +33,7 @@
 
 eval 스크립트에 `--ckpt_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B` 처럼 **HuggingFace
 repo ID 를 그대로** 넘기면 실행 시점에 알아서 받아서 캐시에 넣는다. 미리 `hf download`
-할 필요가 없다. 자세한 실행 명령은 `cosmos-policy/LIBERO.md` 를 본다.
+할 필요가 없다. 자세한 실행 명령은 `cosmos-policy/docs/upstream/LIBERO.md` 를 본다.
 
 체크포인트 repo 안에는 가중치 말고도 실행에 필요한 파일이 같이 들어 있다:
 
@@ -57,11 +57,16 @@ export BASE_DATASETS_DIR=$(pwd)
 
 ## 캐시 위치
 
-받은 파일은 저장소가 아니라 HuggingFace 캐시로 들어간다.
+기본 다운로드 위치는 Hugging Face 캐시다.
 
 ```
 ~/.cache/huggingface/hub/
 ```
+
+이 서버의 기존 모델 7개는 2026-11-05 `cosmos-policy/models/hub/`로 옮겼다.
+원래 캐시의 `models--*` 경로에 심볼릭 링크를 남겨 기존 명령도 그대로 동작한다.
+`cosmos-policy/models/` 바로 아래 모델명 폴더를 열면 각 모델의 가중치와 설정을 볼 수 있다.
+자세한 목록과 실제 경로는 로컬 `cosmos-policy/models/README.md`, `inventory.json`에 있다.
 
 `HF_HOME` 환경변수로 위치를 바꿀 수 있다. 홈 디렉토리 용량이 부족하면 큰 디스크로
 옮기는 게 낫다:
@@ -71,24 +76,29 @@ export HF_HOME=/mnt/hdd/home/$USER/.cache/huggingface
 ```
 
 Docker 로 cosmos-policy 를 돌릴 때 `-v $HOME/.cache:/home/cosmos/.cache` 를 붙이면
-호스트 캐시를 그대로 재사용한다 (`cosmos-policy/SETUP.md` 참조).
+호스트 캐시를 그대로 재사용한다 (`cosmos-policy/docs/upstream/SETUP.md` 참조).
 
 ## 이 서버(OASYS)의 현재 상태
 
-2026-09-09 기준, 아래는 **이미 받아져 있다**. 다시 받을 필요 없다.
+2026-11-05 기준, 아래는 **이미 받아져 있다**. 다시 받을 필요 없다.
 
 ```
-~/.cache/huggingface/hub/   합계 24GB
-  nvidia--Cosmos-Policy-LIBERO-Predict2-2B    3.7GB
-  microsoft--Phi-3.5-vision-instruct          7.8GB
-  microsoft--Phi-4-multimodal-instruct         12GB
-  physical-intelligence--fast                 724KB
+cosmos-policy/models/                         합계 73.27 GiB
+  Cosmos-Policy-LIBERO-Predict2-2B             3.68 GiB
+  Cosmos-Policy-ALOHA-Predict2-2B              3.64 GiB
+  Cosmos-Predict2-2B-Video2World               4.12 GiB
+  t5-11b                                    42.13 GiB
+  Phi-3.5-vision-instruct                     7.73 GiB
+  Phi-4-multimodal-instruct                  11.97 GiB
+  fast                                       0.66 MiB
 ```
 
-clone 한 저장소 안에 모델이 안 보이는 건 정상이다. 캐시에 있고, 코드가 거기서 찾아 쓴다.
+LIBERO 체크포인트·통계·임베딩, Video2World 체크포인트·토크나이저, T5, Phi 가중치 조각의
+파일 존재를 확인했고, 이동 전후 파일의 inode·크기·수정 시각과 스냅샷 링크도 확인했다.
+데이터셋과 기존 W9 학습 산출물은 이번 이동에 포함하지 않았다.
 
 ## 관련 문서
 
 - `docs/VENDORED.md` — cosmos-policy 저장소 자체를 받는 법
-- `cosmos-policy/LIBERO.md` — LIBERO 학습/평가 전체 명령
-- `cosmos-policy/SETUP.md` — Docker 기반 실행 환경
+- `cosmos-policy/docs/upstream/LIBERO.md` — LIBERO 학습/평가 전체 명령
+- `cosmos-policy/docs/upstream/SETUP.md` — Docker 기반 실행 환경

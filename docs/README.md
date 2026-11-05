@@ -1,7 +1,7 @@
 # 문서 규칙과 목록
 UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행동 rollout trajectories를 모은 후 기존 VLA를 fine-tuning 하여 real-world task에서 deploy 및 실제상황에서도 vision input만으로 Task라도 달성하는것을 목표
 
-> **기준** · 확인 2026-10-12
+> **기준** · 확인 2026-11-06
 > 문서를 어디에 두고 어떻게 쓸지. 아래 목록이 이 저장소 문서의 색인이다.
 
 문서가 늘어나면 "이게 무슨 문서였지", "아직 맞는 내용인가"를 매번 열어서 판단하게 된다.
@@ -51,6 +51,12 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | W9 | [W9/MIROBOT_COORDINATES.md](W9/MIROBOT_COORDINATES.md) | **좌표 규약·실측** — Mirobot·종이·Depth 좌표와 실제 기준점 측정·카메라 등록 |
 | W9 | [W9/FINETUNE.md](W9/FINETUNE.md) | **1차 파인튜닝** — Panda 90 + Mirobot 10 합친 데이터, tmux 실행 명령, GPU 2개 vs 4개 시간 측정, 2000 step 결정, 본학습 상태, 평가 경로(있는 것·빠진 것) |
 | W10 | [W10/POLICY_RUN.md](W10/POLICY_RUN.md) | **정책 실행 도구** — 학습한 정책을 실물 Mirobot 에서 돌리기. 관측·명령 계산을 녹화로 검사(영상 픽셀 차 0, 역변환 0 mm), action 을 Mirobot 목표로 바꾸는 법(결정 대기), 오프라인 평가 |
+| W10 | [W10/MIROBOT_EXPERIMENT.md](W10/MIROBOT_EXPERIMENT.md) | **실험 계획** — Mirobot demonstration으로 Cosmos Policy 파인튜닝 후 실물 블록 집기. 논문 실험 절 형식의 설정·평가 절차·지표·결과표 |
+| W10 | [W10/TRAINING_RESULT.md](W10/TRAINING_RESULT.md) | **학습 완료 기록** — 시연 90개·4,000 update 정상 종료, 마지막 loss·소요 시간·체크포인트 저장 확인 |
+| W10 | [W10/HDF5_ALIGNMENT.md](W10/HDF5_ALIGNMENT.md) | **정렬 기준과 미통과 녹화** (노트북, 11/04) — 70 ms 기준, 60개 중 55개 통과, 미통과 5개 |
+| W10 | [W10/DATA_CHECK.md](W10/DATA_CHECK.md) | **학습 데이터 점검** (서버, 11/05) — 55개를 HDF5 로 바꿔 Cosmos 로더·학습 설정까지 통과, 새 녹화 때 다시 돌리는 명령, 학습 전 라벨 방식 결정 |
+| W10 | [W10/TRAINING.md](W10/TRAINING.md) | **학습 진행** — 정할 것(라벨 방식·평가용 배치·step 수), 데이터 최신화, 학습 명령, 스텝별·색별 비교 (오프라인은 가능, 실물 성공률은 실행 루프 필요) |
+| W10 | [W10/WORKLOG.md](W10/WORKLOG.md) | **작업 기록** — 시간 순서 목차. 항목마다 왜·한 것·대표 결과·주제 문서 링크 |
 
 ### 계획 — 왜 이렇게 하는지, 무엇을 기준으로 판단하는지
 

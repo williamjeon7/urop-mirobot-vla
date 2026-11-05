@@ -123,7 +123,7 @@ python -m tools.action_to_gcode --log <eval 화면 출력> --episode 5 --suite l
   - 같은 실행이 **`Cosmos-Policy-ALOHA-Predict2-2B.pt` 도 받았다** — 쓰지 않는 체크포인트다. config 레지스트리가 끌어오는 것으로 보인다 (추정)
 - **LIBERO-Spatial 10태스크 × 1회 — 10/10 성공 (100%)**. 모델 카드 98.5% 와 맞는다. **이 프로젝트에서 정책이 로봇을 움직인 첫 실행이다**
   - action **1019개**, 에피소드 10개 (길이 76~128스텝). 스텝 10 부터 찍힌다 — 앞 10스텝은 대기(`NUM_STEPS_WAIT`)
-  - 영상 `cosmos-policy/rollouts/2026_10_01/` (에피소드마다 일반 · 미래 예측 두 개)
+  - 영상 `cosmos-policy/archive/rollouts/2026_10_01/` (에피소드마다 일반 · 미래 예측 두 개)
   - 끝의 `EGLError: EGL_NOT_INITIALIZED` 는 종료 때 렌더러를 정리하며 나는 경고다. exit 0
 
 ### 3-3. 번역기 — `tools/action_to_gcode.py` (10/1)

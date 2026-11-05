@@ -345,7 +345,7 @@ action 재학습이어도 실물 배치의 기준과 시뮬 평가에 쓴다. �
 
 ### 5-1. 후보 장면
 
-- Cosmos checkpoint 는 LIBERO 네 suite 를 모두 학습했다 (`cosmos-policy/LIBERO.md:39`)
+- Cosmos checkpoint 는 LIBERO 네 suite 를 모두 학습했다 (`cosmos-policy/docs/upstream/LIBERO.md:39`)
 - **우리 task 와 구조가 가장 가까운 것은 LIBERO-Object** — 여러 물체 가운데 문장이 고른 것을 바구니에 넣는다
   (`cosmos_policy/experiments/robot/libero/libero_object_metainfo.json`). 계획서 5절의 "색이 다른 블록 → 그릇" 도 이 축을 본떴다.
   다음은 LIBERO-Goal `put_the_cream_cheese_in_the_bowl`, LIBERO-Spatial(그릇 → 접시)
@@ -600,4 +600,4 @@ action 재학습이어도 실물 배치의 기준과 시뮬 평가에 쓴다. �
 - [../W3/LIBERO_AXES.md](../W3/LIBERO_AXES.md) 2·3절 — action 대비 실제 이동(26%)
 - [../plan/UROP_프로젝트_계획.md](../plan/UROP_프로젝트_계획.md) — 4절 자원·LoRA, 5절 태스크, 6절 액션 표현·데이터 수집
 - [../MODELS.md](../MODELS.md) — checkpoint 와 캐시
-- `cosmos-policy/LIBERO.md`, `papers/cosmos.pdf` ([../PAPERS.md](../PAPERS.md)) — 학습 설정과 논문
+- `cosmos-policy/docs/upstream/LIBERO.md`, `papers/cosmos.pdf` ([../PAPERS.md](../PAPERS.md)) — 학습 설정과 논문

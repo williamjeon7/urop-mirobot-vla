@@ -4,7 +4,7 @@
 > `.gitignore` 로 빠져 있어 clone 에 따라오지 않는 외부 저장소를 받는 법.
 
 아래 두 저장소는 **버전관리에서 제외**되어 있다 (`.gitignore`). 각자 자체 `.git` 을
-가진 순정 업스트림 클론이라 그대로 커밋하면 URL 도 없는 깨진 gitlink 가 된다.
+가진 외부 클론이라 그대로 커밋하면 URL 도 없는 깨진 gitlink 가 된다.
 
 **즉 `mirobot-vla` 를 clone 해도 이 폴더들은 따라오지 않는다.** 필요하면 아래 절차로
 직접 받는다. 위치는 **repo 최상위**다 (서버면 `~/UROP`, 노트북이면 `C:\mirobot-vla`).
@@ -12,6 +12,11 @@
 ## cosmos-policy
 
 NVIDIA VLA 정책 학습 코드.
+
+2026-11-05 이 서버에서는 문서를 `cosmos-policy/docs/upstream/`, 공용 가중치를
+`cosmos-policy/models/`, 주차별 작업을 `cosmos-policy/W10/`으로 정리했다.
+아래 clone 명령은 원래 업스트림 구조를 받는다. 서버의 현재 구조와 학습 안내는 로컬
+`cosmos-policy/README.md`, `cosmos-policy/W10/TRAINING.md`를 본다.
 
 ```bash
 git clone https://github.com/NVlabs/cosmos-policy.git
