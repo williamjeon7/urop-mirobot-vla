@@ -1,8 +1,8 @@
 {
   "format": "w9-d405/1",
   "clock": "perf_counter_ns, shared process",
-  "clock_ns": 542205716847300,
-  "recorded_at": "2026-11-04T17:13:18+09:00",
+  "clock_ns": 611016150636700,
+  "recorded_at": "2026-11-05T12:20:07+09:00",
   "serial": "262422272124",
   "color": "blue",
   "seed": 2,
@@ -27,7 +27,7 @@
     "h5py": "3.12.1"
   },
   "homing": "skipped; initial-pose move only",
-  "discarded_takes": 1,
+  "discarded_takes": 4,
   "intrinsics": {
     "width": 640,
     "height": 480,
