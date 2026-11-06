@@ -153,6 +153,9 @@ python -m server.replay_network --demo 0 --max-steps 5  # 서버 (드라이런)
 
 ## 문서
 
+학습한 W10 모델을 실제 로봇에서 실행하려면 **[W10 Mirobot 실행 절차](docs/W10/DEPLOY_MIROBOT.md)**를 따른다.
+최종 체크포인트·D405 관측·follow action 변환·실물 브리지가 연결되어 있다.
+
 **[`docs/README.md`](docs/README.md) 가 색인이다.** 전체 목록과 문서 작성 규칙이 거기 있다.
 
 자주 보는 것:

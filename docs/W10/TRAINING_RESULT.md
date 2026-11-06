@@ -89,6 +89,9 @@ Saving last checkpoint file iter_000004000
 
 ## 5. 다음 평가
 
+2026-11-06 후속: 최종 가중치 통합·687개 키의 엄격 로드·실제 GPU 추론과 `follow` 실행 루프를 확인했다.
+실물 연결은 [DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md)의 순서대로 진행한다. 실제 집기 평가는 아직 수행하지 않았다.
+
 1. 저장된 체크포인트를 추론용 `model_consolidated.pt`로 합치고 GPU에서 실제 로딩을 검증한다.
 2. 동일한 HDF5·정규화 통계·T5 임베딩으로 예측 action과 추론 시간을 평가한다.
 3. 현재 `follow` 라벨 규약에 맞는 동작 번역과 실물 실행 루프를 구현·검증한다.
