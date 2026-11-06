@@ -29,10 +29,10 @@ def _finite_values(values, count: int, label: str) -> tuple[float, ...]:
 
 
 def checked_action(action) -> tuple[float, ...]:
-    """Reject malformed/out-of-range actions; match the controller's clipping."""
+    """Reject invalid spatial actions and saturate the sign-only gripper channel."""
     values = _finite_values(action, 7, "OSC_POSE action")
-    if any(abs(v) > 1.000001 for v in values):
-        raise ValueError("OSC_POSE action outside [-1, 1].")
+    if any(abs(v) > 1.000001 for v in values[:6]):
+        raise ValueError("OSC_POSE spatial action outside [-1, 1].")
     return tuple(max(-1.0, min(1.0, v)) for v in values)
 
 

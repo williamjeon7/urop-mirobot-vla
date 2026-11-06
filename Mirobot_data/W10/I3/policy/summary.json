@@ -1,0 +1,19 @@
+{
+  "status": "failed",
+  "mode": "execute",
+  "instruction": "pick up the red block on the table",
+  "steps": 0,
+  "queries": 0,
+  "checkpoint": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+  "directory": "~/UROP/Mirobot_data/W10/I3/policy",
+  "error": "Bridge /recording/start: [Errno 17] File exists: 'C:\\\\Users\\\\user\\\\mirobot-policy\\\\policy_recordings\\\\I3\\\\I3.mp4'",
+  "video": {
+    "ok": true,
+    "path": "C:\\Users\\user\\mirobot-policy\\policy_recordings\\I3\\I3.mp4",
+    "recording": false,
+    "frames": 0,
+    "http_rtt_s": 0.18001231411471963,
+    "received_monotonic_s": 3826967.611643626
+  },
+  "video_error": "The camera did not record any video frames"
+}

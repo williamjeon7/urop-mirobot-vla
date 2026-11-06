@@ -19,7 +19,7 @@ UROP 최소 수행조건 Vision-sensor로 얻어진 이미지를 로봇의 행�
 | [VENDORED.md](VENDORED.md) | 외부 저장소(cosmos-policy, RosForMirobot) 받는 법 |
 | [PAPERS.md](PAPERS.md) | 논문 목록과 받는 법 (LIBERO, robosuite, Cosmos Policy). PDF 는 gitignore |
 | [MODELS.md](MODELS.md) | 모델 가중치 받는 법, HF 캐시 위치 |
-| [W10/DEPLOY_MIROBOT.md](W10/DEPLOY_MIROBOT.md) | 최종 학습 모델을 D405·Mirobot에 연결: 노트북 ZIP, 터널, 미리보기, 실제 실행 |
+| [W10/DEPLOY_MIROBOT.md](W10/DEPLOY_MIROBOT.md) | Mirobot 최초 설치, 재연결, 매 실험 실행과 영상 저장 |
 
 ### 주차별 — 그 주 조사·실험으로 나온 것
 

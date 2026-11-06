@@ -5,6 +5,9 @@ import base64
 import json
 import math
 import os
+from pathlib import Path
+import re
+import shutil
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
@@ -26,7 +29,7 @@ class PolicyClient:
         self.max_frame_age_s, self.max_skew_s = max_frame_age_s, max_skew_s
         self.token = token if token is not None else os.environ.get("MIROBOT_POLICY_TOKEN")
 
-    def _request(self, path, payload=None):
+    def _request(self, path, payload=None, timeout_s=None):
         headers = {"Accept": "application/json", "Cache-Control": "no-cache"}
         data = None
         if payload is not None:
@@ -37,7 +40,7 @@ class PolicyClient:
         request = Request(self.base_url+path, data=data, headers=headers)
         started = time.monotonic()
         try:
-            with urlopen(request, timeout=self.timeout_s) as response:
+            with urlopen(request, timeout=timeout_s or self.timeout_s) as response:
                 raw = response.read(16*1024*1024+1)
                 if len(raw) > 16*1024*1024:
                     raise RuntimeError("Bridge response exceeds 16 MiB")
@@ -62,6 +65,47 @@ class PolicyClient:
         if result.get("protocol") != PROTOCOL:
             raise RuntimeError("Unsupported Mirobot policy bridge protocol")
         return result
+
+    def start_recording(self, run_name=None):
+        return self._request("/recording/start", {"run_name": run_name} if run_name else {})
+
+    def recording_names(self):
+        names = self._request("/recording/names").get("names")
+        if (not isinstance(names, list) or
+                any(not isinstance(name, str) or re.fullmatch(r"I[1-9][0-9]*", name) is None for name in names)):
+            raise RuntimeError("Bridge returned invalid recording names")
+        return names
+
+    def stop_recording(self):
+        return self._request("/recording/stop", {})
+
+    def prepare(self):
+        return self._request("/prepare", {"request_id": uuid.uuid4().hex}, timeout_s=300)
+
+    def download_recording(self, name, directory):
+        import re
+        if re.fullmatch(r"I[1-9][0-9]*", name) is None:
+            raise ValueError("Recording name must be I1, I2, ...")
+        paths = {}
+        for kind, suffix in (("video", ".mp4"), ("frames", "_frames.jsonl"), ("metadata", "_video.json")):
+            path = Path(directory) / (name + suffix)
+            temporary = path.with_name(path.name + ".partial")
+            headers = {"Authorization": "Bearer " + self.token} if self.token else {}
+            request = Request(self.base_url + f"/recording/{name}/{kind}", headers=headers)
+            owned = False
+            try:
+                with urlopen(request, timeout=self.timeout_s) as source, temporary.open("xb") as target:
+                    owned = True
+                    shutil.copyfileobj(source, target, length=65536)
+                    expected = source.headers.get("Content-Length")
+                    if expected is None or target.tell() != int(expected):
+                        raise RuntimeError(f"Incomplete recording download: {kind}")
+                os.link(temporary, path)  # atomic, cannot overwrite an existing file
+            finally:
+                if owned:
+                    temporary.unlink(missing_ok=True)
+            paths[kind] = str(path)
+        return paths
 
     def observation(self):
         import cv2

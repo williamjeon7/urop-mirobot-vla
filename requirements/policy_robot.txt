@@ -1,5 +1,7 @@
-# Windows robot PC: same camera/serial versions as W10 recordings.
+# Robot USB environment (Windows/Linux): same camera/serial versions as W10 recordings.
 numpy==1.26.4
 opencv-python==4.10.0.84
 pyserial==3.5
 pyrealsense2==2.59.1.11053
+# Windows does not ship the IANA time zone database used by video timestamps.
+tzdata; sys_platform == "win32"

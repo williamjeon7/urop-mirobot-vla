@@ -1,273 +1,355 @@
 # 학습한 W10 모델을 실제 Mirobot에서 실행하기
 
 > **절차** · 확인 2026-11-06 · 기준 `w10_mirobot_l01_l30_follow_4000/iter_000004000`
-> 로봇 노트북과 GPU 서버를 연결하고, 학습한 모델의 명령을 확인한 뒤 실제로 실행하는 순서.
+> Windows 노트북에 연결한 Mirobot과 D405를 OASYS의 VS Code 터미널에서 실행한다.
 
-## 1. 어디서 무엇을 실행하나
+처음 사용하는 경우에는 1절부터 순서대로 진행한다. 설치가 끝난 뒤에는 연결 상태에 따라 시작할 곳이 달라진다.
 
-노트북에 Mirobot과 D405를 USB로 연결한다. 모델은 GPU 서버에 두며 노트북으로 복사하지 않는다.
-
-```text
-노트북: Mirobot + D405 → robot.policy_bridge :8891
-                                ↑ SSH 역터널
-서버: server.run_policy → 실시간 관측 → Cosmos → follow 변환 → 로봇 명령
-```
-
-다음 세 터미널을 유지한다.
-
-| 창 | 위치 | 역할 |
+| 언제 | 할 일 | 읽을 곳 |
 | --- | --- | --- |
-| A | Windows 로봇 노트북 PowerShell | 장치 준비, 이후 브리지 실행 |
-| B | Windows 로봇 노트북 PowerShell | SSH 역터널 유지 |
-| C | GPU 서버 Linux | 모델 실행 |
+| 처음 설치하거나 Windows 코드를 새로 받을 때 | 자동 설치와 SSH 키 등록 | [1. 처음 한 번 설치하기](#1-처음-한-번-설치하기) |
+| 다음날, 재부팅 후, 연결창을 닫았을 때 | Windows 연결 프로그램 다시 켜기 | [2. 실험을 시작할 때 연결하기](#2-실험을-시작할-때-연결하기) |
+| 연결된 상태에서 실험을 한 번 더 할 때 | 배치 확인, 색 선택, 모델 실행 | [3. 매 실험마다 실행하기](#3-매-실험마다-실행하기) |
 
-기본 설정은 다음과 같다. COM 포트만 장치 목록에 맞게 바꾼다.
+한 실험이 끝나도 Windows 연결 프로그램은 계속 사용할 수 있다. 색을 바꿀 때마다 설치나 키 등록을 반복할 필요는 없다.
 
-| 항목 | 설정 |
-| --- | --- |
-| 서버 저장소 | `~/UROP` |
-| GPU | 물리 GPU 2번, 4090 한 장 |
-| 로봇 포트 | `COM3`, 115200 baud |
-| D405 | `262422272124`, RGB 640×480, 30 fps |
-| 색 보정·좌표 기준 | `Mirobot_data/W10/L01_red/`의 원본 파일 |
-| 명령 | `--color red`, `green`, `blue` |
-| 모델 | 마지막 4,000-step 체크포인트 |
+## 먼저 알아둘 두 터미널
 
-카메라 장착 방향과 작업대·공구는 시연 수집 때 조건에 맞춘다. 빨강·초록·파랑 블록을 놓고 지시 색을 고른다.
-기존 녹화 프로그램·시리얼 브리지·카메라 뷰어는 닫는다. 같은 USB 장치를 두 프로그램이 동시에 열면 실패한다.
+Mirobot과 D405의 USB는 Windows 노트북에 꽂는다. 모델과 가중치는 OASYS에 둔다.
+같은 VS Code 창에서 다음 두 터미널을 사용한다.
 
-## 2. 처음 한 번: 노트북 실행 파일 가져오기
+| 터미널 | 구분하는 법 | 하는 일 |
+| --- | --- | --- |
+| OASYS Bash | `<USER>@OASYS:~/UROP$` | 설치 준비, 연결 확인, 모델 실행 |
+| Windows 로컬 PowerShell | `PS C:\...>` | 최초 설치 명령 실행, USB 연결 프로그램 유지 |
 
-서버에서 준비된 ZIP은 `dist/mirobot-policy-robot.zip`이다. 가중치와 녹화 영상은 들어 있지 않다.
-코드를 수정한 뒤 ZIP을 다시 만들려면 **창 C**에서 실행한다.
+Windows 로컬 터미널은 현재 `UROP [SSH: OASYS]` 창에서 **Ctrl+Shift+P → `Terminal: Create New Integrated Terminal (Local)`**로 연다. 시작 화면으로 돌아갈 필요는 없다. [VS Code 안내](https://code.visualstudio.com/docs/terminal/advanced#_local-terminals-in-remote-windows)
 
-```bash
-cd ~/UROP
-cosmos-policy/.venv/bin/python -m tools.package_policy_robot
-```
+새 로컬 터미널이 Git Bash나 명령 프롬프트로 열렸다면 `powershell.exe -NoProfile`을 입력해 PowerShell로 바꾼다. `PS C:\...>`가 표시되는지 확인한다.
 
-**창 A**, 노트북 PowerShell에서 ZIP을 받고 압축을 푼다. 서버 접속 주소는 기존 실험용 설정이다.
-현재 SSH 접속에 다른 주소를 쓰고 있다면 아래 `<SERVER_IP>`, `100`을 그 주소와 포트로 바꾼다.
+아래 명령은 OASYS의 `~/UROP`에 코드와 학습 가중치가 준비된 환경을 기준으로 한다. 다른 서버를 처음 구성한다면 [외부 저장소 준비](../VENDORED.md)와 [모델 준비](../MODELS.md)를 먼저 확인한다.
 
-```powershell
-cd $HOME
-scp -P 100 <USER>@<SERVER_IP>:~/UROP/dist/mirobot-policy-robot.zip .
-Expand-Archive .\mirobot-policy-robot.zip -DestinationPath . -Force
-cd .\mirobot-policy
-py -3.10 -m venv urop
-.\urop\Scripts\python.exe -m pip install -r requirements/policy_robot.txt
-.\urop\Scripts\python.exe -m pip install -e .
-```
+## 1. 처음 한 번 설치하기
 
-이후 노트북 명령은 `cd $HOME\mirobot-policy`에서 실행한다. 가상환경 활성화 없이 Python 경로를 직접 쓰므로 PowerShell 실행 정책 설정은 필요 없다.
-이미 실행 중인 브리지가 있다면 먼저 종료하고 새 ZIP을 푼다. `urop` 환경이 이미 있으면 생성·설치 단계는 생략할 수 있다.
+### 1-1. 장치를 연결하고 설치 준비 명령 실행
 
-## 3. 로봇 없이 먼저 모델 확인 — 창 C
+Mirobot 전원을 켜고 Mirobot과 D405를 Windows 노트북에 USB로 연결한다.
+장치를 사용 중인 녹화 프로그램, 시리얼 모니터, 카메라 뷰어는 닫는다.
 
-GPU 서버에서 실행한다. 저장된 빨강 시연의 첫 관측을 입력하고 4개 목표 명령을 출력한다. 로봇에는 연결하지 않는다.
+OASYS Bash에서 실행한다.
 
 ```bash
 cd ~/UROP
-bash tools/run_mirobot_policy.sh --offline-smoke --color red --max-steps 4
+bash tools/connect_windows.sh
 ```
 
-모델 초기화 중 로그가 많이 나온다. 정상 완료 기준은 다음과 같다.
+이 명령은 필요한 서버 환경을 준비하고, Windows에서 실행할 `irm ... | iex` 한 줄을 출력한다. 명령에 들어 있는 연결 주소는 15분 동안 유효하다. 이 터미널은 설치가 끝날 때까지 켜 둔다.
 
-```text
-Loaded trained policy: 687 keys, no missing net.* or unexpected keys
-Query 0: ... s, actions (16, 7)
-preview: G0 X... Y... Z... A... B... C... ; M4 S40
-Completed 4 steps (offline_smoke); log: ...
-```
+### 1-2. 출력된 한 줄을 Windows에서 실행
 
-이 검사는 **가중치 로드·추론·목표 변환**을 확인한다. 실제 집기 성공을 판정하는 검사는 아니다.
+같은 VS Code 창에서 Windows 로컬 PowerShell을 연다.
+1-1에서 출력된 한 줄을 그대로 붙여 넣는다. 예전에 사용한 주소를 다시 쓰지 않는다.
 
-GPU를 바꾸려면 다음과 같이 실행한다. 이미 `CUDA_VISIBLE_DEVICES`가 설정되어 있으면 그 값을 우선 사용한다.
+설치 프로그램이 다음 작업을 처리한다.
+
+- 현재 서버 코드를 Windows의 `$HOME\mirobot-policy`에 받는다.
+- 전용 SSH 키를 만들고 공개키를 서버에 등록한다. 기존 키는 보존한다.
+- Python 3.10, `urop` 가상환경, 로봇·카메라 패키지를 준비한다.
+- USB 연결 프로그램과 SSH 역터널을 시작한다.
+
+ZIP을 따로 내려받거나, 공개키를 복사해서 전달하거나, `pip install`을 직접 입력할 필요는 없다.
+서버로 보내는 키는 로봇 연결용 포트 전달에 사용한다. 개인키는 Windows에 남는다.
+
+로컬 PowerShell에서 연결 주소에 접속하지 못하면 VS Code의 **Ports** 탭에 `8766`이 있는지 확인한다.
+없으면 **Ctrl+Shift+P → `Forward a Port` → `8766`**을 실행한다.
+**Local Address**에 다른 로컬 포트가 표시되면 출력된 명령의 `127.0.0.1:8766` 부분만 그 주소에 맞춘다.
+
+### 1-3. 설치 완료 확인
+
+Windows 터미널에 `Keep this window open`이 나오면 그 터미널을 계속 켜 둔다.
+OASYS에 `WINDOWS_CONNECTED`가 나오면 임시 설치 서버는 자동으로 닫힌다.
+설치 과정에서는 로봇을 움직이거나 녹화하지 않는다.
+
+이제 OASYS Bash에서 확인한다.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 bash tools/run_mirobot_policy.sh --offline-smoke --color red --max-steps 4
+bash tools/run_mirobot_local.sh --devices
+bash tools/run_mirobot_local.sh --check
 ```
 
-## 4. USB 장치 확인과 시작 자세 준비 — 창 A
-
-```powershell
-cd $HOME\mirobot-policy
-.\urop\Scripts\python.exe -m docs.W9.d405.devices --check
-```
-
-`robot_found: true`, `camera_found: true`를 확인한다. 다른 COM 포트이면 이후 모든 `COM3`을 실제 포트로 바꾼다.
-장치 확인 단계에서는 로봇을 움직이지 않는다.
-
-다음 명령은 **실제로 호밍하고 집게를 연 뒤 시작 자세로 이동한다.** 로봇 주변을 비우고 실행한다.
-
-```powershell
-.\urop\Scripts\python.exe -m tools.run_gcode trajectories/policy_start.gcode --port COM3 --home --auto
-```
-
-목표는 플랜지 `X198.67 Y0 Z230.72 A0 B0 C0`, 집게 `M4 S40`이다.
-이 준비 명령이 정상 종료한 뒤 브리지를 띄운다. 브리지는 시작할 때 호밍하거나 집게를 움직이지 않으며, 초기 집게 상태가 열림이라고 가정한다.
-
-## 5. 브리지 시작 — 창 A
-
-먼저 관측만 허용하는 모드로 실행한다.
-
-```powershell
-.\urop\Scripts\python.exe -m robot.policy_bridge --serial-port COM3
-```
-
-HTTP 포트 `8891`에서 기다리는 로그가 나오면 이 창을 유지한다.
-이 브리지 하나가 D405 RGB와 로봇 `?` 상태 조회를 함께 담당한다. 기존 `robot.serial_bridge`와 `robot.camera_bridge`는 필요 없다.
-
-카메라 색 보정 프로필에 저장된 노출·화이트밸런스·게인 등을 재현하고, 서버가 원본 RGB에 색 보정을 한 번 적용한다.
-프로필과 카메라가 다르거나 설정을 재현하지 못하면 시작을 중단한다.
-
-## 6. 역터널 연결 — 창 B
-
-노트북의 **새 PowerShell 창**에서 실행한다.
-
-```powershell
-ssh -p <SSH_PORT> -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -R 8891:127.0.0.1:8891 <USER>@<SERVER_IP>
-```
-
-접속 후 화면에 출력이 없어도 정상이다. 이 창을 닫지 않는다.
-이제 서버의 `127.0.0.1:8891`이 노트북 브리지로 연결된다.
-`remote port forwarding failed`가 나오면 서버 8891 포트를 쓰는 이전 터널을 종료한 뒤 다시 연결한다.
-
-## 7. 실시간 관측과 명령 미리보기 — 창 C
-
-먼저 카메라·로봇 상태 연결만 확인한다. 모델은 로드하지 않는다.
-
-```bash
-cd ~/UROP
-bash tools/run_mirobot_policy.sh --bridge-check
-```
-
-`cart6` 6개 값, `state: Idle`, 카메라 정보와 다음 메시지를 확인한다.
+`--devices`에서 `COM3`와 D405 `262422272124`가 보이고, `--check`가 다음 문장으로 끝나면 연결이 준비된 것이다.
 
 ```text
 Bridge, latest RGB, Cartesian state and preprocessing: OK (no commands sent)
 ```
 
-실시간 카메라 관측을 모델에 넣고 목표 명령을 확인한다.
+연결 확인은 모델을 불러오거나 로봇을 움직이지 않는다. 영상과 I 번호도 만들지 않는다.
+전원을 켠 뒤 `Locked`나 `A106`이 나오면 5절의 초기화를 먼저 진행한다.
+처음 설치한 날에는 2절을 건너뛰고 3절로 간다.
 
-```bash
-bash tools/run_mirobot_policy.sh --color red --max-steps 4
-```
+## 2. 실험을 시작할 때 연결하기
 
-`preview:` 4줄이 나오며 로봇은 움직이지 않는다. 이 모드는 관측 한 번으로 예측한 chunk만 미리 보고 종료한다.
-저장된 `wrist_0000.png`에서 학습 때와 같은 방향·색의 손목 영상인지 확인한다.
+설치 후 다음날 다시 실험하거나 Windows 연결 터미널을 닫았을 때 사용하는 절차다.
+연결이 계속 살아 있으면 이 절도 건너뛴다.
 
-## 8. 실제로 4번만 움직이기
+### 2-1. Windows 연결 프로그램 다시 켜기
 
-**창 A**의 브리지를 `Ctrl+C`로 종료한 뒤 실행 허용 모드로 다시 띄운다. **창 B의 터널은 유지한다.**
+Mirobot 전원과 두 USB 연결을 확인한다. 같은 VS Code 창에서 Windows 로컬 PowerShell을 열고 실행한다.
 
 ```powershell
-.\urop\Scripts\python.exe -m robot.policy_bridge --serial-port COM3 --execute
+& "$HOME\mirobot-policy\start_mirobot_windows.cmd"
 ```
 
-**창 C**에서 실행한다.
+이 프로그램은 기존 가상환경과 SSH 키를 사용한다. 시작할 때 패키지를 확인하는 `pip` 출력이 나오는 것은 정상이다.
+최초 설치용 `connect_windows.sh`나 임시 `irm` 명령은 다시 실행하지 않는다.
+
+브리지와 SSH 터널은 이 Windows 터미널에서 계속 실행한다. SSH 연결이 끊어져도 브리지는 유지하고 터널을 자동 재연결한다.
+이미 연결 프로그램이 켜져 있으면 새로 하나 더 띄우지 않는다.
+
+### 2-2. OASYS에서 연결 확인
+
+기존 OASYS Bash를 선택해 실행한다.
 
 ```bash
-bash tools/run_mirobot_policy.sh --color red --execute --max-steps 4
+cd ~/UROP
+bash tools/run_mirobot_local.sh --check
 ```
 
-`send:`가 실제 전송이다. 기본은 **action 1개 실행 → 도착 확인 → 새 관측으로 다시 추론**이다.
-4번 실행하면 종료한다. 모델은 매번 16개를 예측하지만 이 설정에서는 첫 action만 사용한다.
-추론과 통신·도착 대기 시간이 추가되므로 학습 시연의 20 Hz 속도로 움직이지 않는다.
+오류가 없으면 3절로 간다. `Connection refused`가 나오면 Windows 연결 프로그램의 오류부터 확인한다.
 
-기본 제한은 플랜지 Z 66 mm 이상, 수평 반경 280 mm 이내, 자세각 ±30°, 한 번 이동 10 mm·5° 이내다.
-실측/가상 상태 차이가 12 mm를 넘거나 로봇이 추론 중 이동하면 중단한다. 범위를 넘는 action을 임의로 줄여 보내지 않는다.
+## 3. 매 실험마다 실행하기
 
-한 번에 여러 action을 실행하려면 미리보기와 짧은 실행을 확인한 다음 다음처럼 지정한다.
+여기부터는 OASYS Bash만 사용한다. Windows 연결 터미널은 켜 둔 상태로 둔다.
+
+### 3-1. 블록과 카메라 확인
+
+카메라 장착 방향, 작업대, 공구를 시연 수집 때 조건에 맞춘다.
+빨강·초록·파랑 블록을 놓고 이번에 집을 색을 정한다. 로봇 주변을 비운 뒤 연결을 확인한다.
 
 ```bash
-bash tools/run_mirobot_policy.sh --color red --execute --max-steps 80 --open-loop-steps 4
+bash tools/run_mirobot_local.sh --check
 ```
 
-`--open-loop-steps`는 1–16이다. 각 목표의 도착을 기다리는 구성은 동일하다. 이 속도에서 집기가 되는지는 실물에서 확인해야 한다.
-실행 종료 후 다른 색을 시험하려면 **창 A의 브리지 종료 → 4절의 시작 자세 준비 → 브리지 `--execute` 재시작 → 다음 명령** 순서로 반복한다.
+영상 저장 없이 연결만 확인하려면 여기까지 실행하면 된다.
+미리보기는 자동 녹화를 포함한다. 아래 실제 실행 예시는 영상 저장을 끈다.
+
+### 3-2. 처음에는 명령 미리보기
+
+처음 모델을 실행하거나 배치를 바꿨다면 먼저 빨강 블록 명령을 확인한다.
 
 ```bash
-bash tools/run_mirobot_policy.sh --color green --execute --max-steps 80
-bash tools/run_mirobot_policy.sh --color blue --execute --max-steps 80
+bash tools/run_mirobot_local.sh --color red --max-steps 4 --no-record-video
 ```
 
-각 줄은 별도 시행이다. 이전 시행이 끝난 자세에서 다음 시행을 바로 시작하지 않는다.
+모델이 명령을 계산하고 `preview:` 4줄을 출력한다. 로봇은 움직이지 않으며, 호밍이나 그리퍼 조작도 하지 않는다.
+MP4는 저장하지 않고 모델 입력 사진과 정책 로그만 실행 폴더에 저장한다. 손목 영상의 방향과 색이 학습 때 조건에 맞는지 확인한다.
 
-## 9. 기록과 중단
+오류가 나오면 3-3을 실행하지 말고 [문제가 생겼을 때](#5-문제가-생겼을-때)를 확인한다.
 
-매 실행의 기록 위치가 `Run log:`로 출력된다.
+### 3-3. 실제로 집기 동작 실행하기
+
+미리보기를 확인한 뒤 실행한다. 이 명령은 실제 로봇을 움직인다.
+픽업을 시각적으로 확인할 때까지 action을 반복한다. 이 명령은 MP4를 저장하지 않는다.
+
+```bash
+bash tools/run_mirobot_local.sh --color red --execute --until-pickup --open-loop-steps 16 --motion-scale 2 --max-step-mm 24 --pickup-timeout 600 --no-record-video
+```
+
+한 번 실행할 때마다 다음 순서로 진행한다.
+
+1. 호밍하고 로봇이 멈췄는지 확인한다.
+2. 그리퍼를 `M4 S40`으로 열고 1초 기다린다.
+3. 초기 위치 `X198.67 Y0 Z230.72 A0 B0 C0`로 이동해 도착을 확인한다.
+4. 모델을 준비하고 관측, 추론, 한 action 이동을 반복한다.
+5. 그리퍼가 닫히고 로봇이 15 mm 이상 상승한 뒤, 목표색 블록이 연속 관측에서 그리퍼 근처에 유지되면 픽업으로 판정하고 정지한다.
+6. 정책 로그를 OASYS에 저장한다. MP4는 저장하지 않는다.
+
+초기화가 실패하면 모델 동작으로 넘어가지 않는다. 모델을 불러오는 준비 시간은 녹화에 포함하지 않는다.
+픽업 실행은 예측 chunk에서 최대 16 action을 실행한 뒤 다시 관측하고 추론한다.
+XYZ 이동량은 학습 action의 2배로 적용하되 action 값은 ±1로 제한하고, 한 목표 이동은 최대 24 mm로 제한한다. 이는 Windows bridge의 25 mm hard limit보다 낮다. 픽업 판정에는 목표색 영역의 크기와 위치 안정성도 사용한다. 각 목표 도착은 확인하며, 실제/가상 위치 차이가 12 mm를 넘거나 600초 안에 픽업을 확인하지 못하면 안전 종료한다.
+영상 기반 판정은 조명이나 가림에 영향을 받을 수 있으므로 실행 중 로봇을 계속 지켜본다. 즉시 중단해야 하면 비상정지를 사용한다.
+
+다음 실험에서 다른 색을 집으려면 블록을 다시 놓고 색만 바꿔 실행한다. 각 줄은 별도 실험이다.
+
+```bash
+bash tools/run_mirobot_local.sh --color green --execute --until-pickup --open-loop-steps 16 --motion-scale 2 --max-step-mm 24 --pickup-timeout 600 --no-record-video
+bash tools/run_mirobot_local.sh --color blue --execute --until-pickup --open-loop-steps 16 --motion-scale 2 --max-step-mm 24 --pickup-timeout 600 --no-record-video
+```
+
+매번 초기화부터 자동으로 진행하므로 Windows 연결 프로그램을 다시 켜거나 그리퍼를 수동으로 열 필요는 없다.
+`--open-loop-steps`는 새 관측을 받기 전에 실행할 action 수이며 1부터 16까지 지정한다.
+픽업 실행에서는 학습 chunk를 따라 최대 16 action을 사용한다. 각 이동의 도착 확인과 시각적 픽업 검사는 action마다 수행한다.
+실제 속도에는 추론과 통신 시간이 포함되므로 시연의 20 Hz와 같지 않다.
+
+### 3-4. 종료하기
+
+한 실험이 끝나도 Windows 연결 프로그램은 계속 켜 둔다. 다음 실험은 3-1부터 반복한다.
+그날 실험을 모두 마쳤을 때 Windows 로컬 PowerShell에서 아래 명령으로 종료한다.
+
+```powershell
+& "$HOME\mirobot-policy\start_mirobot_windows.cmd" -Stop
+```
+
+실행 중 OASYS에서 `Ctrl+C`를 누르면 추가 명령 전송을 멈추고 실행 로그를 마무리한다.
+이미 전송된 이동은 계속될 수 있다. 즉시 정지해야 하면 로봇의 비상정지를 사용한다.
+실험 종료 후 자동으로 홈으로 돌아가거나 그리퍼를 열지는 않는다. 마지막 자세와 잡은 블록을 확인하고 정리한다.
+
+## 4. 영상과 로그 찾기
+
+실시간 미리보기와 실제 실행 로그는 OASYS의 `Mirobot_data/W10/` 아래 번호 폴더에 저장한다.
+녹화 실행은 Windows 쪽 기록 번호도 확인해 양쪽에서 사용하지 않은 다음 번호를 예약한다. 실패한 번호는 다시 쓰지 않는다.
+번호 폴더를 지우면 남아 있는 OASYS와 Windows 기록을 기준으로 다음 번호를 정한다. 양쪽 기록을 모두 지운 경우에만 I1부터 다시 시작한다.
 
 ```text
-cosmos-policy/W10/evaluations/real/<시각>_<색>_<모드>/
-├── events.jsonl       관측·예측 action·목표·응답·중단 사유
-├── wrist_0000.png     모델에 넣은 색 보정된 손목 영상
-└── summary.json       완료/실패, 모드, 실행 수, 모델 경로
+Mirobot_data/W10/I1/
+├── I1.mp4                  D405 손목 카메라 영상
+├── I1_frames.jsonl          프레임 번호와 촬영 시각
+├── I1_video.json            녹화 시작·종료 시각과 프레임 수
+├── initialization.jsonl     초기화 기록 (--execute 실행)
+└── policy/
+    ├── events.jsonl         관측·예측·명령·녹화 이벤트
+    ├── summary.json         성공·실패, 실행 횟수, 영상 경로
+    └── wrist_0000.png       모델이 사용한 첫 입력 영상
 ```
 
-다른 위치에 저장하려면 `--log-dir <새 폴더>`를 준다. 기존 폴더를 덮어쓰지 않는다.
-시행이 끝나도 자동으로 홈으로 가거나 집게를 열지 않는다. 잡은 블록은 상태를 확인하고 정리한다.
+정상적으로 영상을 가져오면 `OASYS 영상 저장 완료:` 뒤에 경로가 출력된다.
+MP4는 녹화가 끝난 뒤 재생한다. 원본은 Windows의 `$HOME\mirobot-policy\policy_recordings\I1\`에도 남는다.
+전송이 실패했을 때는 이 Windows 원본부터 확인한다.
 
-창 C에서 `Ctrl+C`를 누르면 다음 명령 전송을 중단한다. 이미 전송된 이동의 취소는 보장하지 않는다.
-즉시 물리적 정지가 필요하면 로봇의 비상정지를 사용한다.
-통신 오류 후에는 실제 도착 여부가 불확실할 수 있어 명령을 자동 재전송하지 않는다. 로봇 상태를 확인하고 브리지를 재시작한다.
+영상은 색 보정 전 D405 RGB를 640×480, 30 fps로 인코딩한다. 모델 입력에는 학습 때의 색 보정을 적용한다.
+프레임 누락이 있으면 MP4의 재생 길이와 실제 경과 시간이 다를 수 있으므로 정확한 시각은 `I1_frames.jsonl`을 본다.
+영상이 없거나 실행이 멈췄다면 `policy/summary.json`의 `status`, `error`, `video_error`를 확인한다.
 
-## 10. 문제가 생기면
+## 5. 문제가 생겼을 때
 
 | 증상 | 확인할 것 |
 | --- | --- |
-| `Cannot reach bridge` / connection refused | 창 A 브리지와 창 B 터널이 살아 있는지 확인 |
-| `Bridge is read-only` | 창 A를 `--execute`로 다시 시작하고, 창 C에도 `--execute` 추가 |
-| COM 포트 access denied | 녹화 프로그램·기존 브리지·시리얼 모니터 종료 |
-| `Expected one D405` | USB 연결, 카메라 사용 프로그램, 장치 serial 확인 |
-| `colour-profile camera setting` | 수집 때 D405·프로필을 사용 중인지 확인; 자동 설정으로 우회하지 않음 |
-| `Robot must be Idle` / Locked / A106 | 브리지 종료 후 4절의 시작 자세 준비를 다시 실행 |
-| `stale or unsynchronized` | 터널 지연·USB 부하 확인; RGB는 PNG라 느린 망에서 지연될 수 있음 |
-| `Target step too large` / Z floor / tracking gap | 기록된 입력 영상·시작 자세·예측 action 확인; 제한을 늘려 우회하지 않고 원인 확인 |
-| CUDA out of memory | `nvidia-smi`에서 빈 GPU 확인 후 `CUDA_VISIBLE_DEVICES=0` 등으로 변경 |
-| Python/모듈 import 오류 | 서버는 `cosmos-policy/.venv`, 노트북은 ZIP의 `urop` Python 3.10 사용 |
+| Windows 설치용 주소에 접속되지 않음 | Ports 탭의 `8766`과 Local Address 확인. 15분이 지났으면 최초 설치 명령을 새로 발급 |
+| Windows 브리지 유지 종료 | `-Stop`을 실행했거나 Windows USB 브리지 프로세스 자체가 실패했는지 확인. SSH 터널 단절만으로는 브리지가 종료되지 않으며 자동 재연결한다 |
+| `Windows USB 연결 프로그램/역터널이 아직 연결되지 않았습니다` 또는 `Connection refused` | 2절의 Windows 연결 프로그램을 켜고 `--check` 실행 |
+| `remote port forwarding failed` | 이전 연결 프로그램이 켜져 있는지 확인하고 중복 실행 종료 |
+| `COM3` access denied | 시리얼 모니터, 녹화 프로그램, 다른 브리지 종료 |
+| `Expected one D405` | USB 연결과 카메라를 사용 중인 다른 프로그램 확인 |
+| `colour-profile camera setting` | 시연 때의 D405·보정 프로필과 같은지 확인 |
+| `Robot must be Idle` | 로봇이 움직이고 있는지 확인하고 정지 후 다시 검사 |
+| `Locked`, `A106` | 호밍·초기화 필요. 아래 명령으로 준비한 뒤 `--check` 실행 |
+| `stale or unsynchronized` | USB와 네트워크 상태 확인. RGB 전송 지연 점검 |
+| `Target step too large`, Z 하한, tracking gap | 시작 자세·카메라 입력·예측 명령 확인. 오류가 난 실행은 중단 |
+| `Bridge /recording/names` 또는 녹화 이름 조회 오류 | preview/실행에서 `--no-record-video`를 사용하거나, Windows 코드를 갱신하려면 아래 코드 업데이트 절차를 진행 |
+| CUDA out of memory | `nvidia-smi`로 여유 GPU 확인. 아래 GPU 변경 예시 사용 |
+| 녹화 시작 실패, 영상 0프레임 | Windows 연결 터미널의 예외와 `summary.json` 확인. 아래 시간대 오류 항목 참고 |
 
-서버와 노트북이 같은 망에 있으면 터널 대신 브리지를 `--listen-host 0.0.0.0`으로 열고,
-서버 명령에 `--bridge-url http://<노트북IP>:8891`을 추가할 수 있다. 기본 절차는 로컬 바인딩과 SSH 터널을 사용한다.
+### 전원을 켠 뒤 로봇이 잠겨 있을 때
 
-## 11. 현재 검증 범위와 파일
+연결 프로그램은 시작할 때 호밍하지 않는다. `Locked`나 `A106`이 나오면 모델을 실행하기 전에 초기화한다.
+`fault`도 보고되면 2절의 연결 프로그램을 다시 켠 뒤 진행한다.
 
-이 모델은 `follow` 라벨로 학습했다. 실행 시 가상 Panda를 함께 유지해 **시뮬레이션을 한 스텝 진행하기 전 컨트롤러 목표**를 Mirobot 명령으로 바꾼다.
-실물 현재 자세에 예측 action을 누적해서 더하는 방식은 사용하지 않는다.
-
-2026-11-06에 확인한 결과는 다음과 같다.
-
-| 검사 | 결과 |
-| --- | --- |
-| 최종 가중치 실제 GPU 로드 | 687개 키·shape 엄격 검사 통과 |
-| 녹화 관측으로 실제 추론 | 유한한 `(16, 7)` action, 첫 추론 1.39초, 목표 4개 미리보기 완료 |
-| `follow` 역변환 | L01_red의 저장 action 376개 → 다음 실측 목표 위치 차이 최대 약 `5.4e-7 mm` |
-| 프로젝트 자동 테스트 | 157 passed, 8 skipped, 14 subtests passed |
-| 실제 로봇·D405 연결과 집기 | 아직 수행하지 않음; 위 절차로 노트북에서 확인 |
-
-GPU smoke 기록은 `cosmos-policy/W10/evaluations/real/20261106_134336_039844_red_offline_smoke/`에 있다.
-이 시간은 녹화 관측 한 번의 실측값이며 모델 초기화·통신·로봇 이동 시간은 제외한다.
-현재 Cosmos의 손목 전용 반환값 초기화 오류는 `server/policy_runtime.py`의 호환 처리에서 보정하며, 외부 저장소 파일은 수정하지 않는다.
-
-프로젝트 테스트를 다시 실행하려면 서버에서 다음을 사용한다.
+Windows 연결 터미널은 유지하고 OASYS Bash에서 아래 명령을 실행한다.
+**실제로 호밍하고 그리퍼를 연 뒤 초기 위치로 이동한다.** 로봇 주변을 비운 뒤 실행한다. 모델과 녹화는 시작하지 않는다.
 
 ```bash
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 MUJOCO_GL=egl \
-  cosmos-policy/.venv/bin/python -m pytest -q tests
+urop/bin/python - <<'PY'
+from server.policy_client import PolicyClient
+result = PolicyClient("http://127.0.0.1:8891").prepare()
+print("초기화 완료:", result["state"], result["cart6"])
+PY
+bash tools/run_mirobot_local.sh --check
 ```
 
-저장소 전체에 `pytest`를 실행하면 외부 Cosmos 테스트와 예전 하드웨어·그래픽 실험도 수집된다.
-그 전체 수집은 별도 제한 모델 권한과 그래픽 설정 문제로 실패했으므로, 위 통과 수는 `tests/` 범위다.
+### Windows에서 시간대 오류가 나올 때
+
+Windows 터미널에 `ZoneInfoNotFoundError`나 `Asia/Seoul` 시간대 누락 오류가 나오면, 연결 프로그램을 종료한 뒤 로컬 PowerShell에서 실행한다.
+
+```powershell
+& "$HOME\mirobot-policy\urop\Scripts\python.exe" -m pip install tzdata
+& "$HOME\mirobot-policy\start_mirobot_windows.cmd"
+```
+
+최신 설치 파일의 `requirements/policy_robot.txt`에는 이 패키지를 포함했다.
+기존 Windows 설치에는 최신 코드를 다시 받거나 위 명령으로 패키지를 설치한 뒤 연결을 다시 시작한다.
+Windows의 시간대 데이터는 [Python 문서](https://docs.python.org/3.10/library/zoneinfo.html#data-sources)를 참고한다.
+
+### 코드를 수정한 뒤 Windows에 반영할 때
+
+Windows 연결 프로그램을 먼저 종료하고 1절의 자동 설치를 다시 진행한다.
+기존 가상환경과 키는 재사용한다. OASYS와 Windows의 코드는 서로 다른 파일이므로 서버에서 수정한 것만으로 Windows 파일이 바뀌지는 않는다.
+`git pull`도 해당 컴퓨터의 Git 추적 파일만 갱신한다. `dist/`의 ZIP은 Git 제외 대상이다.
+
+## 6. 확인한 범위
+
+2026-11-06에 확인한 내용이다. 연결을 다시 열었다면 2절의 `--check`로 현재 상태를 확인한다.
+
+| 항목 | 결과 |
+| --- | --- |
+| Windows USB 연결 | Mirobot `COM3`, D405 `262422272124` 확인 |
+| 호밍·그리퍼 열기·초기 위치 준비 | 실제 장치에서 확인 |
+| XYZ 끝점 탐색 | Z 66–280 mm (보고값 65.72–279.72), X 140–270 mm (Y0에서 140.01–269.99), Y ±180 mm (X200에서 −179.97–179.99) |
+| 적용한 축 제한 | X 145–265 mm, Y −175–175 mm(실측 끝점에서 5 mm 여유), Z 66–275 mm(닫힌 그리퍼 기준 실측 하한). 수평 반경 280 mm도 적용 |
+| 녹화 없는 Z축 왕복 | 5 mm 상승 명령에 보고 좌표 4.734 mm 상승, 복귀 오차 0.271 mm. 최종 `Idle`, `Pump PWM:40` |
+| 저장 관측과 임시 카메라 입력을 사용한 모델 검사 | 모델 687개 키 로드와 추론, 임시 MP4 인코딩·전송 확인. 임시 파일 삭제 |
+| 실제 카메라 모델 미리보기 `I1` | 모델 로드 후 녹화 시작 요청에서 실패. 추론 0회, 명령 0개, 영상 0프레임 |
+| 학습 모델의 실물 집기 | 아직 확인하지 않음 |
+
+`I1`의 실패 기록은 `Mirobot_data/W10/I1/policy/summary.json`에 있다.
+시간대 패키지와 녹화 시작 전 검사 코드를 보완했으며, 관련 테스트 62개와 subtest 14개가 통과했다. 새 코드로 Windows 녹화를 다시 확인해야 한다.
+실제 장치 왕복 검사와 모델의 집기 성공은 구분해서 판단한다.
+자세한 작업 기록은 [WORKLOG.md](WORKLOG.md), 학습 결과는 [TRAINING_RESULT.md](TRAINING_RESULT.md), 실험 판정 기준은 [MIROBOT_EXPERIMENT.md](MIROBOT_EXPERIMENT.md)에 있다.
+
+## 참고: 오프라인 검사와 다른 연결 방식
+
+### 로봇 없이 모델만 검사
+
+OASYS Bash에서 실행한다. 저장 관측을 사용하므로 Windows 연결과 USB 장치는 필요 없다.
+MP4와 I 번호는 만들지 않으며 로그는 `cosmos-policy/W10/evaluations/real/`에 남는다.
+
+```bash
+bash tools/run_mirobot_policy.sh --offline-smoke --color red --max-steps 4
+```
+
+### GPU 변경
+
+기본은 물리 GPU 2번이다. 다른 GPU를 쓰려면 실행 명령 앞에 지정한다.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 bash tools/run_mirobot_local.sh --color red --max-steps 4
+```
+
+### USB를 OASYS 본체에 직접 꽂은 경우
+
+Mirobot과 D405가 실제로 OASYS에 연결된 경우에만 사용한다. Windows 연결 프로그램은 필요 없다.
+
+```bash
+cd ~/UROP
+bash tools/setup_mirobot_local.sh
+bash tools/run_mirobot_local.sh --devices
+bash tools/run_mirobot_local.sh --serial-port /dev/ttyUSB0 --color red --execute --max-steps 4
+```
+
+`/dev/ttyUSB0`은 감지된 포트로 바꾼다. 자동 초기화와 녹화 방식은 3절과 같다.
+서버에서 장치 접근 권한 오류가 나면 관리자가 해당 계정의 시리얼·USB 권한을 설정해야 한다.
+
+### 기본 설정과 코드 위치
+
+| 항목 | 기본값 |
+| --- | --- |
+| OASYS 저장소 | `~/UROP` |
+| Windows 설치 폴더 | `$HOME\mirobot-policy` |
+| Python | Windows `urop`와 서버 `cosmos-policy/.venv`, 모두 3.10 |
+| USB 브리지 주소 | `http://127.0.0.1:8891` |
+| 로봇·카메라 | `COM3` 115200 baud, D405 `262422272124` 640×480·30 fps |
+| 색 보정·좌표 기준 | `Mirobot_data/W10/L01_red/` |
+| 모델 | `w10_mirobot_l01_l30_follow_4000/iter_000004000` |
+| 실측 안전 좌표 범위 | X 145–265 mm, Y −175–175 mm, Z 66–275 mm, 수평 반경 280 mm 이내 |
+| 동작 제한 | 한 목표 이동 최대 24 mm(bridge hard limit 25 mm), 자세각 ±30°; 모델 예측 action도 축별 좌표 범위 검사 |
+
+실물과 가상 상태의 위치 차이가 12 mm를 넘거나 추론 중 로봇이 움직이면 실행을 중단한다.
+모델은 `follow` 라벨로 학습했으며 실행 중 가상 Panda의 컨트롤러 목표를 Mirobot 명령으로 변환한다. 좌표 변환 배경은 [POLICY_RUN.md](POLICY_RUN.md)에 있다.
 
 | 파일 | 역할 |
 | --- | --- |
-| `robot/policy_bridge.py` | D405 원본 RGB·실측 상태 전송, 제한을 확인한 명령 실행 |
-| `server/policy_client.py` | 브리지 접속·관측 신선도 검사·응답 확인 |
-| `server/policy_runtime.py` | 학습 설정·정규화·T5를 맞춘 최종 가중치 로드와 추론 |
-| `server/follow_translator.py` | 학습 라벨과 같은 가상 Panda 동역학을 통한 목표 변환 |
-| `server/run_policy.py` | 관측·추론·변환·실행·기록 루프 |
-| `tools/run_mirobot_policy.sh` | 서버 Python/GPU/오프라인 환경 기본값 |
-| `tools/package_policy_robot.py` | 노트북 전송 ZIP 생성 |
-| `trajectories/policy_start.gcode` | 시행 전 시작 자세·집게 열림 준비 |
-
-학습 완료 근거는 [TRAINING_RESULT.md](TRAINING_RESULT.md), 기존 좌표 검증은 [POLICY_RUN.md](POLICY_RUN.md), 실험 판정 기준은 [MIROBOT_EXPERIMENT.md](MIROBOT_EXPERIMENT.md)를 참고한다.
+| `tools/connect_windows.sh` | 최초 설치·연결 준비 |
+| `start_mirobot_windows.cmd` | 설치 후 Windows 연결 프로그램 재시작 |
+| `tools/run_mirobot_local.sh` | 실험 실행 명령 |
+| `robot/policy_bridge.py` | Windows USB 통신과 녹화 |
+| `server/run_policy.py` | 모델 추론과 실제 명령 실행 |
+| `trajectories/policy_start.gcode` | 초기 자세와 그리퍼 열림 설정 |

@@ -103,6 +103,14 @@ class FollowTranslatorTest(unittest.TestCase):
                 translator.advance(action)
         self.assertEqual(env.calls, [])
 
+    def test_gripper_overshoot_is_saturated_without_relaxing_spatial_limits(self):
+        translator, env = self.make_translator()
+        translator.initialize((0.0,) * 6)
+        action = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0033)
+        self.assertEqual(translator.target(action).gripper_s, 40.0)
+        translator.advance(action)
+        self.assertEqual(env.calls[-1][-1], -1.0)
+
     def test_initialization_required_for_advance(self):
         translator, _ = self.make_translator()
         with self.assertRaises(RuntimeError):

@@ -70,6 +70,8 @@ class FakeBridge:
         self.execute_enabled = True
         self.state = "Idle"
         self.arrive = True
+        self.recording = False
+        self.recording_events = []
         self.camera = dict(serial=PROFILE["camera_serial"], width=640, height=480,
                            fps=30, locked_camera_options=PROFILE["camera_options"],
                            encoding="png", color_order="RGB", preprocessing="none")
@@ -86,6 +88,16 @@ class FakeBridge:
             self.cart = [float(token[1:]) for token in command.split()[1:]]
         return {"acknowledged": True, "command": command}
 
+    def start_recording(self):
+        self.recording = True
+        self.recording_events.append("start")
+        return dict(path="I1/I1.mp4", recording=True)
+
+    def stop_recording(self):
+        self.recording = False
+        self.recording_events.append("stop")
+        return dict(path="I1/I1.mp4", recording=False, frames=30)
+
 
 class FakePolicy:
     load_report = {"loaded_keys": 123}
@@ -98,6 +110,7 @@ class FakePolicy:
         self.states = []
 
     def predict(self, image, state, instruction):
+        self.bridge.recording_events.append("predict")
         self.states.append(list(state))
         if self.during_predict:
             self.during_predict()
@@ -122,7 +135,8 @@ class RunPolicyTest(unittest.TestCase):
             max_state_change_mm=2.0, arrival_tolerance_mm=2.0,
             arrival_tolerance_deg=1.0, step_interval=0.0, z_floor=66.0,
             max_radius=280.0, max_angle=30.0, max_step_mm=10.0,
-            sample_index=0)
+            sample_index=0, record_video=False, until_pickup=False, pickup_timeout=600.0,
+            motion_scale=1.0)
         values.update(changes)
         return Namespace(**values)
 
@@ -140,7 +154,10 @@ class RunPolicyTest(unittest.TestCase):
                 "docs.W9.d405.color_calibration": fake_color_module}))
             stack.enter_context(patch("server.follow_translator.FollowTranslator", factory))
             self.client_constructor = stack.enter_context(patch("server.policy_client.PolicyClient", return_value=self.bridge))
-            self.policy_constructor = stack.enter_context(patch.object(run_policy, "CosmosPolicy", return_value=self.policy))
+            def load_policy(config):
+                self.assertFalse(self.bridge.recording, "Recording must exclude model initialization")
+                return self.policy
+            self.policy_constructor = stack.enter_context(patch.object(run_policy, "CosmosPolicy", side_effect=load_policy))
             stack.enter_context(patch.object(run_policy.RunLog, "image", return_value="observation.png"))
             stack.enter_context(redirect_stdout(io.StringIO()))
             run_policy.run(args)
@@ -154,6 +171,113 @@ class RunPolicyTest(unittest.TestCase):
         self.assertEqual(self.summary()["mode"], "preview")
         self.assertEqual(self.summary()["steps"], 2)
         self.assertEqual(len(self.policy.states), 1)
+
+    def test_motion_scale_affects_translation_and_clips_to_action_bounds(self):
+        action = (0.2, -0.5, 0.9, 0.1, -0.2, 0.3, -1.0)
+        scaled = run_policy.scale_motion_action(action, 3.0)
+        self.assertAlmostEqual(scaled[0], 0.6)
+        self.assertEqual(scaled[1:], (-1.0, 1.0, 0.1, -0.2, 0.3, -1.0))
+
+    def test_validate_goal_enforces_measured_axis_bounds(self):
+        measured = [200.0, 0.0, 230.0, 0.0, 0.0, 0.0]
+        args = self.args(max_step_mm=200.0)
+        for target in ([144.0, 0.0, 230.0, 0.0, 0.0, 0.0],
+                   [200.0, 176.0, 230.0, 0.0, 0.0, 0.0],
+                       [200.0, 0.0, 276.0, 0.0, 0.0, 0.0],
+                       [200.0, 0.0, 65.9, 0.0, 0.0, 0.0]):
+                with self.subTest(target=target[:3]), self.assertRaisesRegex(
+                    ValueError, "outside measured limits|below floor"):
+                run_policy.validate_goal(target, measured, args)
+
+    def test_until_pickup_exits_when_detector_confirms(self):
+        class ConfirmPickup:
+            def __init__(self, _):
+                pass
+
+            def update(self, *_):
+                return dict(color="red", color_area_px=9000, lifted_mm=20)
+
+        with patch.object(run_policy, "VisualPickupDetector", ConfirmPickup):
+            self.run_with_fakes(self.args(execute=True, until_pickup=True, max_steps=None,
+                                          open_loop_steps=16))
+        self.assertEqual(self.summary()["status"], "pickup_confirmed")
+        self.assertEqual(self.summary()["steps"], 1)
+        self.assertEqual(len([command for command in self.bridge.calls if command.startswith("G0 ")]), 1)
+
+    def test_visual_pickup_detector_requires_closed_lifted_stable_target_color(self):
+        import importlib
+
+        numpy = importlib.import_module("numpy")
+        image = numpy.full((480, 640, 3), 255, dtype=numpy.uint8)
+        image[200:300, 250:350] = (220, 20, 20)
+        detector = run_policy.VisualPickupDetector("red")
+        self.assertIsNone(detector.update(image, [200, 0, 100, 0, 0, 0], 0.0))
+        self.assertIsNone(detector.update(image, [200, 0, 100, 0, 0, 0], 1.0))
+        self.assertIsNone(detector.update(image, [200, 0, 114, 0, 0, 0], 1.0))
+        self.assertIsNone(detector.update(image, [200, 0, 115, 0, 0, 0], 1.0))
+        self.assertIsNone(detector.update(image, [200, 0, 115, 0, 0, 0], 1.0))
+        result = detector.update(image, [200, 0, 115, 0, 0, 0], 1.0)
+        self.assertEqual(result["color"], "red")
+        self.assertEqual(result["stable_observations"], 3)
+
+        small_block = numpy.full((480, 640, 3), 255, dtype=numpy.uint8)
+        small_block[250:290, 300:340] = (220, 20, 20)
+        detector = run_policy.VisualPickupDetector("red")
+        detector.update(small_block, [200, 0, 100, 0, 0, 0], 1.0)
+        self.assertIsNone(detector.update(small_block, [200, 0, 120, 0, 0, 0], 1.0))
+
+    def test_recording_starts_after_load_and_stops_after_inference(self):
+        def during_predict():
+            self.assertTrue(self.bridge.recording)
+        self.policy.during_predict = during_predict
+        self.run_with_fakes(self.args(record_video=True))
+        self.assertEqual(self.bridge.recording_events, ["start", "predict", "stop"])
+        self.assertFalse(self.bridge.recording)
+        self.assertEqual(self.summary()["video"]["frames"], 30)
+        self.assertEqual(self.bridge.calls, [])
+
+    def test_recording_spans_all_queries_and_motion(self):
+        self.run_with_fakes(self.args(record_video=True, execute=True))
+        self.assertEqual(self.bridge.recording_events, ["start", "predict", "predict", "stop"])
+        self.assertEqual(self.summary()["steps"], 2)
+
+    def test_recording_stops_and_partial_video_is_logged_on_interrupt(self):
+        def interrupt():
+            raise KeyboardInterrupt()
+        self.policy.during_predict = interrupt
+        with self.assertRaises(KeyboardInterrupt):
+            self.run_with_fakes(self.args(record_video=True))
+        self.assertEqual(self.bridge.recording_events, ["start", "predict", "stop"])
+        self.assertEqual(self.summary()["status"], "interrupted")
+        self.assertEqual(self.summary()["video"]["frames"], 30)
+
+    def test_recording_stops_if_prediction_fails(self):
+        def fail():
+            raise RuntimeError("prediction failed")
+        self.policy.during_predict = fail
+        with self.assertRaisesRegex(RuntimeError, "prediction failed"):
+            self.run_with_fakes(self.args(record_video=True))
+        self.assertEqual(self.bridge.recording_events, ["start", "predict", "stop"])
+        self.assertEqual(self.summary()["status"], "failed")
+
+    def test_recording_stop_runs_if_start_reply_is_lost(self):
+        original = self.bridge.start_recording
+        def lose_reply():
+            original()
+            raise RuntimeError("start reply lost")
+        self.bridge.start_recording = lose_reply
+        with self.assertRaisesRegex(RuntimeError, "start reply lost"):
+            self.run_with_fakes(self.args(record_video=True))
+        self.assertEqual(self.bridge.recording_events, ["start", "stop"])
+        self.assertFalse(self.bridge.recording)
+        self.assertEqual(self.summary()["status"], "failed")
+
+    def test_empty_video_is_reported_as_failure(self):
+        self.bridge.stop_recording = lambda: dict(path="I1/I1.mp4", frames=0, recording=False)
+        with self.assertRaisesRegex(RuntimeError, "Video could not be finalized"):
+            self.run_with_fakes(self.args(record_video=True))
+        self.assertEqual(self.summary()["status"], "failed")
+        self.assertIn("did not record any", self.summary()["video_error"])
 
     def test_execute_reobserves_real_state_and_preserves_virtual_lag(self):
         self.run_with_fakes(self.args(execute=True))

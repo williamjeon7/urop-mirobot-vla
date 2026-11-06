@@ -1,0 +1,10 @@
+{
+  "status": "failed",
+  "mode": "execute",
+  "instruction": "pick up the red block on the table",
+  "steps": 80,
+  "queries": 5,
+  "checkpoint": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+  "directory": "~/UROP/Mirobot_data/W10/I9/policy",
+  "error": "Measured/virtual tracking gap exceeds limit: {'position_mm': 13.781638426939852, 'rotation_deg': 0.06669860762215027}"
+}

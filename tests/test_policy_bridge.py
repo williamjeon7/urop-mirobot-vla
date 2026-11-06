@@ -90,7 +90,10 @@ class TestPolicySerial(unittest.TestCase):
         limits = CommandLimits()
         current = [270, 0, 100, 20, 0, 0]
         invalid = ["$H", "G91", "G0 Z65", "G90\nG0 X1 Y2 Z3 A0 B0 C0",
-                   "G0 X270 Y0 Z65 A20 B0 C0", "G0 X281 Y0 Z100 A20 B0 C0",
+                   "G0 X200 Y0 Z65.9 A0 B0 C0",
+               "G0 X270 Y0 Z65 A20 B0 C0", "G0 X281 Y0 Z100 A20 B0 C0",
+                   "G0 X144 Y0 Z100 A20 B0 C0", "G0 X200 Y176 Z100 A20 B0 C0",
+               "G0 X200 Y0 Z276 A20 B0 C0",
                    "G0 X270 Y0 Z100 A31 B0 C0", "G0 X240 Y0 Z100 A20 B0 C0",
                    "G0 X270 Y0 Z100 A-20 B0 C0", "M4 S70", "M4 Snan"]
         for command in invalid:

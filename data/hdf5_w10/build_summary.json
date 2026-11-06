@@ -1,0 +1,610 @@
+{
+ "root": "Mirobot_data/W10",
+ "out": "data/hdf5_w10",
+ "recordings": 60,
+ "ready": 55,
+ "hdf5_status": {
+  "existing": 55
+ },
+ "extra_hdf5": [],
+ "structure": {
+  "files": 55,
+  "episodes": 55,
+  "steps": 17320,
+  "steps_by_suite": {
+   "mirobot_real": 17320
+  },
+  "instructions": [
+   "pick up the blue block on the table",
+   "pick up the green block on the table",
+   "pick up the red block on the table"
+  ]
+ },
+ "by_color": {
+  "red": {
+   "episodes": 19,
+   "steps": 5989
+  },
+  "green": {
+   "episodes": 19,
+   "steps": 6057
+  },
+  "blue": {
+   "episodes": 17,
+   "steps": 5274
+  }
+ },
+ "follow_mm_mean": 3.0351548564303905,
+ "follow_mm_max": 6.692435043694741,
+ "excluded": {
+  "L09_blue": [
+   "layout.json missing",
+   "not aligned"
+  ],
+  "L10_blue": [
+   "layout.json missing",
+   "not aligned"
+  ],
+  "L13_blue": [
+   "not aligned"
+  ],
+  "L13_red": [
+   "not aligned"
+  ],
+  "L19_green": [
+   "not aligned"
+  ]
+ },
+ "episodes": [
+  {
+   "episode": "L01_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 309,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L01_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.8134078057352547,
+   "follow_mm_max": 5.226648346911076,
+   "follow_deg_max": 0.27459359021043284
+  },
+  {
+   "episode": "L01_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 349,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L01_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.8867264771112846,
+   "follow_mm_max": 5.379253385433266,
+   "follow_deg_max": 0.28069109909775636
+  },
+  {
+   "episode": "L01_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 376,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L01_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.3176243615824776,
+   "follow_mm_max": 5.515305643539018,
+   "follow_deg_max": 0.3488493492538382
+  },
+  {
+   "episode": "L02_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 269,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L02_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.4361131664371243,
+   "follow_mm_max": 5.394360492783736,
+   "follow_deg_max": 0.3317794470112051
+  },
+  {
+   "episode": "L02_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 326,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L02_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.207115488097321,
+   "follow_mm_max": 5.891775745381642,
+   "follow_deg_max": 0.336227398258491
+  },
+  {
+   "episode": "L02_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 282,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L02_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.7350964165986933,
+   "follow_mm_max": 4.942190389931294,
+   "follow_deg_max": 0.25723596263000503
+  },
+  {
+   "episode": "L03_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 293,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L03_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.110442301282122,
+   "follow_mm_max": 5.795814047214792,
+   "follow_deg_max": 0.2922183973223447
+  },
+  {
+   "episode": "L03_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 268,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L03_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.9500429921127114,
+   "follow_mm_max": 5.138077635119257,
+   "follow_deg_max": 0.26714712532058377
+  },
+  {
+   "episode": "L03_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 326,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L03_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.865115478313619,
+   "follow_mm_max": 5.367254192357501,
+   "follow_deg_max": 0.3126967932465252
+  },
+  {
+   "episode": "L04_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 281,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L04_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.0868128124332332,
+   "follow_mm_max": 5.419407095304862,
+   "follow_deg_max": 0.2891993923209704
+  },
+  {
+   "episode": "L04_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 335,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L04_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.891502559214828,
+   "follow_mm_max": 5.404845696907355,
+   "follow_deg_max": 0.3095023735255036
+  },
+  {
+   "episode": "L04_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 334,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L04_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.1953420404245874,
+   "follow_mm_max": 5.4872314318448,
+   "follow_deg_max": 0.31332988873024487
+  },
+  {
+   "episode": "L05_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 297,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L05_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.840603003805433,
+   "follow_mm_max": 5.435424785571953,
+   "follow_deg_max": 0.25723596263000503
+  },
+  {
+   "episode": "L05_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 303,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L05_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.275393596625644,
+   "follow_mm_max": 5.979316332718939,
+   "follow_deg_max": 0.2777545513287656
+  },
+  {
+   "episode": "L05_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 343,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L05_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.1232964029393866,
+   "follow_mm_max": 5.838369649089617,
+   "follow_deg_max": 0.33132518734215854
+  },
+  {
+   "episode": "L06_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 308,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L06_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.298620366345117,
+   "follow_mm_max": 5.5069679205880835,
+   "follow_deg_max": 0.3024500072470155
+  },
+  {
+   "episode": "L06_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 321,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L06_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.2186287640945856,
+   "follow_mm_max": 4.806857149839175,
+   "follow_deg_max": 0.3289589331819475
+  },
+  {
+   "episode": "L06_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 298,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L06_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.015847391222762,
+   "follow_mm_max": 5.420369914798414,
+   "follow_deg_max": 0.2978556502955535
+  },
+  {
+   "episode": "L07_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 319,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L07_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.280265745211873,
+   "follow_mm_max": 4.868618838657693,
+   "follow_deg_max": 0.2762802093823704
+  },
+  {
+   "episode": "L07_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 348,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L07_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.2890660620481307,
+   "follow_mm_max": 5.81444723122126,
+   "follow_deg_max": 0.3507440197861159
+  },
+  {
+   "episode": "L07_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 336,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L07_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.0947314925784264,
+   "follow_mm_max": 5.249131547489771,
+   "follow_deg_max": 0.28900649217235935
+  },
+  {
+   "episode": "L08_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 311,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L08_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.2452157242372066,
+   "follow_mm_max": 5.453374882436491,
+   "follow_deg_max": 0.3117819595602307
+  },
+  {
+   "episode": "L08_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 273,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L08_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.8574616641708115,
+   "follow_mm_max": 5.102435748153253,
+   "follow_deg_max": 0.28487563581603537
+  },
+  {
+   "episode": "L08_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 331,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L08_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.055366269370492,
+   "follow_mm_max": 4.894296934001894,
+   "follow_deg_max": 0.29776338712883854
+  },
+  {
+   "episode": "L09_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 313,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L09_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.353729429315467,
+   "follow_mm_max": 5.750118413320691,
+   "follow_deg_max": 0.3017891175663693
+  },
+  {
+   "episode": "L09_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 350,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L09_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.0771381469051162,
+   "follow_mm_max": 5.279580626729146,
+   "follow_deg_max": 0.3421092718644429
+  },
+  {
+   "episode": "L10_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 263,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L10_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.962248045944293,
+   "follow_mm_max": 5.085960963808212,
+   "follow_deg_max": 0.2958616265832543
+  },
+  {
+   "episode": "L10_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 300,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L10_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.102836742640145,
+   "follow_mm_max": 5.188868168590344,
+   "follow_deg_max": 0.2623024867789728
+  },
+  {
+   "episode": "L11_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 334,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L11_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.4646102627153126,
+   "follow_mm_max": 5.538700886980341,
+   "follow_deg_max": 0.30282667173924227
+  },
+  {
+   "episode": "L11_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 386,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L11_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.5900775988709572,
+   "follow_mm_max": 5.47977769770645,
+   "follow_deg_max": 0.3297308062249086
+  },
+  {
+   "episode": "L11_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 321,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L11_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.076021227200982,
+   "follow_mm_max": 5.050854794230666,
+   "follow_deg_max": 0.3017810290744172
+  },
+  {
+   "episode": "L12_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 308,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L12_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.1066152572797914,
+   "follow_mm_max": 5.512661058161938,
+   "follow_deg_max": 0.30351534495817056
+  },
+  {
+   "episode": "L12_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 349,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L12_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.926189026632431,
+   "follow_mm_max": 5.695125773102795,
+   "follow_deg_max": 0.2841338506906132
+  },
+  {
+   "episode": "L12_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 301,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L12_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.5616932799019874,
+   "follow_mm_max": 5.486173416642251,
+   "follow_deg_max": 0.3082455093314922
+  },
+  {
+   "episode": "L13_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 382,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L13_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.031354077967167,
+   "follow_mm_max": 4.862300575211831,
+   "follow_deg_max": 0.25723596263000503
+  },
+  {
+   "episode": "L14_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 397,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L14_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.6217059081813874,
+   "follow_mm_max": 5.683237929475979,
+   "follow_deg_max": 0.2827856055439081
+  },
+  {
+   "episode": "L14_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 316,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L14_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.257155997536263,
+   "follow_mm_max": 5.855502477457603,
+   "follow_deg_max": 0.3058917462531268
+  },
+  {
+   "episode": "L14_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 271,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L14_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.086963300567507,
+   "follow_mm_max": 5.291885963437274,
+   "follow_deg_max": 0.27740761108286205
+  },
+  {
+   "episode": "L15_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 332,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L15_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.030571327743902,
+   "follow_mm_max": 5.346573466440692,
+   "follow_deg_max": 0.31299243250238135
+  },
+  {
+   "episode": "L15_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 364,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L15_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.7874168532613472,
+   "follow_mm_max": 5.375912867563215,
+   "follow_deg_max": 0.31835701690398405
+  },
+  {
+   "episode": "L15_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 346,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L15_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.921079281679684,
+   "follow_mm_max": 6.0275331755711745,
+   "follow_deg_max": 0.29374416140790655
+  },
+  {
+   "episode": "L16_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 232,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L16_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.4053444425774684,
+   "follow_mm_max": 5.3368755901851275,
+   "follow_deg_max": 0.3026216180136074
+  },
+  {
+   "episode": "L16_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 321,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L16_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.2934785361200287,
+   "follow_mm_max": 5.343902899366739,
+   "follow_deg_max": 0.31208176780316604
+  },
+  {
+   "episode": "L16_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 303,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L16_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.093589669579544,
+   "follow_mm_max": 5.838751791946329,
+   "follow_deg_max": 0.3167943624244006
+  },
+  {
+   "episode": "L17_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 348,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L17_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.937674712842287,
+   "follow_mm_max": 5.152701460958405,
+   "follow_deg_max": 0.3260245431433533
+  },
+  {
+   "episode": "L17_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 290,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L17_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.302354677959801,
+   "follow_mm_max": 6.6479581980427485,
+   "follow_deg_max": 0.38734470238443763
+  },
+  {
+   "episode": "L17_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 279,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L17_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 2.8108952297438794,
+   "follow_mm_max": 4.937887345728798,
+   "follow_deg_max": 0.28333279188828775
+  },
+  {
+   "episode": "L18_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 358,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L18_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.0076158355477993,
+   "follow_mm_max": 5.709418828281436,
+   "follow_deg_max": 0.3189513362180606
+  },
+  {
+   "episode": "L18_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 263,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L18_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.016650212216209,
+   "follow_mm_max": 5.127642255651584,
+   "follow_deg_max": 0.2886603390637993
+  },
+  {
+   "episode": "L18_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 336,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L18_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.170564403072659,
+   "follow_mm_max": 6.475126065528337,
+   "follow_deg_max": 0.314346989348429
+  },
+  {
+   "episode": "L19_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 285,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L19_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.474866580860547,
+   "follow_mm_max": 5.4973344889509725,
+   "follow_deg_max": 0.2991362494991707
+  },
+  {
+   "episode": "L19_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 279,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L19_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.03721459951859,
+   "follow_mm_max": 5.430118281203483,
+   "follow_deg_max": 0.30334509408378213
+  },
+  {
+   "episode": "L20_blue",
+   "color": "blue",
+   "status": "existing",
+   "steps": 293,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L20_blue_SCENE1_pick_up_the_blue_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.199779735758388,
+   "follow_mm_max": 5.562861478876827,
+   "follow_deg_max": 0.2911103190605707
+  },
+  {
+   "episode": "L20_green",
+   "color": "green",
+   "status": "existing",
+   "steps": 287,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L20_green_SCENE1_pick_up_the_green_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.3815016637375197,
+   "follow_mm_max": 5.303411907007424,
+   "follow_deg_max": 0.25723596263000503
+  },
+  {
+   "episode": "L20_red",
+   "color": "red",
+   "status": "existing",
+   "steps": 277,
+   "path": "data/hdf5_w10/mirobot_real/MIROBOT_L20_red_SCENE1_pick_up_the_red_block_on_the_table_demo.hdf5",
+   "follow_mm_mean": 3.38348023878169,
+   "follow_mm_max": 6.692435043694741,
+   "follow_deg_max": 0.36766142295841525
+  }
+ ]
+}

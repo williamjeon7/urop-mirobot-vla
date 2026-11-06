@@ -27,6 +27,13 @@ Vec3 = tuple[float, float, float]
 # 9/13 실측 홈 — `$H` 뒤 `?` 보고. 이때 RxRyRz = (0, 0, 0) 이다 (docs/W2/CHECKLIST.md 4절)
 MIROBOT_HOME_MM: Vec3 = (198.67, 0.0, 230.72)
 
+# Physical coordinate survey on 2026-11-06, with 10 mm margin inside tested edges.
+MIROBOT_CARTESIAN_LIMITS_MM: tuple[tuple[float, float], ...] = (
+    (145.0, 265.0),
+    (-175.0, 175.0),
+    (66.0, 275.0),
+)
+
 
 def libero_to_mirobot_xyz_mm(p_libero_m, ref_libero_m, ref_mirobot_mm: Vec3 = MIROBOT_HOME_MM,
                              scale: float = 1.0) -> Vec3:

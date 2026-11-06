@@ -1,0 +1,10 @@
+{
+  "status": "failed",
+  "mode": "execute",
+  "instruction": "pick up the blue block on the table",
+  "steps": 50,
+  "queries": 4,
+  "checkpoint": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+  "directory": "~/UROP/Mirobot_data/W10/I26/policy",
+  "error": "Bridge /command: Expected six finite Cartesian values: <Run,Angle(ABCDXYZ):-0.313mp PWM:40,Valve PWM:0,Motion_MODE:1>"
+}

@@ -1,0 +1,9 @@
+{"t_wall": 1793959627.8050501, "t_perf": 721835.386274, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.005651600076816976}
+{"t_wall": 1793959641.475056, "t_perf": 721849.0690894, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "ok"], "elapsed_s": 13.68246140005067}
+{"t_wall": 1793959641.7456076, "t_perf": 721849.3271154, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.013660000055097044}
+{"t_wall": 1793959641.7500918, "t_perf": 721849.3315607, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.0041958000510931015}
+{"t_wall": 1793959641.7550256, "t_perf": 721849.3366088, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004363000043667853}
+{"t_wall": 1793959641.7594347, "t_perf": 721849.3410727, "kind": "send", "cmd": "M20", "lines": ["ok"], "elapsed_s": 0.004190400009974837}
+{"t_wall": 1793959641.7654738, "t_perf": 721849.3470831, "kind": "send", "cmd": "M4 S40", "lines": ["ok"], "elapsed_s": 0.0056888998951762915}
+{"t_wall": 1793959642.7943175, "t_perf": 721850.3759276, "kind": "send", "cmd": "G0 X198.670 Y0.000 Z230.720 A0.000 B0.000 C0.000", "lines": ["ok"], "elapsed_s": 0.02199899998959154}
+{"t_wall": 1793959643.1758249, "t_perf": 721850.7590973, "kind": "initial_pose_ready", "cart6": [198.668, 0.0, 230.449, 0.0, 0.0, 0.0], "gripper_s": 40}

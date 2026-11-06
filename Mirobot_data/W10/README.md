@@ -4,6 +4,10 @@
 
 수집 방법과 명령은 [Mirobot_data/README.md](../README.md), 정렬 기준은 [docs/W10/HDF5_ALIGNMENT.md](../../docs/W10/HDF5_ALIGNMENT.md)에 있다.
 
+정책 실행 영상과 로그는 이 폴더 아래 `I1/I1.mp4`, `I2/I2.mp4`, ...에 저장한다.
+`I` 폴더는 모델 실행 결과이며, 아래 `L01`–`L30` 학습 시연과 별도다.
+최초 설치와 재연결, 매 실험의 초기 위치 준비·자동 녹화는 [DEPLOY_MIROBOT.md](../../docs/W10/DEPLOY_MIROBOT.md)를 따른다.
+
 ## 한눈에
 
 | 항목 | 내용 |

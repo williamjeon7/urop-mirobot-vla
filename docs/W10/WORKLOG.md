@@ -11,6 +11,7 @@
 | [DATA_CHECK.md](DATA_CHECK.md) | 녹화 → Cosmos 학습 데이터 점검, 새 녹화 때 다시 돌리는 명령 |
 | [TRAINING.md](TRAINING.md) | 이 데이터로 학습하고 스텝별·색별로 비교하는 순서 |
 | [TRAINING_RESULT.md](TRAINING_RESULT.md) | 시연 90개·4,000 update 파인튜닝의 완료 근거·실행 조건·저장 산출물 |
+| [DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md) | OASYS USB 직결 또는 Windows 로봇 노트북·서버 연결 실행 절차 |
 
 ---
 
@@ -76,3 +77,39 @@
 - **한 것** — 마지막 학습 로그, 네 체크포인트의 파일·메타데이터, latest 포인터, 해당 프로세스 종료와 GPU 메모리 반환 확인
 - **결과** — 11/05 20:36:58 KST에 4,000 update 정상 완료. 마지막 배치 loss 0.0549. 오프라인 GPU 추론·실물 성공률은 미측정
 - **문서** — [TRAINING_RESULT.md](TRAINING_RESULT.md)
+
+## 11/06 9. OASYS 한 대에서 비밀번호 없이 로컬 실행 준비
+
+- **왜** — Windows 명령을 OASYS Bash에서 실행한 문제를 해결하고, 사용자 선택에 따라 Linux 한 대에서 USB 브리지와 모델을 실행하기 위해
+- **한 것** — Python 3.10 `urop/`에 USB 패키지 설치. `setup_mirobot_local.sh`, `run_mirobot_local.sh`와 실행기 추가: USB 포트 선택·권한 확인, 로컬 브리지 자동 시작·종료, 기본 미리보기, 명시적 `--execute`
+- **결과** — 저장 관측으로 체크포인트 687개 키 로드·추론 1.40초·명령 4개 미리보기 완료. 관련 테스트 30개·subtest 14개 통과. 서버에서 로봇 포트·D405 모두 0개로 감지되어 실시간 실행과 실물 동작은 미확인
+- **근거** — `logs/mirobot_local_smoke_20261106_HiTbdt.log`, `cosmos-policy/W10/evaluations/real/20261106_162305_405771_red_offline_smoke/`
+- **문서** — [DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md) 0절
+
+## 11/06 10. 추론 구간 자동 녹화·I 번호 저장·실행 전 초기화
+
+- **왜** — 사용자 요청: 추론 시작·종료에 맞춰 녹화하고 W10의 I1·I2 순서로 저장, 실제 동작 전에 초기 위치와 그리퍼 열림 준비
+- **한 것** — 카메라 연속 MP4 기록과 시작/종료 API, 모델 추론 구간에 연결, `W10/I<n>/I<n>.mp4` 자동 번호, `--execute`의 호밍→S40 열기→초기 위치 도착 확인 추가. 실행 명령은 DEPLOY_MIROBOT 0절에 정리
+- **결과** — 임시 I1에서 기존 원본 프레임을 공급하며 실제 모델 추론(1.39초)·명령 4개 미리보기·MP4 39프레임 디코딩 확인. 임시 파일 전부 삭제, 실제 I1 번호 미사용. USB 장치 미연결로 실물 초기화·실시간 촬영은 미확인
+- **문서** — [DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md) 0절
+
+## 11/06 11. Windows USB를 현재 VS Code 원격 Bash에서 제어
+
+- **왜** — USB는 Windows 노트북에 꽂혀 있고 실행 터미널은 원격 OASYS인 실제 배치를 확인. 서버 USB 직결 방식으로는 장치를 찾을 수 없었다
+- **한 것** — Windows 연결 프로그램(키 인증만 사용, 브리지·역터널 자동 시작), 서버의 원격 브리지 자동 선택, 원격 호밍·초기 위치 준비, I 번호별 녹화 및 서버로 영상·타임스탬프 다운로드 추가. 새 ZIP 생성
+- **결과** — 기존 프레임을 카메라 입력으로 공급한 임시 원격 브리지에서 실제 모델 추론·명령 4개 미리보기·MP4 41프레임의 서버 전송/재생 확인 후 테스트 파일 삭제. 실제 I1 미사용. Windows 실행 및 실제 USB 연결은 사용자가 연결 프로그램을 켜야 확인 가능
+- **문서** — [DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md) 0절
+
+## 11/06 12. Windows 한 번 실행으로 설치·키 등록·연결 자동화
+
+- **왜** — Windows 파일 다운로드·공개키 수동 전달 없이 연결하도록 사용자 요청
+- **한 것** — `connect_windows.sh`와 localhost 임시 연결 서버, Windows 자동 설치 bootstrap 추가. ZIP SHA256·서버 호스트 키 고정, 전용 공개키 자동 등록(기존 키 보존·포트 전달만 허용), Python·패키지 설치와 브리지 연결. VS Code 자동 포트 전달 설정
+- **결과** — 테스트 61개·subtest 14개 통과. 실제 localhost 8766에서 bootstrap·ZIP 체크섬 검증 완료. Windows 실행은 연결 대기 중이며, 로봇 이동·영상 저장·I 폴더 생성은 하지 않음
+- **문서** — [DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md) 0절의 권장 연결 절차
+
+## 11/06 13. 설치·재연결·실험 순서로 실행 문서 정리
+
+- **왜** — 처음 사용하는 사람이 혼자 따라 할 수 있도록 최초 1회 작업과 반복할 작업을 구분해 달라는 요청
+- **한 것** — humanizer 스킬 적용. 최초 설치, 연결을 다시 여는 방법, 매 실험 명령을 구분하고 터미널·녹화 여부를 표시. 수동 대안은 줄이고 다른 연결 방식은 참고로 이동
+- **결과** — 문서 링크와 Bash 문법 확인. Windows 녹화에 필요한 `tzdata`와 시간대 누락 시 조기 오류 처리를 보완해 관련 테스트 62개·subtest 14개 통과. 실제 Windows 녹화 재확인은 남아 있음
+- **문서** — [DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md)

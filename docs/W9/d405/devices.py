@@ -28,6 +28,8 @@ def inspect_devices():
             report['realsense_cameras'].append(row)
     except ImportError:
         report['errors'].append('pyrealsense2 is missing; use the W9 capture environment.')
+    except (RuntimeError, OSError) as error:
+        report['errors'].append(f'RealSense device lookup failed: {error}')
     return report
 
 
@@ -44,7 +46,7 @@ def main():
     report['camera_found'] = any(c['serial_number'] == args.camera_serial for c in report['realsense_cameras'])
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if args.check and not (report['robot_found'] and report['camera_found']):
-        parser.exit(1, 'Run this on the Windows capture PC with both USB devices connected.\n')
+        parser.exit(1, 'Connect both USB devices to this PC and select its robot serial port.\n')
 
 
 if __name__ == '__main__':

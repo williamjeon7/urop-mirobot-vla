@@ -11,6 +11,7 @@ REPO = Path(__file__).resolve().parents[1]
 def package(output: Path) -> int:
     files = {REPO / name for name in (
         "README.md", "pyproject.toml", "requirements/policy_robot.txt",
+        "start_mirobot_windows.cmd", "start_mirobot_windows.ps1", "start_mirobot_windows.sh",
         "trajectories/policy_start.gcode", "docs/W10/DEPLOY_MIROBOT.md",
         "Mirobot_data/W10/L01_red/color_profile.json",
         "Mirobot_data/W10/L01_red/reference.jsonl", "Mirobot_data/W10/L01_red/source.gcode",

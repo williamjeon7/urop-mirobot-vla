@@ -1,4 +1,13 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python.defaultInterpreterPath": "~/miniforge3/envs/urop/bin/python"
+    "python.defaultInterpreterPath": "~/miniforge3/envs/urop/bin/python",
+    "remote.autoForwardPorts": true,
+    "remote.autoForwardPortsSource": "process",
+    "remote.portsAttributes": {
+        "8766": {
+            "label": "Mirobot Windows setup",
+            "onAutoForward": "notify",
+            "requireLocalPort": true
+        }
+    }
 }

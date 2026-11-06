@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import hmac
+import io
 import json
 import math
 import os
@@ -24,6 +25,7 @@ import time
 
 from tools.probe_mirobot import fields, find_field, is_error, is_ok, is_status, state_of
 from tools.run_gcode import ANGLE_WARN_DEG, REACH_WARN_MM, Z_FLOOR_MM
+from common.workspace import MIROBOT_CARTESIAN_LIMITS_MM
 
 PROTOCOL = "mirobot-policy/1"
 DEFAULT_POLICY_PORT = 8891
@@ -50,13 +52,18 @@ def cartesian_status(line: str) -> dict:
 
 @dataclass(frozen=True)
 class CommandLimits:
-    z_floor_mm: float = Z_FLOOR_MM
+    z_floor_mm: float = MIROBOT_CARTESIAN_LIMITS_MM[2][0]
     max_step_mm: float = 25.0
     max_rotation_deg: float = 20.0
     open_s: float = 40.0
     closed_s: float = 60.0
     max_radius_mm: float = REACH_WARN_MM
     max_angle_deg: float = ANGLE_WARN_DEG
+    x_min_mm: float = MIROBOT_CARTESIAN_LIMITS_MM[0][0]
+    x_max_mm: float = MIROBOT_CARTESIAN_LIMITS_MM[0][1]
+    y_min_mm: float = MIROBOT_CARTESIAN_LIMITS_MM[1][0]
+    y_max_mm: float = MIROBOT_CARTESIAN_LIMITS_MM[1][1]
+    z_max_mm: float = MIROBOT_CARTESIAN_LIMITS_MM[2][1]
 
     def validate(self, command: str, current: list[float]) -> tuple[str, list[float] | None, float | None]:
         if not isinstance(command, str) or "\n" in command or "\r" in command:
@@ -69,8 +76,13 @@ class CommandLimits:
             target = [float(v) for v in match.groups()]
             if not all(math.isfinite(v) for v in target):
                 raise ValueError("Non-finite Cartesian command")
-            if target[2] < self.z_floor_mm:
-                raise ValueError(f"Flange Z is below {self.z_floor_mm:g} mm")
+            for axis, value, low, high in (
+                ("X", target[0], self.x_min_mm, self.x_max_mm),
+                ("Y", target[1], self.y_min_mm, self.y_max_mm),
+                ("Z", target[2], self.z_floor_mm, self.z_max_mm),
+            ):
+                if not low <= value <= high:
+                    raise ValueError(f"Target {axis} {value:.2f} mm outside measured limits [{low:.2f}, {high:.2f}]")
             if math.hypot(*target[:2]) > self.max_radius_mm:
                 raise ValueError(f"Target is outside horizontal radius {self.max_radius_mm:g} mm")
             if max(abs(v) for v in target[3:]) > self.max_angle_deg:
@@ -115,7 +127,8 @@ def lock_camera_options(sensors, rs, color_profile):
 class D405Camera:
     """One capture thread; bounded waits and host-receipt timestamps."""
 
-    def __init__(self, serial_number=None, width=640, height=480, fps=30, color_profile=DEFAULT_COLOR_PROFILE):
+    def __init__(self, serial_number=None, width=640, height=480, fps=30, color_profile=DEFAULT_COLOR_PROFILE,
+                 video_path=None, video_dir=None):
         from docs.W9.d405.color_calibration import load_profile
         self.profile = load_profile(color_profile)
         self.requested_serial = serial_number or self.profile["camera_serial"]
@@ -129,6 +142,10 @@ class D405Camera:
         self.stop_event = threading.Event()
         self.error = "Camera starting"
         self.thread = None
+        from robot.policy_video import PolicyVideo
+        self.video = PolicyVideo(video_path, width, height, fps) if video_path is not None else None
+        self.video_dir = Path(video_dir) if video_dir is not None else None
+        self.recording_lock = threading.Lock()
 
     def start(self):
         self.thread = threading.Thread(target=self._run, name="d405-policy", daemon=True)
@@ -172,7 +189,10 @@ class D405Camera:
                 if count <= 15:
                     continue  # let the camera's exposure settle before supplying observations
                 rgb = np.asanyarray(frame.get_data())
-                ok, encoded = cv2.imencode(".png", cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+                bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+                if self.video is not None:
+                    self.video.write(bgr, received, int(frame.get_frame_number()), float(frame.get_timestamp()))
+                ok, encoded = cv2.imencode(".png", bgr)
                 if not ok:
                     raise RuntimeError("Could not encode D405 RGB frame")
                 item = {"frame_monotonic_s": received, "frame_number": int(frame.get_frame_number()),
@@ -186,11 +206,15 @@ class D405Camera:
                 self.error = str(exc)
                 self.condition.notify_all()
         finally:
-            if pipe is not None:
-                try:
-                    pipe.stop()
-                except RuntimeError:
-                    pass
+            try:
+                if self.video is not None:
+                    self.video.stop()
+            finally:
+                if pipe is not None:
+                    try:
+                        pipe.stop()
+                    except RuntimeError:
+                        pass
 
     def snapshot(self, state_monotonic_s: float, max_age_s=.5, max_skew_s=.15) -> dict:
         with self.condition:
@@ -208,6 +232,45 @@ class D405Camera:
         self.stop_event.set()
         if self.thread:
             self.thread.join(timeout=3)
+        if self.video is not None:
+            self.video.stop()
+
+    def start_recording(self, run_name=None):
+        from robot.policy_video import PolicyVideo
+        with self.recording_lock:
+            if self.video_dir is not None:
+                if not isinstance(run_name, str) or re.fullmatch(r"I[1-9][0-9]*", run_name) is None:
+                    raise ValueError("Recording name must be I1, I2, ...")
+                if self.video is not None and self.video.writer is not None:
+                    raise RuntimeError("A recording is already active")
+                path = self.video_dir / run_name / f"{run_name}.mp4"
+                self.video = PolicyVideo(path, self.metadata["width"], self.metadata["height"], self.metadata["fps"])
+            return self._start_recording()
+
+    def recording_names(self):
+        if self.video_dir is None or not self.video_dir.exists():
+            return []
+        return sorted(path.name for path in self.video_dir.iterdir()
+                      if re.fullmatch(r"I[1-9][0-9]*", path.name))
+
+    def _start_recording(self):
+        if self.video is None:
+            raise RuntimeError("Bridge recording is not configured; start with --video-out")
+        if self.error:
+            raise RuntimeError(self.error)
+        return self.video.start()
+
+    def stop_recording(self):
+        if self.video is None:
+            raise RuntimeError("Bridge recording is not configured; start with --video-out")
+        return self.video.stop()
+
+    def recording_file(self, name, kind):
+        if (self.video is None or self.video.path.stem != name or
+                self.video.writer is not None or not self.video.result):
+            raise RuntimeError("Requested recording is not finalized")
+        suffix = {"video": ".mp4", "frames": "_frames.jsonl", "metadata": "_video.json"}[kind]
+        return self.video.path.with_name(name + suffix)
 
 
 class RobotIO:
@@ -232,6 +295,40 @@ class RobotIO:
         self.gripper_start = -math.inf
         self.gripper_from = self._closure(initial_s)
         self.absolute_mode = False  # explicitly establish G90 before accepting any G0
+        self.preparations = OrderedDict()
+
+    def prepare(self, request_id):
+        from robot.policy_setup import prepare_with_probe
+        from tools.probe_mirobot import Probe
+        if not self.execute:
+            raise PermissionError("Bridge is read-only; preparation requires --execute")
+        if not isinstance(request_id, str) or not 1 <= len(request_id) <= 128:
+            raise ValueError("A preparation request_id is required")
+        with self.lock:
+            if request_id in self.preparations:
+                return self.preparations[request_id]
+            if self.fault:
+                raise RuntimeError(f"Restart bridge after checking the arm: {self.fault}")
+            probe = Probe.__new__(Probe)
+            probe.ser, probe.log_file = self.ser, io.StringIO()
+            try:
+                prepare_with_probe(probe)
+                self.pending = b""
+                self.gripper_s = 40.0
+                self.gripper_start = -math.inf
+                self.gripper_from = self._closure(40.0)
+                self.absolute_mode = True
+                result = dict(ok=True, prepared=True, request_id=request_id, **self._status(),
+                              events=[json.loads(line) for line in probe.log_file.getvalue().splitlines()])
+                self.preparations[request_id] = result
+                while len(self.preparations) > 32:
+                    self.preparations.popitem(last=False)
+                return result
+            except BaseException as error:
+                self.fault = str(error) or type(error).__name__
+                raise
+            finally:
+                probe.log_file.close()
 
     def _closure(self, value):
         return (value-self.limits.open_s)/(self.limits.closed_s-self.limits.open_s)
@@ -387,18 +484,30 @@ def make_handler(bridge, token=None):
                     self._json(HTTPStatus.OK, {"ok": not bridge.camera.error and not bridge.robot.fault,
                                "protocol": PROTOCOL, "execute_enabled": bridge.robot.execute,
                                "camera": bridge.camera.metadata, "camera_error": bridge.camera.error,
+                               "serial_port": getattr(bridge.robot.ser, "port", None),
                                "fault": bridge.robot.fault})
                 elif self.path == "/observation":
                     self._json(HTTPStatus.OK, bridge.observation())
+                elif self.path == "/recording/names":
+                    self._json(HTTPStatus.OK, {"ok": True, "names": bridge.camera.recording_names()})
+                elif (match := re.fullmatch(r"/recording/(I[1-9][0-9]*)/(video|frames|metadata)", self.path)):
+                    path = bridge.camera.recording_file(*match.groups())
+                    with path.open("rb") as source:
+                        self.send_response(HTTPStatus.OK)
+                        self.send_header("Content-Type", "application/octet-stream")
+                        self.send_header("Content-Length", str(path.stat().st_size))
+                        self.end_headers()
+                        while chunk := source.read(65536):
+                            self.wfile.write(chunk)
                 else:
                     self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "Unknown endpoint"})
-            except (ValueError, RuntimeError, TimeoutError) as exc:
+            except (ValueError, RuntimeError, TimeoutError, OSError) as exc:
                 self._json(HTTPStatus.SERVICE_UNAVAILABLE, {"ok": False, "error": str(exc)})
 
         def do_POST(self):  # noqa: N802
             if not self._authorized():
                 return
-            if self.path != "/command":
+            if self.path not in ("/command", "/prepare", "/recording/start", "/recording/stop"):
                 self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "Unknown endpoint"})
                 return
             try:
@@ -408,7 +517,14 @@ def make_handler(bridge, token=None):
                 data = json.loads(self.rfile.read(length))
                 if not isinstance(data, dict):
                     raise ValueError("Request body must be a JSON object")
-                result = bridge.robot.command(data.get("command"), data.get("request_id"))
+                if self.path == "/recording/start":
+                    result = {"ok": True, **bridge.camera.start_recording(data.get("run_name"))}
+                elif self.path == "/recording/stop":
+                    result = {"ok": True, **bridge.camera.stop_recording()}
+                elif self.path == "/prepare":
+                    result = bridge.robot.prepare(data.get("request_id"))
+                else:
+                    result = bridge.robot.command(data.get("command"), data.get("request_id"))
                 self._json(HTTPStatus.OK, result)
             except PermissionError as exc:
                 self._json(HTTPStatus.FORBIDDEN, {"ok": False, "error": str(exc)})
@@ -422,11 +538,16 @@ def make_handler(bridge, token=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--serial-port", "--port", dest="serial_port", required=True, help="Robot COM port, e.g. COM3")
+    parser.add_argument("--serial-port", "--port", dest="serial_port", required=True,
+                        help="Robot serial port, e.g. COM3 (Windows) or /dev/ttyUSB0 (Linux)")
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--listen-host", default="127.0.0.1")
     parser.add_argument("--http-port", type=int, default=DEFAULT_POLICY_PORT)
     parser.add_argument("--camera-serial")
+    video = parser.add_mutually_exclusive_group()
+    video.add_argument("--video-out", type=Path,
+                        help="MP4 path. Recording starts only when inference requests /recording/start")
+    video.add_argument("--video-dir", type=Path, help="Directory for repeated remote I1, I2, ... recordings")
     parser.add_argument("--color-profile", type=Path, default=DEFAULT_COLOR_PROFILE,
                         help="Training colour profile: fixes camera identity, stream profile and sensor controls; RGB stays uncorrected")
     parser.add_argument("--width", type=int, default=640)
@@ -436,7 +557,7 @@ def main():
     parser.add_argument("--command-timeout", type=float, default=30)
     parser.add_argument("--max-step-mm", type=float, default=25)
     parser.add_argument("--max-rotation-deg", type=float, default=20)
-    parser.add_argument("--z-floor", type=float, default=Z_FLOOR_MM)
+    parser.add_argument("--z-floor", type=float, default=MIROBOT_CARTESIAN_LIMITS_MM[2][0])
     parser.add_argument("--max-radius-mm", type=float, default=REACH_WARN_MM)
     parser.add_argument("--max-angle-deg", type=float, default=ANGLE_WARN_DEG)
     parser.add_argument("--max-frame-age", type=float, default=.5)
@@ -453,7 +574,8 @@ def main():
         import serial
     except ImportError as exc:
         raise SystemExit("Install robot requirements and pyrealsense2 before starting the policy bridge") from exc
-    camera = D405Camera(args.camera_serial, args.width, args.height, args.fps, args.color_profile)
+    camera = D405Camera(args.camera_serial, args.width, args.height, args.fps, args.color_profile,
+                        video_path=args.video_out, video_dir=args.video_dir)
     server = None
     try:
         camera.start()

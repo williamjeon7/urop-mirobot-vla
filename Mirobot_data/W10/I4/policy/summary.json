@@ -1,0 +1,10 @@
+{
+  "status": "failed",
+  "mode": "execute",
+  "instruction": "pick up the red block on the table",
+  "steps": 129,
+  "queries": 129,
+  "checkpoint": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+  "directory": "~/UROP/Mirobot_data/W10/I4/policy",
+  "error": "Visual pickup was not confirmed before --pickup-timeout"
+}
