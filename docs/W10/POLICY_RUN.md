@@ -6,7 +6,7 @@
 **2026-11-06 실행 도구 추가:** 현재 학습된 `follow` 모델은 아래 B 방식의 가상 Panda 변환기로 연결했다.
 노트북 준비부터 실제 실행까지는 **[DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md)**를 따른다. 아래의 결정 대기·루프 미구현 기록은 이전 조사 시점의 상태다.
 
-계획: [../meetings/2026-11-2.md](../meetings/2026-11-2.md) action plan 3번. 학습 쪽 배경: [../W9/FINETUNE.md](../W9/FINETUNE.md) 7절(평가 경로 — 있는 것·빠진 것).
+계획: [../meetings/2026-11-02.md](../meetings/2026-11-02.md) action plan 3번. 학습 쪽 배경: [../W9/FINETUNE.md](../W9/FINETUNE.md) 7절(평가 경로 — 있는 것·빠진 것).
 
 현재 90개 시연을 학습하고 실제 로봇에서 평가하는 논문 실험 절 형식의 계획과 실행 명령은 [MIROBOT_EXPERIMENT.md](MIROBOT_EXPERIMENT.md)에 정리했다. 이 문서의 수치 검증은 아래에 적은 11/03의 옛 녹화를 대상으로 한 결과다.
 
