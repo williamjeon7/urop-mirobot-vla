@@ -11,8 +11,9 @@ NVIDIA Cosmos Policy 를 Mirobot 시연 데이터로 파인튜닝하고 실물�
   - W2–W6 — LIBERO 시뮬레이션(Panda)과 Mirobot 의 관측·액션 구조 비교, 좌표·회전 변환과 왕복 검증, 세 색 블록 장면
   - W7–W9 — D405 카메라 선정과 색 보정, 0.05초 간격 시간 동기화, Cosmos 가 읽는 LIBERO 형식 HDF5, 1차 파인튜닝(Panda 90 + Mirobot 10)
   - W10 — Mirobot 실물 시연 90개(배치 30개 × 빨강·초록·파랑) 녹화, Cosmos Policy 파인튜닝 4,000 update 완료, 학습한 정책을 실물 Mirobot 에서 실행하는 경로 확인. 실물 성공률 측정은 다음 단계
-- **읽는 순서** — 문서 색인 [docs/README.md](docs/README.md) → 주차별 작업 기록 `docs/W<주차>/WORKLOG.md`(W9 부터) → 실물 실행 절차 [docs/W10/DEPLOY_MIROBOT.md](docs/W10/DEPLOY_MIROBOT.md). 방향은 매주 미팅에서 정해졌다 ([docs/meetings/](docs/meetings/))
+- **읽는 순서** — 문서 색인 [docs/README.md](docs/README.md) → 주차별 작업 기록 `docs/W<주차>/WORKLOG.md`(W9 부터) → 실물 실행 절차 [docs/W10/DEPLOY_MIROBOT.md](docs/W10/DEPLOY_MIROBOT.md). 매주 미팅에서 교수님께 방향에 대한 의견을 듣고, 그 주의 action plan 은 석환·민수가 짰다 ([docs/meetings/](docs/meetings/))
 - **공개판** — 공개 저장소 `urop-mirobot-vla` 는 작업 저장소에서 일주일마다 내보낸 것이다. 원본 녹화는 형식을 보여 주는 작은 텍스트(json·jsonl·G-code)만 들어 있고, 사진·영상까지 든 표본은 `Mirobot_data/W10/L01_red`·`L01_green`·`L01_blue` 세 개다. 서버 주소 같은 접속 정보는 `<SERVER_IP>` 같은 자리표시로 바뀌어 있다
+- **출처** — 초기 Mirobot 제어 코드(9/8 첫 커밋의 `mirobot_control/`)는 연구를 시작할 때 교수님이 참고하라고 주신 코드다 (공개 허락). LIBERO 참고 코드는 원래 MIT 라이선스와 함께 둔다 (`docs/W5/custom_task_validation/reference_code/`)
 - **라이선스** — MIT ([LICENSE](LICENSE))
 
 ## 구조
