@@ -168,8 +168,20 @@ AI 도구와 함께 작업한 것을 숨기지 않는다. 김민수는 커밋을
 결정 (11/07 사용자): 서버 IP·포트·계정을 코드에 적지 않고, git 에 안 올라가는 로컬 설정 파일(`.gitignore` 의 `*.local.json`)에서 읽게 고친다.
 자리표시만 든 예시 파일을 커밋한다. 옛 버전은 3절 ① 대로 자리표시로 바꾼다.
 
-- 고친 뒤 로봇 연결 시험은 사용자가 한다 (최종 검토 때 순서 제공)
-- 고친 파일과 방법은 작업 뒤 이 절에 적는다
+고친 것 (11/07):
+
+| 파일 | 바뀐 것 |
+| --- | --- |
+| `config/connection.example.json` (새로) | 자리표시만 든 예시. 커밋한다 |
+| `config/connection.local.json` (새로, Git 제외) | 이 서버의 실제 값. 예전 코드의 기본값과 같은지 확인했다 |
+| `tools/pair_windows.py` | 기본값을 지우고 위 파일을 읽는다 (`--connection` 으로 다른 파일 지정). 파일이 없거나 값이 비면 바로 멈춘다 |
+| `tools/windows_pair_bootstrap.ps1` | 설치할 때 노트북의 `mirobot-policy\config\connection.local.json` 에 같은 값을 써 둔다 |
+| `start_mirobot_windows.ps1` | 기본값을 지우고, 인자가 없으면 위 파일에서 읽는다 |
+| `tests/test_windows_pairing.py` | 기존 테스트에 값을 명시하고 2개 추가 (설정 파일 읽기, 예시 파일은 거부) — 15개 통과 |
+| [DEPLOY_MIROBOT.md](DEPLOY_MIROBOT.md) | 1-1절에 설정 파일 단계, 5절·기본 설정 표에 한 줄씩 |
+
+- 설명 속 예시 명령(`robot/camera_bridge.py`, `server/replay_with_*.py` 의 LAN 주소)과 문서 속 값은 코드가 쓰는 값이 아니라서 비공개에는 그대로 두고, 공개판에서 자리표시로 바꾼다
+- 남은 확인: Windows 쪽 PowerShell 은 서버에서 실행해 볼 수 없다. 노트북에서 1절 설치를 한 번 다시 한 뒤, 연결 프로그램을 인자 없이 다시 켜서(2-1절) 연결되는지 사용자가 확인한다 (최종 검토 때 순서 제공)
 
 ## 5. 새 공개 저장소 (D8) — `urop-mirobot-vla`
 

@@ -1,9 +1,9 @@
 # Keep USB on Windows; control inference from the existing VS Code OASYS Bash.
 param(
     [string]$SerialPort = "",
-    [string]$ServerAddress = "<SERVER_IP>",
-    [int]$SshPort = <SSH_PORT>,
-    [string]$ServerUser = "<USER>",
+    [string]$ServerAddress = "",
+    [int]$SshPort = 0,
+    [string]$ServerUser = "",
     [switch]$Stop
 )
 $ErrorActionPreference = "Stop"
@@ -50,6 +50,20 @@ Remove-Item -LiteralPath $stopFile -Force -ErrorAction SilentlyContinue
 $bridgeProcess = $null
 $tunnelProcess = $null
 try {
+    if (!$ServerAddress -or !$ServerUser -or $SshPort -le 0) {
+        # The OASYS SSH address/user/port stay out of Git; the one-time pairing writes this file.
+        $connectionFile = Join-Path $repo "config\connection.local.json"
+        if (!(Test-Path $connectionFile)) {
+            throw "Missing $connectionFile. Run the one-time pairing again (OASYS: bash tools/connect_windows.sh) or pass -ServerAddress, -SshPort and -ServerUser."
+        }
+        $connection = Get-Content -LiteralPath $connectionFile -Raw | ConvertFrom-Json
+        if (!$ServerAddress) { $ServerAddress = [string]$connection.server_address }
+        if (!$ServerUser) { $ServerUser = [string]$connection.server_user }
+        if ($SshPort -le 0) { $SshPort = [int]$connection.ssh_port }
+    }
+    if ($ServerAddress -notmatch '^[A-Za-z0-9_.-]+$' -or $ServerUser -notmatch '^[A-Za-z0-9_.-]+$' -or $SshPort -lt 1 -or $SshPort -gt 65535) {
+        throw "Invalid server address, user or SSH port; check config\connection.local.json."
+    }
     $key = Join-Path $HOME ".ssh\mirobot_oasys"
     $sshOptions = @("-p", "$SshPort", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=8")
     $knownHosts = Join-Path $HOME ".ssh\mirobot_oasys_known_hosts"

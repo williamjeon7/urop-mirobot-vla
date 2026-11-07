@@ -2,7 +2,8 @@
 
 The one-time bootstrap downloads the current bundle and registers one dedicated
 public key. No passwords/private keys are transferred and no robot commands or
-recording requests are sent by this service.
+recording requests are sent by this service. The OASYS SSH address, user and
+port come from config/connection.local.json, which stays out of Git.
 """
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ import time
 REPO = Path(__file__).resolve().parents[1]
 KEY_OPTIONS = ('restrict,port-forwarding,permitlisten="127.0.0.1:8891",'
                'permitopen="127.0.0.1:8891",command="/bin/true"')
+CONNECTION = REPO / "config/connection.local.json"
 
 
 def canonical_key(value):
@@ -76,15 +78,31 @@ def authorize_key(path, key):
                 temporary.unlink(missing_ok=True)
 
 
+def load_connection(path=CONNECTION):
+    """Read the OASYS SSH address/user/port kept out of Git (*.local.json)."""
+    path = Path(path)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return dict(server_address=str(data["server_address"]), server_user=str(data["server_user"]),
+                    ssh_port=int(data["ssh_port"]))
+    except FileNotFoundError:
+        raise SystemExit(f"{path} is missing: copy config/connection.example.json there and fill in "
+                         "the OASYS address, user and SSH port.") from None
+    except (KeyError, TypeError, ValueError) as error:
+        raise SystemExit(f"{path} needs server_address, server_user and ssh_port ({error}).") from None
+
+
 class Pairing:
-    def __init__(self, archive, authorized_keys, *, host_key, server_address="<SERVER_IP>",
-                 server_user="<USER>", ssh_port=<SSH_PORT>, ttl=900):
+    def __init__(self, archive, authorized_keys, *, host_key, server_address, server_user, ssh_port,
+                 ttl=900):
         self.archive = Path(archive).read_bytes()
         self.archive_hash = hashlib.sha256(self.archive).hexdigest()
         self.authorized_keys = Path(authorized_keys)
         self.host_key = canonical_key(host_key)
         if not re.fullmatch(r"[A-Za-z0-9_.-]+", server_address) or not re.fullmatch(r"[A-Za-z0-9_.-]+", server_user):
-            raise ValueError("Invalid SSH address/user")
+            raise ValueError("Invalid SSH address/user (check config/connection.local.json)")
+        if not isinstance(ssh_port, int) or not 1 <= ssh_port <= 65535:
+            raise ValueError("Invalid SSH port (check config/connection.local.json)")
         self.address, self.user, self.ssh_port = server_address, server_user, ssh_port
         self.token = secrets.token_urlsafe(32)
         self.expires = time.monotonic() + ttl
@@ -191,14 +209,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8766)
     parser.add_argument("--ttl", type=int, default=900)
+    parser.add_argument("--connection", type=Path, default=CONNECTION,
+                        help="JSON with server_address, server_user, ssh_port (kept out of Git)")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535 or not 60 <= args.ttl <= 3600:
         parser.error("Valid port and --ttl 60..3600 required")
+    connection = load_connection(args.connection)
     from tools.package_policy_robot import package
     archive = REPO / "dist/mirobot-policy-robot.zip"
     package(archive)
     pairing = Pairing(archive, Path.home()/".ssh/authorized_keys",
-                      host_key=Path("/etc/ssh/ssh_host_ed25519_key.pub").read_text().strip(), ttl=args.ttl)
+                      host_key=Path("/etc/ssh/ssh_host_ed25519_key.pub").read_text().strip(), ttl=args.ttl,
+                      **connection)
     server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(pairing))
     server.daemon_threads = True
     command = f"irm 'http://127.0.0.1:{args.port}/{pairing.token}/bootstrap.ps1' | iex"
