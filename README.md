@@ -1,10 +1,25 @@
 # UROP — WLKATA Mirobot VLA 파이프라인
 
+## 소개
+
+손목 카메라(RealSense D405) 영상과 지시문 한 줄("pick up the red block on the table")만 보고
+6축 소형 로봇팔 WLKATA Mirobot 이 블록을 집도록, 기존 VLA(Vision-Language-Action) 정책인
+NVIDIA Cosmos Policy 를 Mirobot 시연 데이터로 파인튜닝하고 실물에서 실행하는 학부 연구(UROP) 프로젝트다.
+
+- **왜** — 큰 로봇(Franka Panda) 데이터로 학습된 VLA 를 값싼 소형 로봇과 실제 카메라 영상에 옮길 수 있는지 본다. 최소 목표는 실물에서 영상 입력만으로 task 하나라도 달성하는 것이다
+- **지금까지**
+  - W2–W6 — LIBERO 시뮬레이션(Panda)과 Mirobot 의 관측·액션 구조 비교, 좌표·회전 변환과 왕복 검증, 세 색 블록 장면
+  - W7–W9 — D405 카메라 선정과 색 보정, 0.05초 간격 시간 동기화, Cosmos 가 읽는 LIBERO 형식 HDF5, 1차 파인튜닝(Panda 90 + Mirobot 10)
+  - W10 — Mirobot 실물 시연 90개(배치 30개 × 빨강·초록·파랑) 녹화, Cosmos Policy 파인튜닝 4,000 update 완료, 학습한 정책을 실물 Mirobot 에서 실행하는 경로 확인. 실물 성공률 측정은 다음 단계
+- **읽는 순서** — 문서 색인 [docs/README.md](docs/README.md) → 주차별 작업 기록 `docs/W<주차>/WORKLOG.md`(W9 부터) → 실물 실행 절차 [docs/W10/DEPLOY_MIROBOT.md](docs/W10/DEPLOY_MIROBOT.md). 방향은 매주 미팅에서 정해졌다 ([docs/meetings/](docs/meetings/))
+- **공개판** — 공개 저장소 `urop-mirobot-vla` 는 작업 저장소에서 일주일마다 내보낸 것이다. 원본 녹화는 형식을 보여 주는 작은 텍스트(json·jsonl·G-code)만 들어 있고, 사진·영상까지 든 표본은 `Mirobot_data/W10/L01_red`·`L01_green`·`L01_blue` 세 개다. 서버 주소 같은 접속 정보는 `<SERVER_IP>` 같은 자리표시로 바뀌어 있다
+- **라이선스** — MIT ([LICENSE](LICENSE))
+
+## 구조
+
 6축 Mirobot 을 대상으로 하는 VLA(Vision-Language-Action) 파이프라인. 코드가 두 환경에
 나뉘어 실행되지만 **관측/액션 스키마와 통신 규약은 반드시 동일해야 해서** 한 repo 로
 관리한다.
-
-## 구조
 
 ```
 common/   양쪽이 import 하는 공용 정의 — 여기서만 고친다
@@ -177,3 +192,10 @@ python -m server.replay_network --demo 0 --max-steps 5  # 서버 (드라이런)
 - 모델 체크포인트, `data/`, `logs/`, `wandb/`, `outputs/` 는 버전관리 대상이 아니다.
 - `cosmos-policy/` 와 `RosForMirobot-master/` 도 버전관리에서 빠져 있다.
   새 환경에서는 `docs/VENDORED.md` 절차대로 직접 clone 해야 한다.
+
+## 연락처
+
+| 이름 | 메일 |
+| --- | --- |
+| 전석환 | williamjeon77@naver.com (개인), williamjeon7@kookmin.ac.kr (학교) |
+| 김민수 | |
