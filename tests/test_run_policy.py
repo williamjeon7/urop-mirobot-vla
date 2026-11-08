@@ -181,12 +181,12 @@ class RunPolicyTest(unittest.TestCase):
     def test_validate_goal_enforces_measured_axis_bounds(self):
         measured = [200.0, 0.0, 230.0, 0.0, 0.0, 0.0]
         args = self.args(max_step_mm=200.0)
-        for target in ([144.0, 0.0, 230.0, 0.0, 0.0, 0.0],
-                   [200.0, 176.0, 230.0, 0.0, 0.0, 0.0],
-                       [200.0, 0.0, 276.0, 0.0, 0.0, 0.0],
+        for target in ([139.0, 0.0, 230.0, 0.0, 0.0, 0.0],
+                       [200.0, 181.0, 230.0, 0.0, 0.0, 0.0],
+                       [200.0, 0.0, 281.0, 0.0, 0.0, 0.0],
                        [200.0, 0.0, 65.9, 0.0, 0.0, 0.0]):
-                with self.subTest(target=target[:3]), self.assertRaisesRegex(
-                    ValueError, "outside measured limits|below floor"):
+            with self.subTest(target=target[:3]), self.assertRaisesRegex(
+                ValueError, "outside reach|below floor"):
                 run_policy.validate_goal(target, measured, args)
 
     def test_until_pickup_exits_when_detector_confirms(self):
@@ -204,12 +204,46 @@ class RunPolicyTest(unittest.TestCase):
         self.assertEqual(self.summary()["steps"], 1)
         self.assertEqual(len([command for command in self.bridge.calls if command.startswith("G0 ")]), 1)
 
+    def test_targets_slightly_below_floor_are_clamped_not_stopped(self):
+        args = self.args(max_step_mm=24.0)
+        goal, clamped = run_policy.clamp_goal((190.1, -82.3, 65.33, 0, 0, 0), args)  # I1blue's stop
+        self.assertEqual(goal[2], 66.0)
+        self.assertAlmostEqual(clamped["Z"], -0.67)
+        goal, clamped = run_policy.clamp_goal((200, 0, 20.0, 0, 0, 0), args)  # far below: still clamped
+        self.assertEqual(goal[2], 66.0)
+        goal, _ = run_policy.clamp_goal((300, 0, 100, 0, 0, 0), args)
+        self.assertEqual(goal[0], 270.0)
+        goal, clamped = run_policy.clamp_goal((200, 0, 100, 0, 0, 40), args)  # angle past 30
+        self.assertLess(goal[5], 30.0)
+        measured = (200, 0, 100, 0, 0, 0)
+        goal, clamped = run_policy.clamp_goal((200, 0, 160, 0, 0, 0), args, measured)  # 60 mm jump
+        self.assertAlmostEqual(goal[2], 124.0)
+        run_policy.validate_goal(goal, measured, args)  # everything clamped passes the final check
+        self.assertEqual(run_policy.clamp_goal((200, 0, 100, 0, 0, 0), args)[1], {})
+
+    def test_lifting_another_colour_stops_as_failure(self):
+        class GreenOnly:
+            def __init__(self, color):
+                self.color = color
+
+            def update(self, *_):
+                return dict(color="green", color_area_px=9000, lifted_mm=20) if self.color == "green" else None
+
+        with patch.object(run_policy, "VisualPickupDetector", GreenOnly):
+            self.run_with_fakes(self.args(execute=True, until_pickup=True, max_steps=None,
+                                          open_loop_steps=16))
+        self.assertEqual(self.summary()["status"], "wrong_color_pickup")
+        self.assertEqual(self.summary()["termination_reason"], "wrong_color_pickup")
+        self.assertEqual(self.summary()["wrong_pickup"]["color"], "green")
+        self.assertEqual(len([command for command in self.bridge.calls if command.startswith("G0 ")]), 1)
+
     def test_visual_pickup_detector_requires_closed_lifted_stable_target_color(self):
         import importlib
 
         numpy = importlib.import_module("numpy")
         image = numpy.full((480, 640, 3), 255, dtype=numpy.uint8)
-        image[200:300, 250:350] = (220, 20, 20)
+        image[150:350, 220:420] = (220, 20, 20)  # held block: large and close to the camera
+        image[150:350, 160:220] = (40, 40, 40)   # dark finger touching it
         detector = run_policy.VisualPickupDetector("red")
         self.assertIsNone(detector.update(image, [200, 0, 100, 0, 0, 0], 0.0))
         self.assertIsNone(detector.update(image, [200, 0, 100, 0, 0, 0], 1.0))
@@ -226,6 +260,13 @@ class RunPolicyTest(unittest.TestCase):
         detector.update(small_block, [200, 0, 100, 0, 0, 0], 1.0)
         self.assertIsNone(detector.update(small_block, [200, 0, 120, 0, 0, 0], 1.0))
 
+        on_table = numpy.full((480, 640, 3), 255, dtype=numpy.uint8)
+        on_table[0:200, 200:400] = (220, 20, 20)  # big enough, but nowhere near the fingers
+        detector = run_policy.VisualPickupDetector("red")
+        detector.update(on_table, [200, 0, 100, 0, 0, 0], 1.0)
+        for _ in range(4):
+            self.assertIsNone(detector.update(on_table, [200, 0, 120, 0, 0, 0], 1.0))
+
     def test_recording_starts_after_load_and_stops_after_inference(self):
         def during_predict():
             self.assertTrue(self.bridge.recording)
@@ -237,8 +278,9 @@ class RunPolicyTest(unittest.TestCase):
         self.assertEqual(self.bridge.calls, [])
 
     def test_recording_spans_all_queries_and_motion(self):
+        # Execute: recording starts right before the first motion command (after the first inference).
         self.run_with_fakes(self.args(record_video=True, execute=True))
-        self.assertEqual(self.bridge.recording_events, ["start", "predict", "predict", "stop"])
+        self.assertEqual(self.bridge.recording_events, ["predict", "start", "predict", "stop"])
         self.assertEqual(self.summary()["steps"], 2)
 
     def test_recording_stops_and_partial_video_is_logged_on_interrupt(self):
@@ -299,12 +341,14 @@ class RunPolicyTest(unittest.TestCase):
         self.assertEqual(self.summary()["status"], "failed")
         self.assertEqual(self.summary()["steps"], 0)
 
-    def test_target_outside_floor_is_rejected_before_cartesian_command(self):
+    def test_target_below_floor_is_clamped_and_the_run_continues(self):
         self.policy.action = (0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0)
-        with self.assertRaisesRegex(ValueError, "below floor"):
-            self.run_with_fakes(self.args(execute=True))
-        self.assertFalse(any(c.startswith("G0 ") for c in self.bridge.calls))
-        self.assertEqual(self.summary()["steps"], 0)
+        self.run_with_fakes(self.args(execute=True, max_drift_mm=float("inf")))  # the default since 11/08
+        moves = [c for c in self.bridge.calls if c.startswith("G0 ")]
+        self.assertTrue(moves)
+        self.assertTrue(all(float(c.split()[3][1:]) >= 66.0 for c in moves))  # never below the floor
+        self.assertEqual(self.summary()["status"], "completed")
+        self.assertGreaterEqual(self.summary()["clamped_steps"], 1)
 
     def test_bridge_check_does_not_load_model_or_create_rollout(self):
         self.run_with_fakes(self.args(bridge_check=True))

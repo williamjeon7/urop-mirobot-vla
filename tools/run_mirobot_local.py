@@ -8,10 +8,10 @@ launcher is interrupted.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 from pathlib import Path
-import re
 import signal
 import socket
 import subprocess
@@ -23,30 +23,35 @@ from urllib.request import ProxyHandler, Request, build_opener
 from docs.W9.d405.devices import inspect_devices
 from robot.policy_bridge import DEFAULT_COLOR_PROFILE, PROTOCOL
 from common.gcode import HOME_SEQUENCE
+from common.recording_names import COLORS
+from common.trial_numbers import compact_all, discard_if_never_started, reserve as reserve_trial
 from robot.policy_setup import prepare_with_probe
 from tools.probe_mirobot import Probe, fields, find_field, is_error, is_ok, state_of
 from tools.run_gcode import parse_file, pose_of
+from server.experiment_log import capture_trial_layout, finish_launch, start_launch
 
 REPO = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_ROOT = REPO / "Mirobot_data/W10"
 
 
-def reserve_inference(root, reserved_names=()):
-    """Atomically reserve I1, I2, ... without overwriting a previous run."""
-    root = Path(root)
-    root.mkdir(parents=True, exist_ok=True)
-    numbers = [int(match.group(1)) for path in root.iterdir()
-               if (match := re.fullmatch(r"I([1-9][0-9]*)", path.name))]
-    numbers.extend(int(match.group(1)) for name in reserved_names
-                   if isinstance(name, str) and (match := re.fullmatch(r"I([1-9][0-9]*)", name)))
-    number = max(numbers, default=0) + 1
-    while True:
-        directory = root / f"I{number}"
-        try:
-            directory.mkdir()
-            return directory
-        except FileExistsError:
-            number += 1
+def policy_color(policy_args):
+    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    parser.add_argument("--color", choices=COLORS, default="red")
+    return parser.parse_known_args(policy_args)[0].color
+
+
+def should_save(args):
+    """Only real runs become numbered trials; a preview moves nothing, so it saves nothing unless --save."""
+    if getattr(args, "no_save", False):
+        return False
+    return bool(getattr(args, "execute", False) or getattr(args, "save", False))
+
+
+def reserve_inference(root, color=None):
+    """Reserve I{N+1}{color} after renumbering that colour's folders to 1..N (deleted numbers are reused)."""
+    if color is not None and color not in COLORS:
+        raise ValueError("Unknown trial color")
+    return reserve_trial(root, color)
 
 
 def select_robot_port(report, requested=None):
@@ -78,14 +83,18 @@ def check_devices(report, requested=None):
 
 
 
-def prepare_robot(port, directory):
+def prepare_robot(port, directory, home=False):
     import serial
-    print("호밍 → 그리퍼 열기(S40) → 초기 위치 이동을 시작합니다.", flush=True)
+    print(("호밍 → " if home else "") + "그리퍼 열기(S40) → 초기 위치 이동을 시작합니다.", flush=True)
     with serial.Serial(port, 115200, timeout=.05, write_timeout=1) as ser:
-        probe = Probe(ser, directory / "initialization.jsonl")
+        if directory is None:
+            probe = Probe.__new__(Probe)
+            probe.ser, probe.log_file = ser, io.StringIO()
+        else:
+            probe = Probe(ser, directory / "initialization.jsonl")
         try:
             time.sleep(2)
-            prepare_with_probe(probe)
+            prepare_with_probe(probe, home=home)
         finally:
             probe.log_file.close()
 
@@ -132,6 +141,9 @@ def run(args, policy_args):
         return run_remote(args, policy_args)
     policy = ["bash", str(REPO / "tools/run_mirobot_policy.sh"), *policy_args]
     bridge = inference = None
+    directory = launch = None
+    code = None
+    save = should_save(args)
     env = os.environ.copy()
     for key in ("NO_PROXY", "no_proxy"):
         env[key] = ",".join(filter(None, (env.get(key), "127.0.0.1", "localhost")))
@@ -154,19 +166,26 @@ def run(args, policy_args):
             # Never attach to, stop, or enable an already running bridge.
             with socket.socket() as probe:
                 probe.bind(("127.0.0.1", args.http_port))
-            directory = reserve_inference(args.output_root)
-            video_path = directory / f"{directory.name}.mp4"
-            policy.extend(("--log-dir", str(directory / "policy")))
-            if not args.no_record_video:
+            if save:
+                directory = reserve_inference(args.output_root, color=policy_color(policy_args))
+                launch = start_launch(directory, policy_args, "execute" if args.execute else "preview")
+                policy_args = capture_trial_layout(directory, policy_args, args.execute)
+                policy = ["bash", str(REPO / "tools/run_mirobot_policy.sh"), *policy_args,
+                          "--log-dir", str(directory / "policy")]
+            else:
+                policy.append("--no-save")
+                print("이번 확인 실행은 영상과 실험 파일을 저장하지 않습니다.", flush=True)
+            video_path = directory / f"{directory.name}.mp4" if directory else None
+            if save and not args.no_record_video:
                 policy.append("--record-video")
                 print(f"실행 기록: {directory}\n영상: {video_path} (첫 추론부터 자동 녹화)", flush=True)
-            else:
+            elif save:
                 print(f"실행 기록: {directory} (영상 저장 안 함)", flush=True)
             if args.execute:
                 prepare_robot(port, directory)
             command = [sys.executable, "-m", "robot.policy_bridge", "--serial-port", port,
                        "--listen-host", "127.0.0.1", "--http-port", str(args.http_port)]
-            if not args.no_record_video:
+            if save and not args.no_record_video:
                 command.extend(("--video-out", str(video_path)))
             if args.execute:
                 command.append("--execute")
@@ -175,10 +194,16 @@ def run(args, policy_args):
             wait_for_bridge(bridge, url, env.get("MIROBOT_POLICY_TOKEN"))
             policy.extend(("--bridge-url", url))
         inference = subprocess.Popen(policy, cwd=REPO, env=env, start_new_session=True)
-        return inference.wait()
+        code = inference.wait()
+        return code
     finally:
         stop_child(inference)
         stop_child(bridge)
+        if directory is not None and launch is not None:
+            finish_launch(directory, launch, code=code,
+                          error=sys.exc_info()[1])
+            discard_if_never_started(directory, launch)
+            compact_all(args.output_root, COLORS)  # reflect folders deleted during the run
 
 
 def main():
@@ -188,9 +213,13 @@ def main():
                         help="로봇 포트 (예: /dev/ttyUSB0). 생략하면 USB 시리얼 포트 1개를 자동 선택")
     parser.add_argument("--http-port", type=int, default=8891)
     parser.add_argument("--no-record-video", action="store_true", help="Do not save an MP4 recording")
+    parser.add_argument("--no-save", action="store_true", help="확인용: 영상·실험 파일·시행 번호를 저장하지 않음")
+    parser.add_argument("--no-return", action="store_true",
+                        help="실제 실행(--execute)이 끝난 뒤 초기 위치로 돌아가지 않음 (기본: 위로 올린 뒤 초기 위치로 복귀)")
+    parser.add_argument("--save", action="store_true", help="미리보기도 시행 폴더로 저장 (기본: --execute 일 때만 저장)")
     parser.add_argument("--remote", action="store_true", help="Windows USB 브리지를 SSH 터널로 사용")
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT,
-                        help="I1, I2, ... 실행 기록의 상위 폴더 (기본: Mirobot_data/W10)")
+                        help="I1red, I1blue, I1green, ... 실행 기록의 상위 폴더 (기본: Mirobot_data/W10)")
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--devices", action="store_true", help="USB 장치 목록만 표시")
     modes.add_argument("--check", action="store_true", help="선택한 USB 장치와 시리얼 접근 권한 확인")

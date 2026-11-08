@@ -101,3 +101,4 @@ Thumbs.db
 # 쓰지 않기로 한 녹화 — 녹화 PC 에만 보관 (Mirobot_data/README.md)
 # ─────────────────────────────────────────────────────────────
 Mirobot_data/trash/
+Mirobot_data/**/.trial_numbers.lock

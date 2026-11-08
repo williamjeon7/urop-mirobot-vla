@@ -16,6 +16,7 @@ import hmac
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -94,8 +95,10 @@ def load_connection(path=CONNECTION):
 
 class Pairing:
     def __init__(self, archive, authorized_keys, *, host_key, server_address, server_user, ssh_port,
-                 ttl=900):
-        self.archive = Path(archive).read_bytes()
+                 ttl=None, rebuild=None):
+        self.archive_path = Path(archive)
+        self.rebuild = rebuild  # called before each bootstrap so a reused address serves current code
+        self.archive = self.archive_path.read_bytes()
         self.archive_hash = hashlib.sha256(self.archive).hexdigest()
         self.authorized_keys = Path(authorized_keys)
         self.host_key = canonical_key(host_key)
@@ -105,18 +108,19 @@ class Pairing:
             raise ValueError("Invalid SSH port (check config/connection.local.json)")
         self.address, self.user, self.ssh_port = server_address, server_user, ssh_port
         self.token = secrets.token_urlsafe(32)
-        self.expires = time.monotonic() + ttl
+        self.expires = math.inf if ttl is None else time.monotonic() + ttl  # default: until Ctrl+C
         self.lock = threading.Lock()
         self.key = None
+        self.keys = set()
         self.phase = "waiting_for_windows"
         self.error = None
 
     def enroll(self, value):
         key = canonical_key(value)
         with self.lock:
-            if self.key is not None and self.key != key:
-                raise RuntimeError("This pairing session has already enrolled a different key")
+            # Reusable until stopped: each laptop key that installs through this address is authorized.
             authorize_key(self.authorized_keys, key)
+            self.keys.add(key)
             self.key = key
             self.phase = "key_registered"
         return {"ok": True}
@@ -125,6 +129,11 @@ class Pairing:
         # The request Host preserves the actual Windows forwarded local port.
         if re.fullmatch(r"(?:127\.0\.0\.1|localhost):[0-9]{1,5}", host) is None:
             raise ValueError("Use a localhost port forward")
+        if self.rebuild is not None:
+            with self.lock:
+                self.rebuild(self.archive_path)
+                self.archive = self.archive_path.read_bytes()
+                self.archive_hash = hashlib.sha256(self.archive).hexdigest()
         template = (REPO / "tools/windows_pair_bootstrap.ps1").read_text(encoding="utf-8")
         values = dict(BASE=f"http://{host}/{self.token}", ARCHIVE_SHA256=self.archive_hash,
                       SSH_ADDRESS=self.address, SSH_USER=self.user, SSH_PORT=str(self.ssh_port),
@@ -208,18 +217,20 @@ def make_handler(pairing):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8766)
-    parser.add_argument("--ttl", type=int, default=900)
+    parser.add_argument("--ttl", type=int, default=None,
+                        help="초 단위 유효 시간. 생략하면 Ctrl+C 로 끌 때까지 같은 주소를 계속 쓸 수 있다")
     parser.add_argument("--connection", type=Path, default=CONNECTION,
                         help="JSON with server_address, server_user, ssh_port (kept out of Git)")
     args = parser.parse_args()
-    if not 1 <= args.port <= 65535 or not 60 <= args.ttl <= 3600:
-        parser.error("Valid port and --ttl 60..3600 required")
+    if not 1 <= args.port <= 65535 or (args.ttl is not None and args.ttl < 60):
+        parser.error("Valid port and --ttl >= 60 required")
     connection = load_connection(args.connection)
     from tools.package_policy_robot import package
     archive = REPO / "dist/mirobot-policy-robot.zip"
     package(archive)
     pairing = Pairing(archive, Path.home()/".ssh/authorized_keys",
                       host_key=Path("/etc/ssh/ssh_host_ed25519_key.pub").read_text().strip(), ttl=args.ttl,
+                      rebuild=package,
                       **connection)
     server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(pairing))
     server.daemon_threads = True
@@ -250,8 +261,11 @@ def main():
                         health = json.load(response)
                     if (health.get("ok") is True and health.get("protocol") == "mirobot-policy/1" and
                             health.get("camera", {}).get("serial") == "262422272124"):
-                        print('WINDOWS_CONNECTED: pairing service closed; robot commands and video were not started.', flush=True)
-                        break
+                        print('WINDOWS_CONNECTED: robot commands and video were not started. '
+                              'The same install command stays usable until Ctrl+C.', flush=True)
+                        with pairing.lock:
+                            pairing.key = None  # wait for the next install, keep serving
+                            pairing.phase = "waiting_for_windows"
                 except (OSError, ValueError):
                     pass
             time.sleep(1)
