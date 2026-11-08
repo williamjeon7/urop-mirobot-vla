@@ -1,0 +1,32 @@
+{
+  "schema": "mirobot-launch/1",
+  "started_at": "2026-11-08T22:00:15.246909+09:00",
+  "mode": "execute",
+  "status": "failed",
+  "pid": 2330144,
+  "stage": "initialization",
+  "policy_arguments": [
+    "--color",
+    "green",
+    "--until-pickup",
+    "--open-loop-steps",
+    "16",
+    "--motion-scale",
+    "2",
+    "--max-step-mm",
+    "24",
+    "--pickup-timeout",
+    "600"
+  ],
+  "bridge_recording_name": "I9",
+  "finished_at": "2026-11-08T22:02:46.226310+09:00",
+  "exit_code": 1,
+  "error": null,
+  "video_transfer": {
+    "status": "saved",
+    "source_name": "I9",
+    "video": "~/UROP/Mirobot_data/W10/I1green/I1green.mp4",
+    "frames": "~/UROP/Mirobot_data/W10/I1green/I1green_frames.jsonl",
+    "metadata": "~/UROP/Mirobot_data/W10/I1green/I1green_video.json"
+  }
+}

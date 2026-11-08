@@ -1,0 +1,35 @@
+{
+  "schema": "mirobot-ground-truth/2",
+  "split": "unassigned",
+  "verdict_source": "claude_video_review",
+  "verdicts": {
+    "human": null,
+    "claude_video_review": {
+      "task_success": false,
+      "language_compliance": false,
+      "any_color_pickup": false,
+      "selected_color": "none",
+      "failure_type": "wrong_object",
+      "failure_onset_video_playback_s": null,
+      "failure_onset_s": null,
+      "failure_onset_step": null,
+      "failure_onset_query": null,
+      "annotator": "claude_video_review",
+      "reason": "영상: 초록이 아니라 파랑 블록 앞으로 감, 바닥 한계에서 정지",
+      "updated_at": "2026-11-08T23:31:47.775149+09:00"
+    },
+    "auto": null
+  },
+  "task_success": false,
+  "language_compliance": false,
+  "any_color_pickup": false,
+  "selected_color": "none",
+  "failure_type": "wrong_object",
+  "failure_onset_video_playback_s": null,
+  "failure_onset_s": null,
+  "failure_onset_step": null,
+  "failure_onset_query": null,
+  "annotator": "claude_video_review",
+  "reason": "영상: 초록이 아니라 파랑 블록 앞으로 감, 바닥 한계에서 정지",
+  "updated_at": "2026-11-08T23:31:47.775149+09:00"
+}

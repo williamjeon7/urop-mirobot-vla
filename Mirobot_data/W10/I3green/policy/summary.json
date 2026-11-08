@@ -1,0 +1,42 @@
+{
+  "status": "pickup_confirmed",
+  "mode": "execute",
+  "instruction": "pick up the green block on the table",
+  "steps": 121,
+  "queries": 8,
+  "checkpoint": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+  "directory": "~/UROP/Mirobot_data/W10/I3green/policy",
+  "stage": "robot_command",
+  "recording_name": "I17",
+  "video": {
+    "ok": true,
+    "path": "~/UROP/Mirobot_data/W10/I3green/I3green.mp4",
+    "fps": 30,
+    "width": 640,
+    "height": 480,
+    "started_at": "2026-11-08T22:45:27.139987+09:00",
+    "start_monotonic_s": 907724.031,
+    "recording": false,
+    "frames": 4198,
+    "duration_s": 279.8280000000959,
+    "encoded_duration_s": 139.93333333333334,
+    "stopped_at": "2026-11-08T22:50:06.973701+09:00",
+    "http_rtt_s": 0.04271734785288572,
+    "received_monotonic_s": 4015195.089190533,
+    "source_path": "C:\\Users\\user\\mirobot-policy\\policy_recordings\\I17\\I17.mp4"
+  },
+  "clamped_steps": 16,
+  "pickup": {
+    "color": "green",
+    "color_area_px": 20714,
+    "center_px": [
+      320.84314956068357,
+      56.463454668340255
+    ],
+    "lifted_mm": 22.39,
+    "stable_observations": 3
+  },
+  "termination_reason": "visual_pickup_heuristic",
+  "rollout_duration_s": 281.97795219300315,
+  "duration_s": 298.1923216097057
+}

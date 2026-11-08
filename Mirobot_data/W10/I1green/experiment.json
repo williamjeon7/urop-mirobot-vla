@@ -1,0 +1,145 @@
+{
+  "schema": "mirobot-experiment/1",
+  "trial_id": "I1green",
+  "created_at": "2026-11-08T22:00:27.163565+09:00",
+  "git_commit": "afd8279f166e11f770723895a5bebffc3f3e687b",
+  "python": "3.10.21 (main, Aug 14 2026, 15:33:52) [Clang 22.1.3 ]",
+  "platform": "Linux-6.8.0-139-generic-x86_64-with-glibc2.39",
+  "packages": {
+    "torch": "2.7.0+cu128",
+    "numpy": "2.2.6",
+    "opencv-python": "4.12.0.88",
+    "mujoco": "3.3.2",
+    "transformers": "4.57.1"
+  },
+  "arguments": {
+    "color": "green",
+    "bridge_url": "http://127.0.0.1:8891",
+    "reference": "~/UROP/Mirobot_data/W10/L01_red",
+    "checkpoint": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+    "data_dir": "~/UROP/cosmos-policy/W10/datasets/real/mirobot_l01_l30/processed",
+    "execute": true,
+    "offline_smoke": false,
+    "bridge_check": false,
+    "max_steps": null,
+    "until_pickup": true,
+    "pickup_timeout": 600.0,
+    "open_loop_steps": 16,
+    "motion_scale": 2.0,
+    "sample_index": 0,
+    "denoising_steps": 5,
+    "rotate": 0,
+    "timeout": 40.0,
+    "step_interval": 0.05,
+    "z_floor": 66.0,
+    "max_radius": 280.0,
+    "limit_margin_mm": 10.0,
+    "max_angle": 30.0,
+    "max_step_mm": 24.0,
+    "max_step_deg": 5.0,
+    "max_drift_mm": 12.0,
+    "max_state_change_mm": 2.0,
+    "arrival_tolerance_mm": 2.0,
+    "arrival_tolerance_deg": 1.0,
+    "log_dir": "~/UROP/Mirobot_data/W10/I1green/policy",
+    "record_video": true,
+    "recording_name": "I9",
+    "layout_json": null,
+    "no_save": false
+  },
+  "policy": {
+    "checkpoint": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+    "statistics": "~/UROP/cosmos-policy/W10/datasets/real/mirobot_l01_l30/processed/dataset_statistics.json",
+    "t5_embeddings": "~/UROP/cosmos-policy/W10/datasets/real/mirobot_l01_l30/processed/t5_embeddings.pkl",
+    "cosmos_repo": "~/UROP/cosmos-policy",
+    "denoising_steps": 5,
+    "seed": 1,
+    "capture_features": true
+  },
+  "code": {
+    "server/run_policy.py": {
+      "path": "~/UROP/server/run_policy.py",
+      "size_bytes": 31757,
+      "mtime_ns": 1794142566050769671,
+      "sha256": "c861e7c18215133a9aba0bd08563e6425dbe8e7b5c2339866c92f938e804aa11"
+    },
+    "server/policy_runtime.py": {
+      "path": "~/UROP/server/policy_runtime.py",
+      "size_bytes": 17988,
+      "mtime_ns": 1794138323582409946,
+      "sha256": "840f61f32f9ba89456c89ec0cf1fa0856ac9d039e175bfc5c475a49ea94ad7cb"
+    },
+    "server/follow_translator.py": {
+      "path": "~/UROP/server/follow_translator.py",
+      "size_bytes": 7670,
+      "mtime_ns": 1793959588420912713,
+      "sha256": "1099e985940b4e1abc7ed867cf1cddba54980b8f98100641bf648d1f55c74e78"
+    },
+    "common/policy_io.py": {
+      "path": "~/UROP/common/policy_io.py",
+      "size_bytes": 2962,
+      "mtime_ns": 1793666696173178504,
+      "sha256": "f75e6f4cb381841aa50c802e7227d483cf069b03e7d54ebf6d25a9f24445e6f9"
+    }
+  },
+  "assets": {
+    "checkpoint": {
+      "path": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+      "files": [
+        {
+          "path": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000/model_consolidated.pt",
+          "size_bytes": 3913054184,
+          "mtime_ns": 1793939776468780643,
+          "sha256": null,
+          "hash_status": "not_hashed_large_file"
+        }
+      ],
+      "model_metadata": {
+        "path": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000/model/.metadata",
+        "size_bytes": 307056,
+        "mtime_ns": 1793878553729835638,
+        "sha256": "8ad4aed6a64d69aecb5ac11a03cadfb25586e89524217d9918e4bbc3cc9586f8"
+      }
+    },
+    "statistics": {
+      "path": "~/UROP/cosmos-policy/W10/datasets/real/mirobot_l01_l30/processed/dataset_statistics.json",
+      "size_bytes": 2012,
+      "mtime_ns": 1793854289681472696,
+      "sha256": "b67ab9e3da1864d4e6f83f3a0efe854f9beec040334223da1e9c98b3afe6bc58"
+    },
+    "t5": {
+      "path": "~/UROP/cosmos-policy/W10/datasets/real/mirobot_l01_l30/processed/t5_embeddings.pkl",
+      "size_bytes": 3146908,
+      "mtime_ns": 1793581881225642172,
+      "sha256": "2a56c3df6528082127d3f727d187e4cff1909c043f39851836c2f1ef91c6b874"
+    },
+    "reference": {
+      "path": "~/UROP/Mirobot_data/W10/L01_red/reference.jsonl",
+      "size_bytes": 93788,
+      "mtime_ns": 1793841730081645622,
+      "sha256": "c6e1b9f3de746afcf98a25010ab26a9d839786cc1665299dc38d48a90a731bd4"
+    },
+    "gcode": {
+      "path": "~/UROP/Mirobot_data/W10/L01_red/source.gcode",
+      "size_bytes": 2341,
+      "mtime_ns": 1793841730135646888,
+      "sha256": "fc71acbe54703b99097f08288742ba9f0f1d440bb14c5c7c20f304cde9198aa7"
+    },
+    "color_profile": {
+      "path": "~/UROP/Mirobot_data/W10/L01_red/color_profile.json",
+      "size_bytes": 6934,
+      "mtime_ns": 1793841730080645598,
+      "sha256": "9b6f0dc9ecff939bd69115576400b8a4c118f7d93db75921cdbec70fc81d962c"
+    }
+  },
+  "detector": {
+    "method": null,
+    "score": null,
+    "threshold": null,
+    "status": "SAFE/Hide-and-Seek detector not trained or configured"
+  },
+  "features": {
+    "status": "pending",
+    "definition": "Cosmos final projection input; not a trained failure score"
+  }
+}

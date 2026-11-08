@@ -1,0 +1,13 @@
+{
+  "path": "C:\\Users\\user\\mirobot-policy\\policy_recordings\\I12\\I12.mp4",
+  "fps": 30,
+  "width": 640,
+  "height": 480,
+  "started_at": "2026-11-08T22:14:43.182015+09:00",
+  "start_monotonic_s": 905880.078,
+  "recording": false,
+  "frames": 2003,
+  "duration_s": 133.5,
+  "encoded_duration_s": 66.76666666666667,
+  "stopped_at": "2026-11-08T22:16:56.694180+09:00"
+}

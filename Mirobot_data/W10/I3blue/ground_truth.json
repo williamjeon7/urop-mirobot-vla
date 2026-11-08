@@ -1,0 +1,44 @@
+{
+  "schema": "mirobot-ground-truth/2",
+  "split": "unassigned",
+  "verdict_source": "claude_video_review",
+  "verdicts": {
+    "human": null,
+    "claude_video_review": {
+      "task_success": false,
+      "language_compliance": false,
+      "any_color_pickup": false,
+      "selected_color": "none",
+      "failure_type": "wrong_object",
+      "failure_onset_video_playback_s": null,
+      "failure_onset_s": null,
+      "failure_onset_step": null,
+      "failure_onset_query": null,
+      "annotator": "claude_video_review",
+      "reason": "영상: 파랑 대신 빨강 블록 근처로 감, 그리퍼 열린 채 들지 못함 (자동 '다른 색 집기'는 오판)",
+      "updated_at": "2026-11-08T23:31:48.494971+09:00"
+    },
+    "auto": {
+      "task_success": false,
+      "selected_color": "red",
+      "any_color_pickup": true,
+      "language_compliance": false,
+      "failure_type": "wrong_object",
+      "annotator": "auto_visual_detector",
+      "reason": "다른 색 블록(red)을 들어 올림 (요청: pick up the blue block on the table)",
+      "updated_at": "2026-11-08T23:34:43.412423+09:00"
+    }
+  },
+  "task_success": false,
+  "language_compliance": false,
+  "any_color_pickup": false,
+  "selected_color": "none",
+  "failure_type": "wrong_object",
+  "failure_onset_video_playback_s": null,
+  "failure_onset_s": null,
+  "failure_onset_step": null,
+  "failure_onset_query": null,
+  "annotator": "claude_video_review",
+  "reason": "영상: 파랑 대신 빨강 블록 근처로 감, 그리퍼 열린 채 들지 못함 (자동 '다른 색 집기'는 오판)",
+  "updated_at": "2026-11-08T23:31:48.494971+09:00"
+}
