@@ -1,0 +1,44 @@
+{
+  "schema": "mirobot-ground-truth/2",
+  "split": "unassigned",
+  "verdict_source": "claude_video_review",
+  "verdicts": {
+    "human": null,
+    "claude_video_review": {
+      "task_success": false,
+      "language_compliance": false,
+      "any_color_pickup": false,
+      "selected_color": "none",
+      "failure_type": "other",
+      "failure_onset_video_playback_s": null,
+      "failure_onset_s": null,
+      "failure_onset_step": null,
+      "failure_onset_query": null,
+      "annotator": "claude_video_review",
+      "reason": "영상: 초록 블록 위까지 갔으나 물지 못하고 그리퍼가 열린 채 올라감, 블록은 작업대에 남음 (자동 성공은 오판)",
+      "updated_at": "2026-11-08T23:31:48.650481+09:00"
+    },
+    "auto": {
+      "task_success": true,
+      "selected_color": "green",
+      "any_color_pickup": true,
+      "language_compliance": true,
+      "failure_type": "none",
+      "annotator": "auto_visual_detector",
+      "reason": "자동 집기 확인: 그리퍼 닫힘, 22.4 mm 상승, green 영역 3회 연속 확인",
+      "updated_at": "2026-11-08T23:34:43.554748+09:00"
+    }
+  },
+  "task_success": false,
+  "language_compliance": false,
+  "any_color_pickup": false,
+  "selected_color": "none",
+  "failure_type": "other",
+  "failure_onset_video_playback_s": null,
+  "failure_onset_s": null,
+  "failure_onset_step": null,
+  "failure_onset_query": null,
+  "annotator": "claude_video_review",
+  "reason": "영상: 초록 블록 위까지 갔으나 물지 못하고 그리퍼가 열린 채 올라감, 블록은 작업대에 남음 (자동 성공은 오판)",
+  "updated_at": "2026-11-08T23:31:48.650481+09:00"
+}

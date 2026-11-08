@@ -1,0 +1,44 @@
+{
+  "schema": "mirobot-ground-truth/2",
+  "split": "unassigned",
+  "verdict_source": "claude_video_review",
+  "verdicts": {
+    "human": null,
+    "claude_video_review": {
+      "task_success": true,
+      "language_compliance": true,
+      "any_color_pickup": true,
+      "selected_color": "blue",
+      "failure_type": "none",
+      "failure_onset_video_playback_s": null,
+      "failure_onset_s": null,
+      "failure_onset_step": null,
+      "failure_onset_query": null,
+      "annotator": "claude_video_review",
+      "reason": "영상: 파랑 블록이 그리퍼 사이에 끼어 같이 움직임",
+      "updated_at": "2026-11-08T23:31:48.941851+09:00"
+    },
+    "auto": {
+      "task_success": true,
+      "selected_color": "blue",
+      "any_color_pickup": true,
+      "language_compliance": true,
+      "failure_type": "none",
+      "annotator": "auto_visual_detector",
+      "reason": "자동 집기 확인: 그리퍼 닫힘, 22.3 mm 상승, blue 영역 3회 연속 확인",
+      "updated_at": "2026-11-08T23:34:43.831166+09:00"
+    }
+  },
+  "task_success": true,
+  "language_compliance": true,
+  "any_color_pickup": true,
+  "selected_color": "blue",
+  "failure_type": "none",
+  "failure_onset_video_playback_s": null,
+  "failure_onset_s": null,
+  "failure_onset_step": null,
+  "failure_onset_query": null,
+  "annotator": "claude_video_review",
+  "reason": "영상: 파랑 블록이 그리퍼 사이에 끼어 같이 움직임",
+  "updated_at": "2026-11-08T23:31:48.941851+09:00"
+}

@@ -1,0 +1,44 @@
+{
+  "schema": "mirobot-ground-truth/2",
+  "split": "unassigned",
+  "verdict_source": "claude_video_review",
+  "verdicts": {
+    "human": null,
+    "claude_video_review": {
+      "task_success": true,
+      "language_compliance": true,
+      "any_color_pickup": true,
+      "selected_color": "green",
+      "failure_type": "none",
+      "failure_onset_video_playback_s": null,
+      "failure_onset_s": null,
+      "failure_onset_step": null,
+      "failure_onset_query": null,
+      "annotator": "claude_video_review",
+      "reason": "영상: 초록 블록이 그리퍼에 물려 있음",
+      "updated_at": "2026-11-08T23:31:49.096528+09:00"
+    },
+    "auto": {
+      "task_success": true,
+      "selected_color": "green",
+      "any_color_pickup": true,
+      "language_compliance": true,
+      "failure_type": "none",
+      "annotator": "auto_visual_detector",
+      "reason": "자동 집기 확인: 그리퍼 닫힘, 21.4 mm 상승, green 영역 3회 연속 확인",
+      "updated_at": "2026-11-08T23:34:43.973261+09:00"
+    }
+  },
+  "task_success": true,
+  "language_compliance": true,
+  "any_color_pickup": true,
+  "selected_color": "green",
+  "failure_type": "none",
+  "failure_onset_video_playback_s": null,
+  "failure_onset_s": null,
+  "failure_onset_step": null,
+  "failure_onset_query": null,
+  "annotator": "claude_video_review",
+  "reason": "영상: 초록 블록이 그리퍼에 물려 있음",
+  "updated_at": "2026-11-08T23:31:49.096528+09:00"
+}

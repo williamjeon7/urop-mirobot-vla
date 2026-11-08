@@ -1,0 +1,44 @@
+{
+  "status": "pickup_confirmed",
+  "mode": "execute",
+  "instruction": "pick up the blue block on the table",
+  "steps": 137,
+  "queries": 9,
+  "checkpoint": "~/UROP/cosmos-policy/W10/runs/real/cosmos_policy/w9_mirobot/w10_mirobot_l01_l30_follow_4000/checkpoints/iter_000004000",
+  "directory": "~/UROP/Mirobot_data/W10/I4blue/policy",
+  "stage": "robot_command",
+  "recording_name": "I23",
+  "video": {
+    "ok": true,
+    "path": "~/UROP/Mirobot_data/W10/I4blue/I4blue.mp4",
+    "fps": 30,
+    "width": 640,
+    "height": 480,
+    "started_at": "2026-11-08T23:21:56.319365+09:00",
+    "start_monotonic_s": 909913.203,
+    "recording": false,
+    "frames": 5177,
+    "duration_s": 345.1720000000205,
+    "encoded_duration_s": 172.56666666666666,
+    "stopped_at": "2026-11-08T23:27:41.490730+09:00",
+    "http_rtt_s": 0.04859831416979432,
+    "received_monotonic_s": 4017449.691488919,
+    "source_path": "C:\\Users\\user\\mirobot-policy\\policy_recordings\\I23\\I23.mp4"
+  },
+  "clamped_steps": 29,
+  "pickup": {
+    "color": "blue",
+    "color_area_px": 47193,
+    "center_px": [
+      509.54601317992075,
+      206.04526094971712
+    ],
+    "lifted_mm": 22.283,
+    "stable_observations": 3
+  },
+  "termination_reason": "visual_pickup_heuristic",
+  "rollout_duration_s": 347.29110646108165,
+  "stale_observation_retries": 2,
+  "command_retries": 0,
+  "duration_s": 363.4460917748511
+}

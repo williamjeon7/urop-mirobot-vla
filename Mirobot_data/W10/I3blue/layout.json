@@ -1,0 +1,152 @@
+{
+  "schema": "mirobot-layout/2",
+  "unit": "cm",
+  "paper_frame": "mat print: x=세로 (robot base centre 0, + away), y=가로 (centre 0, + left)",
+  "paper_xy_cm": {
+    "red": [
+      20.64,
+      -7.98
+    ],
+    "green": [
+      21.75,
+      -2.03
+    ],
+    "blue": [
+      20.8,
+      3.94
+    ]
+  },
+  "source_by_color": {
+    "red": "auto",
+    "green": "auto",
+    "blue": "auto"
+  },
+  "blocks": {
+    "red": [
+      -9.36,
+      -7.98
+    ],
+    "green": [
+      -8.25,
+      -2.03
+    ],
+    "blue": [
+      -9.2,
+      3.94
+    ]
+  },
+  "coordinate_frame": {
+    "id": "paper_top_border_zero_Xup_Yleft_cm",
+    "robot_base_center_cm": [
+      -30,
+      0
+    ]
+  },
+  "manual_minus_auto_cm": {},
+  "manual": {
+    "paper_xy_cm": {
+      "red": null,
+      "green": null,
+      "blue": null
+    },
+    "note": "직접 잰 값을 적는 칸. 매트 인쇄 눈금 그대로 [x=세로, y=가로] cm (x -9~30, y -30~30). 모르면 null 로 둔다. 적은 뒤 tools.annotate_mirobot_result 를 다시 실행하거나 --block-xy 로 넣으면 result 파일이 갱신된다."
+  },
+  "auto": {
+    "unit": "cm",
+    "source": "auto_wrist_camera_initial_pose",
+    "estimated": true,
+    "paper_frame": "mat print: x=세로 (robot base centre 0, + away), y=가로 (centre 0, + left)",
+    "paper_xy_cm": {
+      "red": [
+        20.64,
+        -7.98
+      ],
+      "green": [
+        21.75,
+        -2.03
+      ],
+      "blue": [
+        20.8,
+        3.94
+      ]
+    },
+    "blocks": {
+      "red": [
+        -9.36,
+        -7.98
+      ],
+      "green": [
+        -8.25,
+        -2.03
+      ],
+      "blue": [
+        -9.2,
+        3.94
+      ]
+    },
+    "blocks_mat_cm": {
+      "red": [
+        -7.98,
+        20.64
+      ],
+      "green": [
+        -2.03,
+        21.75
+      ],
+      "blue": [
+        3.94,
+        20.8
+      ]
+    },
+    "yaw_mod_90_deg": {
+      "red": 88.1,
+      "green": 89.1,
+      "blue": 88.3
+    },
+    "fit_rms_px": {
+      "red": 0.78,
+      "green": 0.99,
+      "blue": 0.89
+    },
+    "errors": {},
+    "estimation": {
+      "method": "2 cm cube silhouette fit + W10 offset",
+      "robot_cart6": [
+        198.668,
+        0.0,
+        230.449,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "camera_pose": "docs/W9/data/calibration/depth_registration_20261102_01/grid_fit.json",
+      "intrinsics": "docs/W9/data/calibration/depth_registration_20261102_01/metadata.json color_intrinsics",
+      "offset_cm": [
+        0.795,
+        0.3
+      ],
+      "validation": {
+        "uncorrected_L01_L20": {
+          "n": 60,
+          "mean_cm": 0.87,
+          "max_cm": 1.16
+        },
+        "corrected_leave_one_layout_out_L01_L20": {
+          "n": 60,
+          "mean_cm": 0.2,
+          "p95_cm": 0.35,
+          "max_cm": 0.5
+        },
+        "corrected_vs_planned_L21_L30": {
+          "n": 30,
+          "mean_cm": 0.15,
+          "max_cm": 0.29
+        },
+        "checked": "2026-11-08"
+      }
+    },
+    "image": "policy/rgb_0000.png",
+    "phase": "initial"
+  },
+  "updated_at": "2026-11-08T23:34:54.566250+09:00"
+}

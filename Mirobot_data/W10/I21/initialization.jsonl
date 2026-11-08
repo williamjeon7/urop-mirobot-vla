@@ -1,9 +1,0 @@
-{"t_wall": 1793963539.228007, "t_perf": 725746.8155941, "kind": "send", "cmd": "$22=1", "lines": ["ok"], "elapsed_s": 0.005691400030627847}
-{"t_wall": 1793963553.056283, "t_perf": 725760.6396111, "kind": "send", "cmd": "$H", "lines": ["Info,in homing moving...", "<Home,Angle(ABCDXYZ):-0.141,-0.136,16.272,0.000,0.066,0.070,-0.078,Cartesian coordinate(XYZ RxRyRz):198.861,0.170,230.743,-0.175,-0.099,16.339,Pump PWM:40,Valve PWM:0,Motion_MODE:1>", "<Idle,Angle(ABCDXYZ):0.000,0.000,16.272,0.000,0.000,0.000,0.000,Cartesian coordinate(XYZ RxRyRz):198.670,0.000,230.720,0.000,0.000,16.272,Pump PWM:0,Valve PWM:0,Motion_MODE:0>", "ok"], "elapsed_s": 13.823697000043467}
-{"t_wall": 1793963553.313012, "t_perf": 725760.8944914, "kind": "send", "cmd": "M20", "lines": ["Info,M20: Cartesian mode start.", "ok"], "elapsed_s": 0.013550700037740171}
-{"t_wall": 1793963553.317413, "t_perf": 725760.8988838, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004199300077743828}
-{"t_wall": 1793963553.3223898, "t_perf": 725760.9039696, "kind": "send", "cmd": "G90", "lines": ["ok"], "elapsed_s": 0.004333299933932722}
-{"t_wall": 1793963553.327065, "t_perf": 725760.9083804, "kind": "send", "cmd": "M20", "lines": ["ok"], "elapsed_s": 0.0041584999999031425}
-{"t_wall": 1793963553.332453, "t_perf": 725760.9138898, "kind": "send", "cmd": "M4 S40", "lines": ["ok"], "elapsed_s": 0.005225399974733591}
-{"t_wall": 1793963554.3614511, "t_perf": 725761.9430284, "kind": "send", "cmd": "G0 X198.670 Y0.000 Z230.720 A0.000 B0.000 C0.000", "lines": ["ok"], "elapsed_s": 0.02226669993251562}
-{"t_wall": 1793963554.7094533, "t_perf": 725762.2960263, "kind": "initial_pose_ready", "cart6": [198.668, 0.0, 230.449, 0.0, 0.0, 0.0], "gripper_s": 40}
