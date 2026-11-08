@@ -114,6 +114,7 @@ class TestPolicySerial(unittest.TestCase):
     def test_ack_is_not_enough_when_move_does_not_reach_target(self):
         ser = FakeSerial(settle=False)
         robot = RobotIO(ser, execute=True, timeout_s=.3)
+        robot.start_grace_s = .05  # arm never starts moving: refuse once the grace period is over
         robot.command("G90", "setup")
         with self.assertRaisesRegex(RuntimeError, "differs from target"):
             robot.command("G0 X210 Y0 Z150 A0 B0 C0", "missed")

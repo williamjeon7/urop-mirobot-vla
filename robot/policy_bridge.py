@@ -26,6 +26,7 @@ import time
 from tools.probe_mirobot import fields, find_field, is_error, is_ok, is_status, state_of
 from tools.run_gcode import ANGLE_WARN_DEG, REACH_WARN_MM, Z_FLOOR_MM
 from common.workspace import MIROBOT_CARTESIAN_LIMITS_MM
+from common.recording_names import RECORDING_PATTERN, valid_recording_name
 
 PROTOCOL = "mirobot-policy/1"
 DEFAULT_POLICY_PORT = 8891
@@ -239,8 +240,8 @@ class D405Camera:
         from robot.policy_video import PolicyVideo
         with self.recording_lock:
             if self.video_dir is not None:
-                if not isinstance(run_name, str) or re.fullmatch(r"I[1-9][0-9]*", run_name) is None:
-                    raise ValueError("Recording name must be I1, I2, ...")
+                if not valid_recording_name(run_name):
+                    raise ValueError("Recording name must be I1red, I1blue, I1green, ... (legacy I1 also supported)")
                 if self.video is not None and self.video.writer is not None:
                     raise RuntimeError("A recording is already active")
                 path = self.video_dir / run_name / f"{run_name}.mp4"
@@ -251,7 +252,7 @@ class D405Camera:
         if self.video_dir is None or not self.video_dir.exists():
             return []
         return sorted(path.name for path in self.video_dir.iterdir()
-                      if re.fullmatch(r"I[1-9][0-9]*", path.name))
+                      if valid_recording_name(path.name))
 
     def _start_recording(self):
         if self.video is None:
@@ -286,6 +287,7 @@ class RobotIO:
                 or not min(self.limits.open_s, self.limits.closed_s) <= initial_s <= max(self.limits.open_s, self.limits.closed_s)):
             raise ValueError("Distinct finite gripper endpoints and an initial S between them are required")
         self.timeout_s = positive(timeout_s, "timeout_s")
+        self.start_grace_s = 1.5  # wait this long after the ok for the arm to start moving
         self.gripper_seconds = positive(gripper_seconds, "gripper_seconds")
         self.lock = threading.Lock()
         self.fault = ""
@@ -297,7 +299,7 @@ class RobotIO:
         self.absolute_mode = False  # explicitly establish G90 before accepting any G0
         self.preparations = OrderedDict()
 
-    def prepare(self, request_id):
+    def prepare(self, request_id, home=True):
         from robot.policy_setup import prepare_with_probe
         from tools.probe_mirobot import Probe
         if not self.execute:
@@ -312,13 +314,13 @@ class RobotIO:
             probe = Probe.__new__(Probe)
             probe.ser, probe.log_file = self.ser, io.StringIO()
             try:
-                prepare_with_probe(probe)
+                prepare_with_probe(probe, home=bool(home))
                 self.pending = b""
                 self.gripper_s = 40.0
                 self.gripper_start = -math.inf
                 self.gripper_from = self._closure(40.0)
                 self.absolute_mode = True
-                result = dict(ok=True, prepared=True, request_id=request_id, **self._status(),
+                result = dict(ok=True, prepared=True, homed=bool(home), request_id=request_id, **self._status(),
                               events=[json.loads(line) for line in probe.log_file.getvalue().splitlines()])
                 self.preparations[request_id] = result
                 while len(self.preparations) > 32:
@@ -395,6 +397,7 @@ class RobotIO:
             try:
                 self.ser.write((normalized+"\n").encode("ascii"))
                 ack, last_status, stable = False, None, deque(maxlen=3)
+                ack_at, moved = None, False
                 next_query = started
                 while time.monotonic()-started < self.timeout_s:
                     now = time.monotonic()
@@ -404,12 +407,15 @@ class RobotIO:
                     line = self._line()
                     if not line:
                         continue
-                    if is_ok(line):
-                        ack = True
+                    if is_ok(line) and not ack:
+                        ack, ack_at = True, time.monotonic()
+                        stable.clear()  # statuses read before the ok may show the pose before the move
                     if is_status(line):
                         last_status = cartesian_status(line)
                         last_status["state_monotonic_s"] = time.monotonic()
                         stable.append(last_status["cart6"])
+                        if ack and last_status["state"].lower() != "idle":
+                            moved = True
                     if not ack:
                         continue
                     if grip is not None and self.gripper_s != grip:
@@ -426,6 +432,9 @@ class RobotIO:
                         cart = last_status["cart6"]
                         if math.dist(cart[:3], target[:3]) > 2 or max(
                                 abs((a-b+180) % 360-180) for a, b in zip(cart[3:], target[3:])) > 2:
+                            # Idle right after the ok can mean the arm has not started yet.
+                            if not moved and time.monotonic() - ack_at < self.start_grace_s:
+                                continue
                             raise RuntimeError("Idle pose differs from target by more than 2 mm/deg")
                         break
                 else:
@@ -484,13 +493,19 @@ def make_handler(bridge, token=None):
                     self._json(HTTPStatus.OK, {"ok": not bridge.camera.error and not bridge.robot.fault,
                                "protocol": PROTOCOL, "execute_enabled": bridge.robot.execute,
                                "camera": bridge.camera.metadata, "camera_error": bridge.camera.error,
+                               "recording_name_format": "color-v1", "prepare_without_homing": True,
+                               "move_settle_check": "after_motion",
+                               "limits": {"z_floor_mm": bridge.robot.limits.z_floor_mm,
+                                          "max_step_mm": bridge.robot.limits.max_step_mm,
+                                          "max_radius_mm": bridge.robot.limits.max_radius_mm,
+                                          "max_angle_deg": bridge.robot.limits.max_angle_deg},
                                "serial_port": getattr(bridge.robot.ser, "port", None),
                                "fault": bridge.robot.fault})
                 elif self.path == "/observation":
                     self._json(HTTPStatus.OK, bridge.observation())
                 elif self.path == "/recording/names":
                     self._json(HTTPStatus.OK, {"ok": True, "names": bridge.camera.recording_names()})
-                elif (match := re.fullmatch(r"/recording/(I[1-9][0-9]*)/(video|frames|metadata)", self.path)):
+                elif (match := re.fullmatch(r"/recording/(" + RECORDING_PATTERN + r")/(video|frames|metadata)", self.path)):
                     path = bridge.camera.recording_file(*match.groups())
                     with path.open("rb") as source:
                         self.send_response(HTTPStatus.OK)
@@ -522,7 +537,7 @@ def make_handler(bridge, token=None):
                 elif self.path == "/recording/stop":
                     result = {"ok": True, **bridge.camera.stop_recording()}
                 elif self.path == "/prepare":
-                    result = bridge.robot.prepare(data.get("request_id"))
+                    result = bridge.robot.prepare(data.get("request_id"), data.get("home", True))
                 else:
                     result = bridge.robot.command(data.get("command"), data.get("request_id"))
                 self._json(HTTPStatus.OK, result)
@@ -557,7 +572,8 @@ def main():
     parser.add_argument("--command-timeout", type=float, default=30)
     parser.add_argument("--max-step-mm", type=float, default=25)
     parser.add_argument("--max-rotation-deg", type=float, default=20)
-    parser.add_argument("--z-floor", type=float, default=MIROBOT_CARTESIAN_LIMITS_MM[2][0])
+    # 11/08: lowered from 66 so the gripper may reach the table (closed gripper touches at 60.7 mm).
+    parser.add_argument("--z-floor", type=float, default=60.0)
     parser.add_argument("--max-radius-mm", type=float, default=REACH_WARN_MM)
     parser.add_argument("--max-angle-deg", type=float, default=ANGLE_WARN_DEG)
     parser.add_argument("--max-frame-age", type=float, default=.5)

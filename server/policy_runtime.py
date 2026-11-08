@@ -43,6 +43,59 @@ class PolicyConfig:
     cosmos_repo: Path = REPO / "cosmos-policy"
     denoising_steps: int = 5
     seed: int = 1
+    capture_features: bool = True
+
+
+class PolicyFeatureCapture:
+    """Observe the final denoising projection input without changing model outputs.
+
+    The wrist-only layout places the action latent at index 3. Spatial action
+    tokens and pooled latent-frame features are stored separately: these are
+    Cosmos features, not OpenVLA tokens or trained SAFE/Hide-and-Seek scores.
+    """
+    def __init__(self, model, enabled=True):
+        self.handle = None
+        self.tensor = None
+        self.calls = 0
+        self.step_means = []
+        self.metadata = {"status": "disabled" if not enabled else "unsupported",
+                         "source": "net.final_layer.linear input",
+                         "action_latent_index": 3, "selection": "last forward call (final denoising step), all batch rows; per-step means in action_token_mean_by_step",
+                         "guidance_branch": "not_inferred"}
+        layer = getattr(getattr(getattr(model, "net", None), "final_layer", None), "linear", None)
+        if enabled and hasattr(layer, "register_forward_pre_hook"):
+            self.handle = layer.register_forward_pre_hook(self._capture)
+
+    def _capture(self, _module, inputs):
+        if inputs and hasattr(inputs[0], "detach"):
+            self.tensor = inputs[0].detach()
+            self.calls += 1
+            # One call per denoising step; SAFE also reads non-final steps.
+            if self.tensor.ndim == 5 and self.tensor.shape[1] > 3:
+                self.step_means.append(self.tensor[:, 3].float().mean(dim=(1, 2)).cpu())
+
+    def close(self):
+        if self.handle is not None:
+            self.handle.remove()
+            self.handle = None
+
+    def arrays(self):
+        value = self.tensor
+        self.tensor = None
+        if value is None:
+            return {}
+        self.metadata.update(shape=list(value.shape), forward_calls=self.calls)
+        if value.ndim != 5 or value.shape[1] <= 3:
+            self.metadata["status"] = "unsupported_shape"
+            return {}
+        self.metadata["status"] = "captured"
+        arrays = {"action_spatial_tokens": value[:, 3].float().cpu().numpy(),
+                  "latent_frame_mean": value.float().mean(dim=(2, 3)).cpu().numpy()}
+        if self.step_means:
+            import torch
+            # (denoising_steps, batch, channels): action-latent spatial mean at every step.
+            arrays["action_token_mean_by_step"] = torch.stack(self.step_means).numpy()
+        return arrays
 
 
 @dataclass(frozen=True)
@@ -311,8 +364,10 @@ class CosmosPolicy:
         observation = {"wrist_image": image, "primary_image": image, "proprio": state}
         self._torch.cuda.synchronize()
         started = time.perf_counter()
-        with _working_directory(self.config.cosmos_repo):
-            output = self._get_action(
+        capture = PolicyFeatureCapture(self.model, enabled=self.config.capture_features)
+        try:
+            with _working_directory(self.config.cosmos_repo):
+                output = self._get_action(
                 self.cfg,
                 self.model,
                 self.stats,
@@ -322,9 +377,15 @@ class CosmosPolicy:
                 randomize_seed=False,
                 num_denoising_steps_action=self.config.denoising_steps,
                 generate_future_state_and_value_in_parallel=False,
-            )
+                )
+        finally:
+            capture.close()
         self._torch.cuda.synchronize()
         self.last_inference_seconds = time.perf_counter() - started
+        feature_started = time.perf_counter()
+        self.last_features = capture.arrays()
+        self.feature_metadata = capture.metadata
+        self.feature_metadata["export_seconds"] = time.perf_counter() - feature_started
         actions = np.asarray(output["actions"], dtype=np.float32)
         if actions.shape != (CHUNK_SIZE, 7) or not np.isfinite(actions).all():
             raise RuntimeError(f"Policy returned invalid actions: expected finite ({CHUNK_SIZE}, 7), got {actions.shape}")

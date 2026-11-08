@@ -14,6 +14,8 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 import uuid
 
+from common.recording_names import valid_recording_name
+
 PROTOCOL = "mirobot-policy/1"
 
 
@@ -52,7 +54,7 @@ class PolicyClient:
                 detail = str(exc)
             raise RuntimeError(f"Bridge {path}: {detail}") from exc
         except (URLError, TimeoutError, OSError) as exc:
-            suffix = "; command completion is unknown, no automatic retry" if payload is not None else ""
+            suffix = "; command completion is unknown until resent with the same request_id" if payload is not None else ""
             raise RuntimeError(f"Cannot reach bridge {path}: {exc}{suffix}") from exc
         if not isinstance(result, dict) or result.get("ok") is not True:
             raise RuntimeError(f"Bridge {path} failed: {result.get('error', result) if isinstance(result, dict) else result}")
@@ -72,23 +74,27 @@ class PolicyClient:
     def recording_names(self):
         names = self._request("/recording/names").get("names")
         if (not isinstance(names, list) or
-                any(not isinstance(name, str) or re.fullmatch(r"I[1-9][0-9]*", name) is None for name in names)):
+                any(not valid_recording_name(name) for name in names)):
             raise RuntimeError("Bridge returned invalid recording names")
         return names
 
     def stop_recording(self):
         return self._request("/recording/stop", {})
 
-    def prepare(self):
-        return self._request("/prepare", {"request_id": uuid.uuid4().hex}, timeout_s=300)
+    def prepare(self, home=True):
+        """home=False: open the gripper and go to the initial pose without homing ($H)."""
+        return self._request("/prepare", {"request_id": uuid.uuid4().hex, "home": bool(home)}, timeout_s=300)
 
-    def download_recording(self, name, directory):
+    def download_recording(self, name, directory, output_name=None):
         import re
-        if re.fullmatch(r"I[1-9][0-9]*", name) is None:
-            raise ValueError("Recording name must be I1, I2, ...")
+        if not valid_recording_name(name):
+            raise ValueError("Recording name must be I1red, I1blue, I1green, ... (legacy I1 also supported)")
+        output_name = output_name or name
+        if not valid_recording_name(output_name):
+            raise ValueError("Invalid local recording name")
         paths = {}
         for kind, suffix in (("video", ".mp4"), ("frames", "_frames.jsonl"), ("metadata", "_video.json")):
-            path = Path(directory) / (name + suffix)
+            path = Path(directory) / (output_name + suffix)
             temporary = path.with_name(path.name + ".partial")
             headers = {"Authorization": "Bearer " + self.token} if self.token else {}
             request = Request(self.base_url + f"/recording/{name}/{kind}", headers=headers)
@@ -107,7 +113,29 @@ class PolicyClient:
             paths[kind] = str(path)
         return paths
 
+    # Network hiccups must not end a run: transient errors are retried for up to this long.
+    RETRY_BUDGET_S = 15.0
+    RETRY_PAUSE_S = 0.1
+
+    def _retrying(self, call, transient, counter):
+        deadline = time.monotonic() + self.RETRY_BUDGET_S
+        while True:
+            try:
+                return call()
+            except RuntimeError as error:
+                if not transient(str(error)) or time.monotonic() >= deadline:
+                    raise
+                setattr(self, counter, getattr(self, counter, 0) + 1)
+                time.sleep(self.RETRY_PAUSE_S)
+
     def observation(self):
+        """Late frames and dropped connections are fetched again (read-only, always safe)."""
+        return self._retrying(
+            self._observation_once,
+            lambda text: "stale" in text.lower() or text.startswith("Cannot reach bridge"),
+            "stale_retries")
+
+    def _observation_once(self):
         import cv2
         import numpy as np
 
@@ -143,9 +171,16 @@ class PolicyClient:
         return result
 
     def command(self, command: str, request_id=None):
-        """Send once. Reusing request_id explicitly retrieves its prior result without motion."""
+        """Send a command; on a dropped connection resend with the SAME request_id.
+
+        The bridge never executes a request_id twice (it returns the first result), so resending is
+        safe. "Robot must be Idle" is refused before anything is sent to the arm, so it is retried too.
+        """
         request_id = request_id or uuid.uuid4().hex
-        result = self._request("/command", {"command": command, "request_id": request_id})
+        result = self._retrying(
+            lambda: self._request("/command", {"command": command, "request_id": request_id}),
+            lambda text: text.startswith("Cannot reach bridge") or "Robot must be Idle" in text,
+            "command_retries")
         if result.get("request_id") != request_id or result.get("command") != command or result.get("acknowledged") is not True:
             raise RuntimeError("Bridge acknowledgment does not match the command")
         return result

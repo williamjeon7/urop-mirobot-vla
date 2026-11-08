@@ -53,8 +53,8 @@ def test_local_launch_arms_both_processes_only_when_requested_and_cleans_bridge(
     assert policy_command[policy_command.index("--bridge-url") + 1] == "http://127.0.0.1:8891"
     assert all(call.kwargs["start_new_session"] for call in spawn.call_args_list)
     assert "--record-video" in policy_command
-    assert bridge_command[bridge_command.index("--video-out") + 1] == str(tmp_path / "I1/I1.mp4")
-    assert policy_command[policy_command.index("--log-dir") + 1] == str(tmp_path / "I1/policy")
+    assert bridge_command[bridge_command.index("--video-out") + 1] == str(tmp_path / "I1red/I1red.mp4")
+    assert policy_command[policy_command.index("--log-dir") + 1] == str(tmp_path / "I1red/policy")
     assert prepare.call_count == int(execute)
     ready.assert_called_once()
     signal_group.assert_called_once_with(bridge.pid, local.signal.SIGINT)
@@ -128,18 +128,15 @@ def test_interrupt_stops_model_and_bridge(tmp_path):
     assert [call.args[0] for call in signal_group.call_args_list] == [inference.pid, bridge.pid]
 
 
-def test_numbered_runs_never_replace_previous_records(tmp_path):
-    first = local.reserve_inference(tmp_path)
-    assert first.name == "I1"
+def test_numbered_runs_keep_records_and_close_gaps(tmp_path):
+    first = local.reserve_inference(tmp_path, color="red")
+    assert first.name == "I1red"
     (first / "keep.txt").write_text("original")
-    (tmp_path / "I3").mkdir()
-    assert local.reserve_inference(tmp_path).name == "I4"
+    (tmp_path / "I3red").mkdir()
+    # I3red moves down to I2red; the new run is I3red. Existing content is kept.
+    assert local.reserve_inference(tmp_path, color="red").name == "I3red"
+    assert (tmp_path / "I2red").is_dir()
     assert (first / "keep.txt").read_text() == "original"
-
-
-def test_numbered_runs_skip_ids_reserved_by_windows(tmp_path):
-    (tmp_path / "I1").mkdir()
-    assert local.reserve_inference(tmp_path, ["I3", "I7", "not-an-id"]).name == "I8"
 
 
 def test_initialization_homes_opens_gripper_and_verifies_pose():
