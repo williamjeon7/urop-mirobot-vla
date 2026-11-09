@@ -199,4 +199,4 @@ python -m server.replay_network --demo 0 --max-steps 5  # 서버 (드라이런)
 | 이름 | 메일 |
 | --- | --- |
 | 전석환 | williamjeon77@naver.com (개인), williamjeon7@kookmin.ac.kr (학교) |
-| 김민수 | |
+| 김민수 | rlaalstn06260@naver.com (개인), rlaalstn06260@kookmin.ac.kr (학교)|
