@@ -84,17 +84,20 @@ def test_unauthenticated_requests_cannot_download_or_register_key(tmp_path):
         assert not pairing.authorized_keys.exists()
 
 
-def test_enrollment_allows_one_key_and_preserves_download_capability(tmp_path):
+def test_enrollment_accepts_each_laptop_key_once_and_preserves_download_capability(tmp_path):
+    # 11/08 부터 같은 설치 주소를 Ctrl+C 까지 다시 쓰고, 설치하는 노트북 키마다 등록한다.
     with service(tmp_path) as (pairing, request):
         prefix = "/" + pairing.token
         for _ in range(2):
             with request(prefix + "/enroll", {"public_key": key()}) as response:
                 assert json.load(response)["ok"]
-        before = pairing.authorized_keys.read_bytes()
-        with pytest.raises(HTTPError) as error:
-            request(prefix + "/enroll", {"public_key": key(2)})
-        assert error.value.code == 409
-        assert pairing.authorized_keys.read_bytes() == before
+        once = pairing.authorized_keys.read_bytes()
+        assert once.count((KEY_OPTIONS + " " + key()).encode()) == 1
+        with request(prefix + "/enroll", {"public_key": key(2)}) as response:
+            assert json.load(response)["ok"]
+        both = pairing.authorized_keys.read_bytes()
+        assert both.startswith(once) and (KEY_OPTIONS + " " + key(2)).encode() in both
+        assert pairing.keys == {canonical_key(key()), canonical_key(key(2))}
         with request(prefix + "/bundle.zip") as response:
             assert response.read() == pairing.archive
 
