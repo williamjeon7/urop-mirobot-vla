@@ -36,6 +36,9 @@ try {
     Invoke-RestMethod -Uri "$base/enroll" -Method Post -ContentType 'application/json' -Body $enroll | Out-Null
     $knownHosts = Join-Path $sshDirectory 'mirobot_oasys_known_hosts'
     '[__SSH_ADDRESS__]:__SSH_PORT__ __SSH_HOST_KEY__' | Set-Content -Encoding ascii $knownHosts
+    $configDirectory = Join-Path $repo 'config'
+    New-Item -ItemType Directory -Force $configDirectory | Out-Null
+    @{server_address='__SSH_ADDRESS__'; server_user='__SSH_USER__'; ssh_port=__SSH_PORT__} | ConvertTo-Json | Set-Content -Encoding ascii (Join-Path $configDirectory 'connection.local.json')
     Report-Setup 'python_setup'
     $venv = Join-Path $repo 'urop\Scripts\python.exe'
     if (!(Test-Path $venv)) {

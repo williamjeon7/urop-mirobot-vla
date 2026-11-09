@@ -1,0 +1,5 @@
+{
+  "server_address": "<SERVER_IP>",
+  "server_user": "<USER>",
+  "ssh_port": 22
+}

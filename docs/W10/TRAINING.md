@@ -3,7 +3,7 @@
 > **절차** · 확인 2026-11-06 · 기준 `data/hdf5_w10` (55개 준비 당시 계획), `cosmos-policy@18a2acc`, W9 1차 파인튜닝 실측값([../W9/FINETUNE.md](../W9/FINETUNE.md))
 > 이번 주 수집한 실물 녹화로 Cosmos Policy 를 학습하고 스텝별·색별로 비교하는 순서. 먼저 정할 것, 데이터, 학습 명령, 결과 비교에서 되는 것과 아직 안 되는 것.
 
-배경: 11/02 미팅 — Mirobot 데이터만으로 먼저 파인튜닝, 정책은 Cosmos 가 아니어도 됨 ([../meetings/2026-11-2.md](../meetings/2026-11-2.md)).
+배경: 11/02 미팅 — Mirobot 데이터만으로 먼저 파인튜닝, 정책은 Cosmos 가 아니어도 됨 ([../meetings/2026-11-02.md](../meetings/2026-11-02.md)).
 데이터 점검: [DATA_CHECK.md](DATA_CHECK.md). 실행 도구·action 라벨 문제: [POLICY_RUN.md](POLICY_RUN.md). 1차(혼합) 학습 기록: [../W9/FINETUNE.md](../W9/FINETUNE.md).
 
 **서버의 최신 90개용 경로와 실행 안내**는 [cosmos-policy/W10/TRAINING.md](../../cosmos-policy/W10/TRAINING.md)를 본다.

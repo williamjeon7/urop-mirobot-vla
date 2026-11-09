@@ -12,7 +12,9 @@ from urllib.request import Request, ProxyHandler, build_opener
 
 import pytest
 
-from tools.pair_windows import KEY_OPTIONS, Pairing, authorize_key, canonical_key, make_handler
+from tools.pair_windows import KEY_OPTIONS, REPO, Pairing, authorize_key, canonical_key, load_connection, make_handler
+
+CONNECTION = dict(server_address="server.example", server_user="robot", ssh_port=2222)
 
 
 def key(seed=1):
@@ -55,7 +57,7 @@ def test_symlinked_authorized_keys_is_not_replaced(tmp_path):
 def service(tmp_path):
     archive = tmp_path / "bundle.zip"
     archive.write_bytes(b"test ZIP snapshot")
-    pairing = Pairing(archive, tmp_path / ".ssh/authorized_keys", host_key=key(10))
+    pairing = Pairing(archive, tmp_path / ".ssh/authorized_keys", host_key=key(10), **CONNECTION)
     server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(pairing))
     worker = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": .01}, daemon=True)
     worker.start()
@@ -82,17 +84,20 @@ def test_unauthenticated_requests_cannot_download_or_register_key(tmp_path):
         assert not pairing.authorized_keys.exists()
 
 
-def test_enrollment_allows_one_key_and_preserves_download_capability(tmp_path):
+def test_enrollment_accepts_each_laptop_key_once_and_preserves_download_capability(tmp_path):
+    # 11/08 부터 같은 설치 주소를 Ctrl+C 까지 다시 쓰고, 설치하는 노트북 키마다 등록한다.
     with service(tmp_path) as (pairing, request):
         prefix = "/" + pairing.token
         for _ in range(2):
             with request(prefix + "/enroll", {"public_key": key()}) as response:
                 assert json.load(response)["ok"]
-        before = pairing.authorized_keys.read_bytes()
-        with pytest.raises(HTTPError) as error:
-            request(prefix + "/enroll", {"public_key": key(2)})
-        assert error.value.code == 409
-        assert pairing.authorized_keys.read_bytes() == before
+        once = pairing.authorized_keys.read_bytes()
+        assert once.count((KEY_OPTIONS + " " + key()).encode()) == 1
+        with request(prefix + "/enroll", {"public_key": key(2)}) as response:
+            assert json.load(response)["ok"]
+        both = pairing.authorized_keys.read_bytes()
+        assert both.startswith(once) and (KEY_OPTIONS + " " + key(2)).encode() in both
+        assert pairing.keys == {canonical_key(key()), canonical_key(key(2))}
         with request(prefix + "/bundle.zip") as response:
             assert response.read() == pairing.archive
 
@@ -107,6 +112,8 @@ def test_bootstrap_is_bound_to_forwarded_port_and_pins_download_and_host(tmp_pat
         assert "/enroll" in script and "/bundle.zip" in script
         assert "recording/start" not in script
         assert "Invoke-WebRequest" in script
+        assert "connection.local.json" in script
+        assert "server_address='server.example'" in script and "ssh_port=2222" in script
 
 
 def test_expired_pairing_denies_download_and_enrollment(tmp_path):
@@ -117,3 +124,23 @@ def test_expired_pairing_denies_download_and_enrollment(tmp_path):
                 request("/" + pairing.token + "/" + suffix, body)
             assert error.value.code == 410
         assert not pairing.authorized_keys.exists()
+
+
+def test_connection_comes_from_local_file(tmp_path):
+    path = tmp_path / "connection.local.json"
+    with pytest.raises(SystemExit, match="missing"):
+        load_connection(path)
+    path.write_text(json.dumps(CONNECTION))
+    assert load_connection(path) == CONNECTION
+    path.write_text(json.dumps({"server_address": "server.example"}))
+    with pytest.raises(SystemExit, match="ssh_port"):
+        load_connection(path)
+
+
+def test_example_connection_is_only_a_placeholder(tmp_path):
+    archive = tmp_path / "bundle.zip"
+    archive.write_bytes(b"x")
+    example = load_connection(REPO / "config/connection.example.json")
+    with pytest.raises(ValueError):
+        Pairing(archive, tmp_path / "authorized_keys", host_key=key(10), **example)
+

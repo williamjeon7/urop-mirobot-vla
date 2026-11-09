@@ -3,7 +3,7 @@
 > **기록** · 확인 2026-11-05 · 기준 `Mirobot_data/W10` L01–L20 (60개, 커밋 `15cebaee`), `cosmos-policy@18a2acc`
 > 이번 주 수집한 실물 녹화를 Cosmos Policy 학습에 바로 넣을 수 있는지 서버에서 확인한 것. 단계, 결과, 남은 결정.
 
-계획: 이번 주 세부 계획 11/5 "수집한 데이터를 Cosmos Policy 에 바로 넣을 수 있는 상태인지 확인" ([../meetings/2026-11-2.md](../meetings/2026-11-2.md) action plan 1·2번).
+계획: 이번 주 세부 계획 11/5 "수집한 데이터를 Cosmos Policy 에 바로 넣을 수 있는 상태인지 확인" ([../meetings/2026-11-02.md](../meetings/2026-11-02.md) action plan 1·2번).
 노트북 쪽 1차 점검(11/04): [HDF5_ALIGNMENT.md](HDF5_ALIGNMENT.md) — 정렬 기준과 미통과 5개. 수집 방법: [../../Mirobot_data/README.md](../../Mirobot_data/README.md).
 
 ## 0. 결론

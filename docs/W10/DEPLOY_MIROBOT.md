@@ -1,6 +1,6 @@
 # 학습한 W10 모델을 실제 Mirobot에서 실행하기
 
-> **절차** · 확인 2026-11-06 · 기준 `w10_mirobot_l01_l30_follow_4000/iter_000004000`
+> **절차** · 확인 2026-11-07 · 기준 `w10_mirobot_l01_l30_follow_4000/iter_000004000`
 > Windows 노트북에 연결한 Mirobot과 D405를 OASYS의 VS Code 터미널에서 실행한다.
 
 처음 사용하는 경우에는 1절부터 순서대로 진행한다. 설치가 끝난 뒤에는 연결 상태에 따라 시작할 곳이 달라진다.
@@ -36,14 +36,16 @@ Windows 로컬 터미널은 현재 `UROP [SSH: OASYS]` 창에서 **Ctrl+Shift+P 
 Mirobot 전원을 켜고 Mirobot과 D405를 Windows 노트북에 USB로 연결한다.
 장치를 사용 중인 녹화 프로그램, 시리얼 모니터, 카메라 뷰어는 닫는다.
 
-OASYS Bash에서 실행한다.
+OASYS Bash에서 실행한다. 처음 한 번은 서버 접속 정보 파일부터 만든다 (Git 에 올라가지 않는 파일).
 
 ```bash
 cd ~/UROP
+cp -n config/connection.example.json config/connection.local.json   # 처음 한 번 — OASYS 주소·계정·SSH 포트를 채운다
 bash tools/connect_windows.sh
 ```
 
 이 명령은 필요한 서버 환경을 준비하고, Windows에서 실행할 `irm ... | iex` 한 줄을 출력한다. 이 주소는 **이 터미널에서 `Ctrl+C` 로 끌 때까지 만료 없이 몇 번이든** 쓸 수 있다. 설치할 때마다 그 시점의 서버 코드를 보낸다. 시간 제한이 필요하면 `--ttl 900` 처럼 초를 준다.
+서버 접속 정보는 `config/connection.local.json` 에서 읽고, 설치하면서 Windows 의 `mirobot-policy\config\connection.local.json` 에도 같은 값을 저장한다. 그 뒤 Windows 연결 프로그램은 이 파일을 읽는다.
 
 ### 1-2. 출력된 한 줄을 Windows에서 실행
 
@@ -366,6 +368,8 @@ cosmos-policy/.venv/bin/python -m server.hide_and_seek --data outputs/failure_da
 | 증상 | 확인할 것 |
 | --- | --- |
 | Windows 설치용 주소에 접속되지 않음 | Ports 탭의 `8766`과 Local Address 확인. 설치 준비 터미널(`connect_windows.sh`)을 껐다면 다시 실행해 새 주소를 받기 |
+| `connection.local.json is missing` (OASYS) | `config/connection.example.json` 을 `config/connection.local.json` 으로 복사하고 주소·계정·SSH 포트 채우기 |
+| `Missing ...\config\connection.local.json` (Windows) | 11/07 이전에 설치한 Windows 코드. 1절 자동 설치를 다시 하면 이 파일이 생긴다 |
 | Windows 브리지 유지 종료 | `-Stop`을 실행했거나 Windows USB 브리지 프로세스 자체가 실패했는지 확인. SSH 터널 단절만으로는 브리지가 종료되지 않으며 자동 재연결한다 |
 | `Windows USB 연결 프로그램/역터널이 아직 연결되지 않았습니다` 또는 `Connection refused` | 2절의 Windows 연결 프로그램을 켜고 `--check` 실행 |
 | `remote port forwarding failed` | 이전 연결 프로그램이 켜져 있는지 확인하고 중복 실행 종료 |
@@ -462,6 +466,7 @@ bash tools/run_mirobot_local.sh --serial-port /dev/ttyUSB0 --color red --execute
 | 항목 | 기본값 |
 | --- | --- |
 | OASYS 저장소 | `~/UROP` |
+| 서버 SSH 접속 정보 | `config/connection.local.json` (Git 제외, 예시 `config/connection.example.json`) |
 | Windows 설치 폴더 | `$HOME\mirobot-policy` |
 | Python | Windows `urop`와 서버 `cosmos-policy/.venv`, 모두 3.10 |
 | USB 브리지 주소 | `http://127.0.0.1:8891` |
@@ -477,6 +482,7 @@ bash tools/run_mirobot_local.sh --serial-port /dev/ttyUSB0 --color red --execute
 | 파일 | 역할 |
 | --- | --- |
 | `tools/connect_windows.sh` | 최초 설치·연결 준비 |
+| `config/connection.local.json` | 서버 SSH 주소·계정·포트. Git 제외 |
 | `start_mirobot_windows.cmd` | 설치 후 Windows 연결 프로그램 재시작 |
 | `tools/run_mirobot_local.sh` | 실험 실행 명령 |
 | `robot/policy_bridge.py` | Windows USB 통신과 녹화 |
