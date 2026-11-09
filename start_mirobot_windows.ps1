@@ -1,4 +1,6 @@
 # Keep USB on Windows; control inference from the existing VS Code OASYS Bash.
+# CmdletBinding: unknown arguments (e.g. -Stop on an old copy) stop with an error instead of being ignored.
+[CmdletBinding()]
 param(
     [string]$SerialPort = "",
     [string]$ServerAddress = "",
